@@ -18,6 +18,10 @@ export default function LoginPage() {
     try {
       await login(email, password);
       router.push('/accounts');
+      // Force the root layout to re-run getMe with the new cookie so the
+      // Header renders. Without refresh(), the layout is reused from the
+      // /login render where user was null.
+      router.refresh();
     } catch {
       setError('Invalid email or password');
     } finally {
