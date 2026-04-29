@@ -1,7 +1,7 @@
 import type { Account } from '../services/accounts';
 
 export function AccountRow({ account }: { account: Account }) {
-  const badgeColor = account.kittyType === 'BASE' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
+  const badgeColor = account.kittyType === 'BASE' ? 'bg-brand-100 text-brand-900' : 'bg-emerald-100 text-emerald-800';
   return (
     <tr className="border-b">
       <td className="px-4 py-3 font-medium">{account.clientName}</td>
