@@ -22,6 +22,17 @@ describe('apiGet', () => {
     expect(global.fetch).toHaveBeenCalledWith('https://api.test/accounts', expect.any(Object));
   });
 
+  it('forwards cookie header when provided', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+    await apiGet('/auth/me', { cookieHeader: 'sam_session=abc' });
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Record<string, string>).Cookie).toBe('sam_session=abc');
+  });
+
   it('throws on non-2xx', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
