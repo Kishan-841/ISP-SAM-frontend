@@ -1,15 +1,9 @@
-import { PageHeader } from '../../components/page-header';
+import { getAccounts } from '../../services/accounts';
+import { getCookieHeader } from '../../lib/get-cookie-header';
+import { CommercialChangeForm } from '../../components/commercial-change-form';
 
-export default function CommercialChangePage() {
-  return (
-    <div className="px-8 py-6 max-w-7xl">
-      <PageHeader
-        title="Commercial Change"
-        subtitle="Upgrades, downgrades, rate revisions, terminations"
-      />
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 text-sm text-gray-500">
-        Coming soon
-      </div>
-    </div>
-  );
+export default async function CommercialChangePage() {
+  const cookieHeader = await getCookieHeader();
+  const { accounts } = await getAccounts({}, { cookieHeader });
+  return <CommercialChangeForm accounts={accounts} />;
 }
