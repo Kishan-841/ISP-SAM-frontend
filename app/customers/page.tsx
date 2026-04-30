@@ -7,7 +7,7 @@ export default async function CustomersPage() {
   const cookieHeader = await getCookieHeader();
   const { accounts } = await getAccounts({}, { cookieHeader });
   return (
-    <div className="px-8 py-6 max-w-7xl">
+    <div className="px-8 py-6 max-w-7xl flex flex-col gap-4">
       <PageHeader title="Customers" subtitle="All accounts" />
       <CustomersTable accounts={accounts} />
     </div>

@@ -1,13 +1,13 @@
 'use client';
 
-import { DataGrid, type Column } from './data-grid';
+import { DataTable, type Column } from './data-table';
 
 export type WaterfallDetailInput = {
   startArcRupees: number;
-  upgradesArcRupees: number;       // positive magnitude
-  downgradesArcRupees: number;     // positive magnitude
-  rateRevisionsArcRupees: number;  // positive magnitude
-  terminationsArcRupees: number;   // positive magnitude
+  upgradesArcRupees: number;
+  downgradesArcRupees: number;
+  rateRevisionsArcRupees: number;
+  terminationsArcRupees: number;
   endArcRupees: number;
 };
 
@@ -17,6 +17,13 @@ type WaterfallRow = {
   mrr: number;
   tone: 'neutral' | 'positive' | 'negative' | 'final';
   sign?: '+' | '−' | '=';
+};
+
+const TONE_CLASS: Record<WaterfallRow['tone'], string> = {
+  neutral: 'text-brand-600',
+  positive: 'text-emerald-600',
+  negative: 'text-red-600',
+  final: 'text-gray-900 font-semibold',
 };
 
 export function WaterfallDetail({ input }: { input: WaterfallDetailInput }) {
@@ -29,19 +36,12 @@ export function WaterfallDetail({ input }: { input: WaterfallDetailInput }) {
     { label: 'End of Period', arc: input.endArcRupees, mrr: input.endArcRupees / 12, tone: 'final', sign: '=' },
   ];
 
-  const toneClass: Record<WaterfallRow['tone'], string> = {
-    neutral: 'text-brand-600',
-    positive: 'text-emerald-600',
-    negative: 'text-red-600',
-    final: 'text-gray-900 font-semibold',
-  };
-
   const columns: Column<WaterfallRow>[] = [
     {
       key: 'component',
       header: 'Component',
       cell: (row) => (
-        <span className={toneClass[row.tone]}>
+        <span className={TONE_CLASS[row.tone]}>
           {row.sign && <span className="mr-1">{row.sign}</span>}
           {row.label}
         </span>
@@ -52,7 +52,7 @@ export function WaterfallDetail({ input }: { input: WaterfallDetailInput }) {
       header: 'ARC (annualized)',
       align: 'right',
       cell: (row) => (
-        <span className={row.tone === 'final' ? 'text-gray-900 font-semibold' : toneClass[row.tone]}>
+        <span className={row.tone === 'final' ? 'text-gray-900 font-semibold' : TONE_CLASS[row.tone]}>
           {formatRupees(row.arc)}
         </span>
       ),
@@ -69,11 +69,7 @@ export function WaterfallDetail({ input }: { input: WaterfallDetailInput }) {
     },
   ];
 
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <DataGrid columns={columns} rows={rows} rowKey={(r) => r.label} />
-    </div>
-  );
+  return <DataTable<WaterfallRow> columns={columns} rows={rows} rowKey={(r) => r.label} />;
 }
 
 function formatRupees(v: number): string {
