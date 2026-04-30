@@ -11,9 +11,13 @@ import {
   YAxis,
 } from 'recharts';
 
-const COLOR_TOTAL = '#1e3a8a';      // navy
-const COLOR_POSITIVE = '#10b981';   // emerald
-const COLOR_NEGATIVE = '#ef4444';   // red
+// Distinct hue per bar so each commercial event reads at a glance.
+const COLOR_START = '#1e40af';        // blue-800
+const COLOR_UPGRADES = '#10b981';     // emerald-500
+const COLOR_DOWNGRADES = '#f59e0b';   // amber-500
+const COLOR_RATE_REV = '#8b5cf6';     // violet-500
+const COLOR_TERMINATIONS = '#dc2626'; // red-600
+const COLOR_END = '#0d9488';          // teal-600
 
 export type WaterfallInput = {
   startArcRupees: number;
@@ -26,12 +30,12 @@ export type WaterfallInput = {
 
 export function RevenueWaterfall({ input }: { input: WaterfallInput }) {
   const data = [
-    { name: 'Start of Period', value: input.startArcRupees, fill: COLOR_TOTAL },
-    { name: 'Upgrades', value: input.upgradesArcRupees, fill: COLOR_POSITIVE },
-    { name: 'Downgrades', value: -input.downgradesArcRupees, fill: COLOR_NEGATIVE },
-    { name: 'Rate Rev. ↓', value: -input.rateRevisionsArcRupees, fill: COLOR_NEGATIVE },
-    { name: 'Terminations', value: -input.terminationsArcRupees, fill: COLOR_NEGATIVE },
-    { name: 'End of Period', value: input.endArcRupees, fill: COLOR_TOTAL },
+    { name: 'Start of Period', value: input.startArcRupees, fill: COLOR_START },
+    { name: 'Upgrades', value: input.upgradesArcRupees, fill: COLOR_UPGRADES },
+    { name: 'Downgrades', value: -input.downgradesArcRupees, fill: COLOR_DOWNGRADES },
+    { name: 'Rate Rev. ↓', value: -input.rateRevisionsArcRupees, fill: COLOR_RATE_REV },
+    { name: 'Terminations', value: -input.terminationsArcRupees, fill: COLOR_TERMINATIONS },
+    { name: 'End of Period', value: input.endArcRupees, fill: COLOR_END },
   ];
 
   return (
