@@ -72,9 +72,10 @@ export default function ExcelImportPage() {
           <CardContent>
             <form onSubmit={onSubmit} className="flex flex-col gap-4">
               <p className="text-sm text-gray-500">
-                Required columns: Customer Name, Onboarding Date, and either MRR or ARC.
-                Other common columns (Company, Mobile, Lead ID, Plan, Status) are
-                auto-detected. Anything else is preserved as metadata.
+                Required columns: Customer Name and Onboarding Date. Common columns
+                (Company, Mobile, Lead ID, Plan, Status, MRR/ARC) are auto-detected
+                when present. Anything else is preserved as metadata. Rows without
+                MRR/ARC import with ₹0 — fill in later from the customer page.
               </p>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="import-file">File</Label>
