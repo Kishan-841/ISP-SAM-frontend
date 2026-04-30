@@ -2,7 +2,10 @@
 
 import { useEffect, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { createUser, getUsers, type UserRecord } from '../../../services/users';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
   SelectContent,
@@ -10,8 +13,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PageHeader } from '../../../components/page-header';
+import { FormSection, FormField } from '../../../components/form-section';
+import { createUser, getUsers, type UserRecord } from '../../../services/users';
 
 type Role = 'ADMIN' | 'SAM_HEAD' | 'SAM';
+
+const ROLE_LABELS: Record<Role, string> = {
+  SAM: 'SAM',
+  SAM_HEAD: 'SAM Head',
+  ADMIN: 'Admin',
+};
 
 export default function NewUserPage() {
   const router = useRouter();
@@ -89,104 +101,131 @@ export default function NewUserPage() {
   }
 
   return (
-    <main className="max-w-xl mx-auto p-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">New user</h1>
-      <form onSubmit={onSubmit} className="bg-white shadow-sm rounded-lg p-6 space-y-4">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-          <input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-600/30 focus:border-brand-600"
-          />
-        </div>
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-600/30 focus:border-brand-600"
-          />
-        </div>
-        <div>
-          <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-          <select
-            id="role"
-            value={role}
-            onChange={(e) => onRoleChange(e.target.value as Role)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-600/30 focus:border-brand-600"
-          >
-            <option value="SAM">SAM</option>
-            <option value="SAM_HEAD">SAM_HEAD</option>
-            <option value="ADMIN">ADMIN</option>
-          </select>
-        </div>
-        {showSamHead && (
-          <div>
-            <label htmlFor="sam-head" className="block text-sm font-medium text-gray-700 mb-1">
-              SAM Head
-            </label>
-            {noHeadsAvailable ? (
-              <p className="text-sm text-amber-700">
-                No SAM Head exists yet — create one first.
-              </p>
-            ) : (
-              <Select
-                value={samHeadId}
-                onValueChange={setSamHeadId}
-                disabled={headsLoading}
+    <div className="max-w-5xl mx-auto px-8 py-6 flex flex-col gap-6">
+      <PageHeader
+        title="New user"
+        subtitle="Create a SAM, SAM Head or Admin account."
+      />
+
+      <form onSubmit={onSubmit}>
+        <Card>
+          <CardContent className="px-6 pt-6 pb-0 divide-y divide-gray-100">
+            <FormSection
+              title="Identity"
+              description="Display name and login email. The email becomes the user's unique identifier."
+            >
+              <FormField label="Name" required>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="h-10"
+                />
+              </FormField>
+              <FormField label="Email" required>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="h-10"
+                />
+              </FormField>
+            </FormSection>
+
+            <FormSection
+              title="Access"
+              description="Role determines the user's permissions. SAMs must be assigned to a SAM Head."
+            >
+              <FormField label="Role" required>
+                <Select value={role} onValueChange={(v) => onRoleChange(v as Role)}>
+                  <SelectTrigger className="w-full h-10">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {ROLE_LABELS[r]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+
+              {showSamHead && (
+                <FormField
+                  label="SAM Head"
+                  required
+                  hint="Required for SAM users"
+                  error={noHeadsAvailable ? 'No SAM Head exists yet — create one first.' : null}
+                >
+                  <Select
+                    value={samHeadId}
+                    onValueChange={setSamHeadId}
+                    disabled={headsLoading || noHeadsAvailable}
+                  >
+                    <SelectTrigger className="w-full h-10">
+                      <SelectValue
+                        placeholder={headsLoading ? 'Loading…' : 'Select SAM Head'}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {heads.map((h) => (
+                        <SelectItem key={h.id} value={h.id}>
+                          {h.name} ({h.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              )}
+
+              <FormField
+                label="Temporary password"
+                required
+                hint="At least 6 characters. The user can change it after logging in."
+                fullWidth
               >
-                <SelectTrigger id="sam-head" className="w-full">
-                  <SelectValue
-                    placeholder={headsLoading ? 'Loading…' : 'Select SAM Head'}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {heads.map((h) => (
-                    <SelectItem key={h.id} value={h.id}>
-                      {h.name} ({h.email})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Input
+                  type="text"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="h-10"
+                />
+              </FormField>
+            </FormSection>
+
+            {error && (
+              <div className="py-4">
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              </div>
             )}
+          </CardContent>
+
+          <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/30 rounded-b-xl">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push('/users')}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={submitting || noHeadsAvailable || samHeadMissing}
+              size="lg"
+              className="bg-brand-600 text-white hover:bg-brand-700"
+            >
+              {submitting ? 'Creating…' : 'Create user'}
+            </Button>
           </div>
-        )}
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Temporary password</label>
-          <input
-            id="password"
-            type="text"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-600/30 focus:border-brand-600"
-          />
-        </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={submitting || noHeadsAvailable || samHeadMissing}
-            className="bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-md px-4 py-2 disabled:opacity-50 transition-colors"
-          >
-            {submitting ? 'Creating…' : 'Create user'}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/users')}
-            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md px-4 py-2 transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
+        </Card>
       </form>
-    </main>
+    </div>
   );
 }
