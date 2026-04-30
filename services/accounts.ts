@@ -10,6 +10,12 @@ export type Account = {
   lastMeetingDate: string | null;
   onboardingDate: string;
   externalCrmId: string | null;
+  // Added in P2.A — populated by Excel import.
+  companyName?: string | null;
+  mobileNumber?: string | null;
+  leadId?: string | null;
+  currentPlan?: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 export function getAccounts(filters: { kittyType?: 'BASE' | 'NEW' } = {}, opts: ApiOpts = {}) {
