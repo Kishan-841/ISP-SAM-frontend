@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { MeetingRow } from '../services/meetings';
 import type { Account } from '../services/accounts';
-import { DataTable, dataTableClasses } from './data-table';
+import { DataTable } from './data-table';
+import { DataGrid, type Column } from './data-grid';
 import { StatusPill } from './status-pill';
 import { LogMeetingDialog } from './log-meeting-dialog';
 import { Within48hBadge } from './within-48h-badge';
@@ -16,6 +18,7 @@ export function MeetingsTable({
   meetings: MeetingRow[];
   accounts: Account[];
 }) {
+  const router = useRouter();
   const [searchValue, setSearchValue] = useState('');
   const [pageSize, setPageSize] = useState(20);
 
@@ -34,6 +37,67 @@ export function MeetingsTable({
 
   const visible = useMemo(() => filtered.slice(0, pageSize), [filtered, pageSize]);
 
+  const columns: Column<MeetingRow>[] = [
+    {
+      key: 'scheduled',
+      header: 'Scheduled',
+      cell: (m) => formatDateTime(m.scheduledAt),
+      className: 'px-5 py-4 text-sm text-gray-900 font-medium border-r border-gray-100 last:border-r-0',
+    },
+    {
+      key: 'customer',
+      header: 'Customer',
+      cell: (m) => m.account.clientName,
+      className: 'px-5 py-4 text-sm text-gray-900 font-medium border-r border-gray-100 last:border-r-0',
+    },
+    {
+      key: 'kitty',
+      header: 'Kitty',
+      cell: (m) => (
+        <StatusPill tone={m.account.kittyType === 'BASE' ? 'orange' : 'emerald'}>
+          {m.account.kittyType === 'BASE' ? 'Base' : 'New'}
+        </StatusPill>
+      ),
+    },
+    {
+      key: 'sam',
+      header: 'SAM',
+      cell: (m) => m.account.samOwner?.name ?? '—',
+      className: 'px-5 py-4 text-sm text-gray-500 border-r border-gray-100 last:border-r-0',
+    },
+    {
+      key: 'held',
+      header: 'Held',
+      cell: (m) => formatDateOrDash(m.heldAt),
+      className: 'px-5 py-4 text-sm text-gray-500 border-r border-gray-100 last:border-r-0',
+    },
+    {
+      key: 'momSent',
+      header: 'MOM Sent',
+      cell: (m) => formatDateOrDash(m.momSentAt),
+      className: 'px-5 py-4 text-sm text-gray-500 border-r border-gray-100 last:border-r-0',
+    },
+    {
+      key: 'within48h',
+      header: 'Within 48h',
+      cell: (m) => <Within48hBadge heldAt={m.heldAt} momSentAt={m.momSentAt} />,
+    },
+    {
+      key: 'open',
+      header: '',
+      align: 'right',
+      cell: (m) => (
+        <Link
+          href={`/meetings/${m.id}`}
+          className="text-brand-600 hover:underline font-medium text-sm"
+          onClick={(e) => e.stopPropagation()}
+        >
+          Open
+        </Link>
+      ),
+    },
+  ];
+
   return (
     <DataTable
       title="Meetings"
@@ -45,57 +109,18 @@ export function MeetingsTable({
       onPageSizeChange={setPageSize}
       right={<LogMeetingDialog accounts={accounts} />}
     >
-      <table className={`${dataTableClasses.table} min-w-[900px]`}>
-        <thead className={dataTableClasses.thead}>
-          <tr>
-            <th className={dataTableClasses.th}>Scheduled</th>
-            <th className={dataTableClasses.th}>Customer</th>
-            <th className={dataTableClasses.th}>Kitty</th>
-            <th className={dataTableClasses.th}>SAM</th>
-            <th className={dataTableClasses.th}>Held</th>
-            <th className={dataTableClasses.th}>MOM Sent</th>
-            <th className={dataTableClasses.th}>Within 48h</th>
-            <th className={dataTableClasses.th}></th>
-          </tr>
-        </thead>
-        <tbody className={dataTableClasses.tbody}>
-          {visible.length === 0 ? (
-            <tr>
-              <td colSpan={8} className="px-5 py-10 text-center text-gray-500 italic">
-                No meetings yet. Click &quot;Log New Meeting&quot; to schedule one.
-              </td>
-            </tr>
-          ) : (
-            visible.map((m) => (
-              <tr key={m.id} className={dataTableClasses.tr}>
-                <td className={dataTableClasses.tdPrimary}>{formatDateTime(m.scheduledAt)}</td>
-                <td className={dataTableClasses.tdPrimary}>{m.account.clientName}</td>
-                <td className="px-5 py-4">
-                  <StatusPill tone={m.account.kittyType === 'BASE' ? 'orange' : 'emerald'}>
-                    {m.account.kittyType === 'BASE' ? 'Base' : 'New'}
-                  </StatusPill>
-                </td>
-                <td className={dataTableClasses.tdSecondary}>
-                  {m.account.samOwner?.name ?? '—'}
-                </td>
-                <td className={dataTableClasses.tdSecondary}>{formatDateOrDash(m.heldAt)}</td>
-                <td className={dataTableClasses.tdSecondary}>{formatDateOrDash(m.momSentAt)}</td>
-                <td className="px-5 py-4">
-                  <Within48hBadge heldAt={m.heldAt} momSentAt={m.momSentAt} />
-                </td>
-                <td className="px-5 py-4 text-right">
-                  <Link
-                    href={`/meetings/${m.id}`}
-                    className="text-brand-600 hover:underline font-medium text-sm"
-                  >
-                    Open
-                  </Link>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataGrid
+        columns={columns}
+        rows={visible}
+        rowKey={(m) => m.id}
+        emptyMessage={
+          searchValue
+            ? 'No meetings match your search.'
+            : 'No meetings yet. Click "Log New Meeting" to schedule one.'
+        }
+        onRowClick={(m) => router.push(`/meetings/${m.id}`)}
+        minWidth="min-w-[900px]"
+      />
     </DataTable>
   );
 }

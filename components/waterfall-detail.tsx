@@ -1,11 +1,4 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { DataGrid, type Column } from './data-grid';
 
 export type WaterfallDetailInput = {
   startArcRupees: number;
@@ -16,8 +9,16 @@ export type WaterfallDetailInput = {
   endArcRupees: number;
 };
 
+type WaterfallRow = {
+  label: string;
+  arc: number;
+  mrr: number;
+  tone: 'neutral' | 'positive' | 'negative' | 'final';
+  sign?: '+' | '−' | '=';
+};
+
 export function WaterfallDetail({ input }: { input: WaterfallDetailInput }) {
-  const rows: { label: string; arc: number; mrr: number; tone: 'neutral' | 'positive' | 'negative' | 'final'; sign?: '+' | '−' | '='; }[] = [
+  const rows: WaterfallRow[] = [
     { label: 'Start of Period', arc: input.startArcRupees, mrr: input.startArcRupees / 12, tone: 'neutral' },
     { label: 'Upgrades', arc: input.upgradesArcRupees, mrr: input.upgradesArcRupees / 12, tone: 'positive', sign: '+' },
     { label: 'Downgrades', arc: input.downgradesArcRupees, mrr: input.downgradesArcRupees / 12, tone: 'negative', sign: '−' },
@@ -26,40 +27,49 @@ export function WaterfallDetail({ input }: { input: WaterfallDetailInput }) {
     { label: 'End of Period', arc: input.endArcRupees, mrr: input.endArcRupees / 12, tone: 'final', sign: '=' },
   ];
 
-  const toneClass = {
-    neutral: 'text-brand-600 underline-offset-2 hover:underline',
+  const toneClass: Record<WaterfallRow['tone'], string> = {
+    neutral: 'text-brand-600',
     positive: 'text-emerald-600',
     negative: 'text-red-600',
     final: 'text-gray-900 font-semibold',
-  } as const;
+  };
+
+  const columns: Column<WaterfallRow>[] = [
+    {
+      key: 'component',
+      header: 'Component',
+      cell: (row) => (
+        <span className={toneClass[row.tone]}>
+          {row.sign && <span className="mr-1">{row.sign}</span>}
+          {row.label}
+        </span>
+      ),
+    },
+    {
+      key: 'arc',
+      header: 'ARC (annualized)',
+      align: 'right',
+      cell: (row) => (
+        <span className={row.tone === 'final' ? 'text-gray-900 font-semibold' : toneClass[row.tone]}>
+          {formatRupees(row.arc)}
+        </span>
+      ),
+    },
+    {
+      key: 'mrr',
+      header: 'MRR (monthly)',
+      align: 'right',
+      cell: (row) => (
+        <span className={row.tone === 'final' ? 'text-gray-900 font-semibold' : 'text-gray-600'}>
+          {formatRupees(row.mrr)}
+        </span>
+      ),
+    },
+  ];
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-gray-50">
-            <TableHead className="text-xs uppercase tracking-wide text-gray-500">Component</TableHead>
-            <TableHead className="text-xs uppercase tracking-wide text-gray-500">ARC (annualized)</TableHead>
-            <TableHead className="text-xs uppercase tracking-wide text-gray-500">MRR (monthly)</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((row) => (
-            <TableRow key={row.label} className={row.tone === 'final' ? 'bg-gray-50' : ''}>
-              <TableCell className={toneClass[row.tone]}>
-                {row.sign && <span className="mr-1">{row.sign}</span>}
-                {row.label}
-              </TableCell>
-              <TableCell className={row.tone === 'final' ? 'text-gray-900 font-semibold' : (row.tone === 'positive' ? 'text-emerald-600' : (row.tone === 'negative' ? 'text-red-600' : 'text-gray-900'))}>
-                {formatRupees(row.arc)}
-              </TableCell>
-              <TableCell className={row.tone === 'final' ? 'text-gray-900 font-semibold' : 'text-gray-600'}>
-                {formatRupees(row.mrr)}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <DataGrid columns={columns} rows={rows} rowKey={(r) => r.label} />
     </div>
   );
 }

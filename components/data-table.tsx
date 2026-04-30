@@ -75,12 +75,12 @@ export function DataTable({
 export const dataTableClasses = {
   table: 'w-full',
   thead: 'bg-gray-50/60 border-b border-gray-100',
-  th: 'px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500',
+  th: 'px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 border-r border-gray-100 last:border-r-0',
   tbody: 'divide-y divide-gray-100',
   tr: 'hover:bg-gray-50/60 transition-colors',
-  td: 'px-5 py-4 text-sm',
-  tdPrimary: 'px-5 py-4 text-sm text-gray-900 font-medium',
-  tdSecondary: 'px-5 py-4 text-sm text-gray-500',
+  td: 'px-5 py-4 text-sm border-r border-gray-100 last:border-r-0',
+  tdPrimary: 'px-5 py-4 text-sm text-gray-900 font-medium border-r border-gray-100 last:border-r-0',
+  tdSecondary: 'px-5 py-4 text-sm text-gray-500 border-r border-gray-100 last:border-r-0',
   twoLine: {
     primary: 'text-sm text-gray-900',
     secondary: 'text-xs text-gray-500 mt-0.5',
