@@ -9,13 +9,38 @@ import {
 import { PageHeader, SectionHeading } from '../../components/page-header';
 import { StatCard } from '../../components/stat-card';
 import { QuarterFilter } from '../../components/quarter-filter';
+import { RevenueWaterfall } from '../../components/revenue-waterfall';
+import { WaterfallDetail } from '../../components/waterfall-detail';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { getExistingBaseMetrics } from '../../services/dashboard';
+
+const LAKH = 100_000;
 
 export default async function ExistingBaseDashboardPage() {
   const cookieHeader = await getCookieHeader();
   const metrics = await getExistingBaseMetrics({ cookieHeader });
   const terminatedArcLakh = metrics.totalBaseArcLakh - metrics.currentArcLakh;
+
+  // Convert metrics (lakh-denominated) into rupees for the chart + detail table.
+  const startArcRupees = metrics.totalBaseArcLakh * LAKH;
+  const upgradesArcRupees = metrics.upgrades.arcAddedLakh * LAKH;
+  const downgradesArcRupees = metrics.downgrades.arcReducedLakh * LAKH;
+  const rateRevisionsArcRupees = metrics.rateRevisions.arcChangeLakh * LAKH;
+  const terminationsArcRupees = metrics.terminations.arcLostLakh * LAKH;
+  const endArcRupees =
+    startArcRupees +
+    upgradesArcRupees -
+    downgradesArcRupees -
+    rateRevisionsArcRupees -
+    terminationsArcRupees;
+  const waterfallInput = {
+    startArcRupees,
+    upgradesArcRupees,
+    downgradesArcRupees,
+    rateRevisionsArcRupees,
+    terminationsArcRupees,
+    endArcRupees,
+  };
 
   return (
     <div className="px-8 py-6 max-w-7xl">
@@ -102,11 +127,14 @@ export default async function ExistingBaseDashboardPage() {
         </div>
       </section>
 
-      <section>
+      <section className="mb-8">
         <SectionHeading>Revenue Waterfall (ARC)</SectionHeading>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 h-72 grid place-items-center text-gray-400 text-sm">
-          Chart placeholder — bars: ₹90L, ₹60L, ₹30L y-axis
-        </div>
+        <RevenueWaterfall input={waterfallInput} />
+      </section>
+
+      <section className="mb-8">
+        <SectionHeading>Waterfall — Detail (ARC)</SectionHeading>
+        <WaterfallDetail input={waterfallInput} />
       </section>
     </div>
   );
