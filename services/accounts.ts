@@ -16,6 +16,11 @@ export type Account = {
   leadId?: string | null;
   currentPlan?: string | null;
   metadata?: Record<string, unknown> | null;
+  // Added in P2.B — auto-generated codes + bandwidth + waterfall snapshot.
+  customerCode?: string | null;
+  circuitId?: string | null;
+  bandwidthMbps?: number | null;
+  startOfPeriodMrr?: string | null;
 };
 
 export function getAccounts(filters: { kittyType?: 'BASE' | 'NEW' } = {}, opts: ApiOpts = {}) {

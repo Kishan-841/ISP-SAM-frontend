@@ -27,10 +27,13 @@ export function AccountRow({ account }: { account: Account }) {
         <td className="px-3 py-3 text-gray-400">
           {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </td>
+        <td className="px-3 py-3 font-mono text-xs text-brand-700">{account.customerCode ?? '—'}</td>
         <td className="px-3 py-3 font-medium">{account.clientName}</td>
         <td className="px-3 py-3 text-gray-600">{account.companyName ?? '—'}</td>
-        <td className="px-3 py-3 text-gray-600">{account.mobileNumber ?? '—'}</td>
         <td className="px-3 py-3 text-gray-600">{account.currentPlan ?? '—'}</td>
+        <td className="px-3 py-3 text-right text-gray-600">
+          {account.bandwidthMbps != null ? `${account.bandwidthMbps} Mbps` : '—'}
+        </td>
         <td className="px-3 py-3">
           <span className={`px-2 py-1 rounded text-xs font-semibold ${kittyColor}`}>
             {account.kittyType}
@@ -43,12 +46,22 @@ export function AccountRow({ account }: { account: Account }) {
       </tr>
       {open && (
         <tr className="border-b border-gray-100 bg-gray-50/60">
-          <td className="px-3 py-4" colSpan={8}>
+          <td className="px-3 py-4" colSpan={9}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3 text-sm">
+              <Detail label="Circuit ID" value={account.circuitId} mono />
               <Detail label="Lead ID" value={account.leadId} />
               <Detail label="External CRM ID" value={account.externalCrmId} />
+              <Detail label="Mobile" value={account.mobileNumber} />
               <Detail label="Onboarded" value={formatDate(account.onboardingDate)} />
               <Detail label="ARC (annual)" value={`₹${arc.toLocaleString('en-IN')}`} />
+              <Detail
+                label="Start-of-period MRR"
+                value={
+                  account.startOfPeriodMrr != null
+                    ? `₹${Number(account.startOfPeriodMrr).toLocaleString('en-IN')}`
+                    : null
+                }
+              />
               <Detail label="Last meeting" value={formatDate(account.lastMeetingDate)} />
               <Detail label="Last MOM sent" value={formatDate(account.lastMomDate)} />
             </div>
@@ -71,18 +84,19 @@ export function AccountRow({ account }: { account: Account }) {
   );
 }
 
-function Detail({ label, value }: { label: string; value: string | null | undefined }) {
+function Detail({ label, value, mono = false }: { label: string; value: string | null | undefined; mono?: boolean }) {
   return (
     <div>
       <div className="text-xs text-gray-500">{label}</div>
-      <div className="text-gray-900">{value && value !== '' ? value : '—'}</div>
+      <div className={`text-gray-900 ${mono ? 'font-mono text-xs' : ''}`}>
+        {value && value !== '' ? value : '—'}
+      </div>
     </div>
   );
 }
 
 function formatDate(value: string | null | undefined): string | null {
   if (!value) return null;
-  // ISO date or full timestamp — render as YYYY-MM-DD
   const m = value.match(/^(\d{4}-\d{2}-\d{2})/);
   return m ? m[1] : value;
 }
