@@ -1,3 +1,5 @@
+'use client';
+
 import { DataGrid, type Column } from './data-grid';
 
 export type WaterfallDetailInput = {
