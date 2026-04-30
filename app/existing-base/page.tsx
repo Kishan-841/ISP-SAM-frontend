@@ -65,8 +65,8 @@ export default async function ExistingBaseDashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            title="Upgrades (1)"
-            value="+₹3.6L"
+            title={`Upgrades (${metrics.upgrades.count})`}
+            value={`+₹${metrics.upgrades.arcAddedLakh.toFixed(1)}L`}
             subtitle="ARC added"
             icon={TrendingUp}
             iconBg="bg-emerald-50"
@@ -74,8 +74,8 @@ export default async function ExistingBaseDashboardPage() {
             valueColor="text-emerald-600"
           />
           <StatCard
-            title="Downgrades (1)"
-            value="-₹1.2L"
+            title={`Downgrades (${metrics.downgrades.count})`}
+            value={`-₹${metrics.downgrades.arcReducedLakh.toFixed(1)}L`}
             subtitle="ARC reduced"
             icon={TrendingDown}
             iconBg="bg-amber-50"
@@ -83,16 +83,16 @@ export default async function ExistingBaseDashboardPage() {
             valueColor="text-amber-600"
           />
           <StatCard
-            title="Rate Revisions (1)"
-            value="₹0"
+            title={`Rate Revisions (${metrics.rateRevisions.count})`}
+            value={`₹${metrics.rateRevisions.arcChangeLakh.toFixed(1)}L`}
             subtitle="Bandwidth uplift; ARC neutral or down"
             icon={Shield}
             iconBg="bg-indigo-50"
             iconColor="text-indigo-600"
           />
           <StatCard
-            title="Terminations (0)"
-            value="-₹0.0"
+            title={`Terminations (${metrics.terminations.count})`}
+            value={`-₹${metrics.terminations.arcLostLakh.toFixed(1)}L`}
             subtitle="ARC lost"
             icon={UserX}
             iconBg="bg-red-50"
