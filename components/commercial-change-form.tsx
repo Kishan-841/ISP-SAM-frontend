@@ -80,6 +80,51 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
 
   const isTermination = actionType === 'TERMINATION';
 
+  // Action-aware client-side validation. Each rule returns null when the input
+  // is OK or hasn't been provided yet, and an error string when the value
+  // contradicts the chosen action type.
+  const { mrrError, bwError } = useMemo<{
+    mrrError: string | null;
+    bwError: string | null;
+  }>(() => {
+    if (!selectedAccount || !actionType || isTermination) {
+      return { mrrError: null, bwError: null };
+    }
+    const currentMrr = Number(selectedAccount.currentMrr);
+    const currentBw = selectedAccount.bandwidthMbps ?? null;
+    const newMrrNum = newMrr === '' ? null : Number(newMrr);
+    const newBwNum = newBandwidthMbps === '' ? null : Number(newBandwidthMbps);
+
+    let mrr: string | null = null;
+    let bw: string | null = null;
+
+    if (actionType === 'UPGRADE') {
+      if (newMrrNum !== null && newMrrNum <= currentMrr) {
+        mrr = `Upgrade requires New MRR greater than current ₹${currentMrr.toLocaleString('en-IN')}.`;
+      }
+      if (newBwNum !== null && currentBw !== null && newBwNum <= currentBw) {
+        bw = `Upgrade requires New Bandwidth greater than current ${currentBw} Mbps.`;
+      }
+    } else if (actionType === 'DOWNGRADE') {
+      if (newMrrNum !== null && newMrrNum >= currentMrr) {
+        mrr = `Downgrade requires New MRR less than current ₹${currentMrr.toLocaleString('en-IN')}.`;
+      }
+      if (newBwNum !== null && currentBw !== null && newBwNum > currentBw) {
+        bw = `Downgrade can't increase bandwidth — use Upgrade or Rate Revision instead.`;
+      }
+    } else if (actionType === 'RATE_REVISION') {
+      // Rate revision: bandwidth uplift; ARC neutral or down (per CLAUDE.md §2)
+      if (newMrrNum !== null && newMrrNum > currentMrr) {
+        mrr = `Rate Revision keeps MRR neutral or lower than current ₹${currentMrr.toLocaleString('en-IN')}.`;
+      }
+      if (newBwNum !== null && currentBw !== null && newBwNum < currentBw) {
+        bw = `Rate Revision typically uplifts bandwidth — use Downgrade if you're reducing.`;
+      }
+    }
+
+    return { mrrError: mrr, bwError: bw };
+  }, [selectedAccount, actionType, isTermination, newMrr, newBandwidthMbps]);
+
   function resetForm() {
     setCustomerId('');
     setActionType('');
@@ -142,7 +187,9 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
     !effectiveDate ||
     (!isTermination && !newMrr) ||
     !file ||
-    submitting;
+    submitting ||
+    mrrError !== null ||
+    bwError !== null;
 
   const currentMrrHint = selectedAccount
     ? `Current MRR: ₹${Number(selectedAccount.currentMrr).toLocaleString('en-IN')}`
@@ -235,7 +282,11 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
               title="Commercials"
               description="The new bandwidth and MRR after this change takes effect. For terminations, MRR is set to ₹0 automatically."
             >
-              <FormField label="New Bandwidth (Mbps)" hint={currentBandwidthHint}>
+              <FormField
+                label="New Bandwidth (Mbps)"
+                hint={currentBandwidthHint}
+                error={bwError}
+              >
                 <Input
                   type="number"
                   inputMode="numeric"
@@ -244,13 +295,15 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
                   onChange={(e) => setNewBandwidthMbps(e.target.value)}
                   placeholder="e.g. 100"
                   disabled={isTermination}
-                  className="h-10"
+                  className={`h-10 ${bwError ? 'border-red-300 focus-visible:ring-red-500/20 focus-visible:border-red-500' : ''}`}
+                  aria-invalid={bwError ? true : undefined}
                 />
               </FormField>
               <FormField
                 label="New MRR (₹)"
                 required={!isTermination}
                 hint={isTermination ? 'Forced to ₹0 for terminations' : currentMrrHint}
+                error={mrrError}
               >
                 <Input
                   type="number"
@@ -261,7 +314,8 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
                   onChange={(e) => setNewMrr(e.target.value)}
                   placeholder="0"
                   disabled={isTermination}
-                  className="h-10"
+                  className={`h-10 ${mrrError ? 'border-red-300 focus-visible:ring-red-500/20 focus-visible:border-red-500' : ''}`}
+                  aria-invalid={mrrError ? true : undefined}
                 />
               </FormField>
               <FormField label="Reason" fullWidth hint="Why is this change happening? Visible in the audit log.">
