@@ -19,7 +19,7 @@ describe('LoginPage', () => {
   it('renders email + password inputs and a submit button', () => {
     render(<LoginPage />);
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 
@@ -32,7 +32,7 @@ describe('LoginPage', () => {
 
     render(<LoginPage />);
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'a@b.com' } });
-    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'wrong' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'wrong' } });
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
@@ -49,7 +49,7 @@ describe('LoginPage', () => {
 
     render(<LoginPage />);
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'a@b.com' } });
-    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'pw' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'pw' } });
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
