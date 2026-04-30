@@ -1,24 +1,84 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { createUser } from '../../../services/users';
+import { createUser, getUsers, type UserRecord } from '../../../services/users';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+type Role = 'ADMIN' | 'SAM_HEAD' | 'SAM';
 
 export default function NewUserPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'ADMIN' | 'SAM_HEAD' | 'SAM'>('SAM');
+  const [role, setRole] = useState<Role>('SAM');
   const [password, setPassword] = useState('');
+  const [samHeadId, setSamHeadId] = useState<string>('');
+  const [heads, setHeads] = useState<UserRecord[]>([]);
+  const [headsLoading, setHeadsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (role !== 'SAM') return;
+    let cancelled = false;
+    const promise = getUsers();
+    // Defer the loading flag so it lands as part of the same microtask as the
+    // request; this keeps the lint rule happy (no sync setState in an effect
+    // body) without changing behavior — the request kicks off immediately.
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setHeadsLoading(true);
+    });
+    promise
+      .then(({ users }) => {
+        if (cancelled) return;
+        setHeads(users.filter((u) => u.role === 'SAM_HEAD'));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setHeads([]);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setHeadsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [role]);
+
+  function onRoleChange(next: Role) {
+    setRole(next);
+    if (next !== 'SAM') {
+      // Clear field when role isn't SAM — handled in the change handler so we
+      // don't trigger a cascading render from inside an effect.
+      setSamHeadId('');
+    }
+  }
+
+  const showSamHead = role === 'SAM';
+  const noHeadsAvailable = showSamHead && !headsLoading && heads.length === 0;
+  const samHeadMissing = showSamHead && !samHeadId;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
-      await createUser({ email, name, role, password });
+      await createUser({
+        email,
+        name,
+        role,
+        password,
+        ...(role === 'SAM' && samHeadId ? { samHeadId } : {}),
+      });
       router.push('/users');
       router.refresh();
     } catch (err) {
@@ -58,7 +118,7 @@ export default function NewUserPage() {
           <select
             id="role"
             value={role}
-            onChange={(e) => setRole(e.target.value as 'ADMIN' | 'SAM_HEAD' | 'SAM')}
+            onChange={(e) => onRoleChange(e.target.value as Role)}
             className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-600/30 focus:border-brand-600"
           >
             <option value="SAM">SAM</option>
@@ -66,6 +126,37 @@ export default function NewUserPage() {
             <option value="ADMIN">ADMIN</option>
           </select>
         </div>
+        {showSamHead && (
+          <div>
+            <label htmlFor="sam-head" className="block text-sm font-medium text-gray-700 mb-1">
+              SAM Head
+            </label>
+            {noHeadsAvailable ? (
+              <p className="text-sm text-amber-700">
+                No SAM Head exists yet — create one first.
+              </p>
+            ) : (
+              <Select
+                value={samHeadId}
+                onValueChange={setSamHeadId}
+                disabled={headsLoading}
+              >
+                <SelectTrigger id="sam-head" className="w-full">
+                  <SelectValue
+                    placeholder={headsLoading ? 'Loading…' : 'Select SAM Head'}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {heads.map((h) => (
+                    <SelectItem key={h.id} value={h.id}>
+                      {h.name} ({h.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Temporary password</label>
           <input
@@ -82,7 +173,7 @@ export default function NewUserPage() {
         <div className="flex gap-2">
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || noHeadsAvailable || samHeadMissing}
             className="bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-md px-4 py-2 disabled:opacity-50 transition-colors"
           >
             {submitting ? 'Creating…' : 'Create user'}

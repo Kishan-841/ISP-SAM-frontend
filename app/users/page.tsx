@@ -24,6 +24,7 @@ export default async function UsersPage() {
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Role</th>
+              <th className="px-4 py-3">Reports To</th>
             </tr>
           </thead>
           <tbody>
@@ -35,6 +36,9 @@ export default async function UsersPage() {
                   <span className="text-xs px-2 py-0.5 bg-brand-50 text-brand-700 rounded-full font-medium">
                     {u.role}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  {u.role === 'SAM' ? u.samHead?.name ?? '—' : '—'}
                 </td>
               </tr>
             ))}
