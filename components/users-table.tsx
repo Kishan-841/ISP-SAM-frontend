@@ -21,23 +21,34 @@ const ROLE_LABEL: Record<UserRecord['role'], string> = {
 
 export function UsersTable({ users, canCreate = true }: { users: UserRecord[]; canCreate?: boolean }) {
   const columns: Column<UserRecord>[] = [
-    { key: 'name', header: 'Name', sortable: true, cell: (u) => u.name },
+    {
+      key: 'name',
+      header: 'Name',
+      align: 'center',
+      sortable: true,
+      cell: (u) => u.name,
+      className: 'px-5 py-4 text-sm text-gray-900 text-center',
+    },
     {
       key: 'email',
       header: 'Email',
+      align: 'center',
       cell: (u) => u.email,
-      className: 'px-5 py-4 text-sm text-gray-500',
+      className: 'px-5 py-4 text-sm text-gray-500 text-center',
     },
     {
       key: 'role',
       header: 'Role',
+      align: 'center',
       cell: (u) => <StatusPill tone={ROLE_TONE[u.role]}>{ROLE_LABEL[u.role]}</StatusPill>,
+      className: 'px-5 py-4 text-center',
     },
     {
       key: 'samHead',
       header: 'Reports To',
+      align: 'center',
       cell: (u) => u.samHead?.name ?? '—',
-      className: 'px-5 py-4 text-sm text-gray-500',
+      className: 'px-5 py-4 text-sm text-gray-500 text-center',
     },
   ];
 

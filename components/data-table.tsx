@@ -223,7 +223,7 @@ export function DataTable<T>({
                     key={col.key}
                     onClick={() => toggleSort(col)}
                     style={col.width ? { width: col.width, minWidth: col.width } : undefined}
-                    className={`px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700 whitespace-nowrap ${alignClass(col.align)} ${col.sortable ? 'cursor-pointer hover:text-gray-900 select-none' : ''}`}
+                    className={`px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-800 whitespace-nowrap ${alignClass(col.align)} ${col.sortable ? 'cursor-pointer hover:text-gray-950 select-none' : ''}`}
                   >
                     <span className="inline-flex items-center gap-1">
                       {col.header}
@@ -233,7 +233,7 @@ export function DataTable<T>({
                 );
               })}
               {actions && (
-                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-700 whitespace-nowrap">
+                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-800 whitespace-nowrap">
                   Actions
                 </th>
               )}
