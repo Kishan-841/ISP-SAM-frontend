@@ -5,6 +5,10 @@ import './globals.css';
 import { Sidebar } from '../components/sidebar';
 import { TopBar } from '../components/top-bar';
 import { getMe } from '../services/auth';
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: 'SAM — Gazon',
@@ -30,7 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <html lang="en">
+    <html lang="en" className={cn("font-sans", geist.variable)}>
       <body>
         {user ? (
           <div className="min-h-screen flex bg-gray-50">
