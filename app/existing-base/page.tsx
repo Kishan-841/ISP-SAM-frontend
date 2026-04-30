@@ -9,8 +9,14 @@ import {
 import { PageHeader, SectionHeading } from '../../components/page-header';
 import { StatCard } from '../../components/stat-card';
 import { QuarterFilter } from '../../components/quarter-filter';
+import { getCookieHeader } from '../../lib/get-cookie-header';
+import { getExistingBaseMetrics } from '../../services/dashboard';
 
-export default function ExistingBaseDashboardPage() {
+export default async function ExistingBaseDashboardPage() {
+  const cookieHeader = await getCookieHeader();
+  const metrics = await getExistingBaseMetrics({ cookieHeader });
+  const terminatedArcLakh = metrics.totalBaseArcLakh - metrics.currentArcLakh;
+
   return (
     <div className="px-8 py-6 max-w-7xl">
       <PageHeader
@@ -25,7 +31,7 @@ export default function ExistingBaseDashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <StatCard
             title="Total Customers (start of period)"
-            value="8"
+            value={metrics.totalCustomers.toString()}
             subtitle="April 1 Base headcount"
             icon={Users}
             iconBg="bg-blue-50"
@@ -33,24 +39,24 @@ export default function ExistingBaseDashboardPage() {
           />
           <StatCard
             title="Total Base ARC (start of period)"
-            value="₹76.0L"
-            subtitle="MRR ₹6.3L × 12"
+            value={`₹${metrics.totalBaseArcLakh.toFixed(1)}L`}
+            subtitle={`MRR ₹${metrics.totalBaseMrrLakh.toFixed(1)}L × 12`}
             icon={BarChart3}
             iconBg="bg-purple-50"
             iconColor="text-purple-600"
           />
           <StatCard
             title="Current Customers"
-            value="8"
-            subtitle="= 8 start + 0 terminated"
+            value={metrics.currentCustomers.toString()}
+            subtitle={`= ${metrics.totalCustomers} start - ${metrics.terminatedCount} terminated`}
             icon={Users}
             iconBg="bg-orange-50"
             iconColor="text-brand-600"
           />
           <StatCard
             title="Current ARC"
-            value="₹76.0L"
-            subtitle="= ₹76.0L start + ₹0.0 terminated"
+            value={`₹${metrics.currentArcLakh.toFixed(1)}L`}
+            subtitle={`= ₹${metrics.totalBaseArcLakh.toFixed(1)}L start - ₹${terminatedArcLakh.toFixed(1)}L terminated`}
             icon={BarChart3}
             iconBg="bg-orange-50"
             iconColor="text-brand-600"
