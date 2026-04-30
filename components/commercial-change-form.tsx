@@ -33,6 +33,10 @@ const ACTION_LABELS: Record<CommitInput['changeType'], string> = {
   TERMINATION: 'Termination',
 };
 
+function RequiredStar() {
+  return <span className="ml-0.5 text-red-500" aria-hidden="true">*</span>;
+}
+
 function formatCustomerLabel(account: Account): string {
   const code = account.customerCode ? ` (${account.customerCode})` : '';
   return `${account.clientName}${code}`;
@@ -162,7 +166,7 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
         <Card>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="customer">Customer</Label>
+              <Label htmlFor="customer">Customer<RequiredStar /></Label>
               <Select value={customerId} onValueChange={setCustomerId}>
                 <SelectTrigger id="customer" className="w-full h-9">
                   <SelectValue placeholder="Select customer" />
@@ -189,7 +193,7 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="action">Action Type</Label>
+              <Label htmlFor="action">Action Type<RequiredStar /></Label>
               <Select
                 value={actionType}
                 onValueChange={(v) => setActionType(v as ActionType)}
@@ -210,7 +214,7 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="effective-date">Effective Date</Label>
+              <Label htmlFor="effective-date">Effective Date<RequiredStar /></Label>
               <Input
                 id="effective-date"
                 type="date"
@@ -240,7 +244,9 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="new-mrr">New MRR (₹)</Label>
+              <Label htmlFor="new-mrr">
+                New MRR (₹){!isTermination && <RequiredStar />}
+              </Label>
               <Input
                 id="new-mrr"
                 type="number"
@@ -339,6 +345,8 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
         open={modalOpen}
         onOpenChange={onModalOpenChange}
         draft={result?.emailDraft ?? null}
+        changeType={result?.commercialChange.changeType ?? null}
+        clientName={selectedAccount?.clientName ?? null}
       />
     </div>
   );
