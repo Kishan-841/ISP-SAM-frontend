@@ -11,6 +11,7 @@ import {
   CalendarDays,
   Trophy,
   FileDown,
+  UserCog,
   Lock,
   LogOut,
   ChevronLeft,
@@ -25,6 +26,7 @@ type NavItem = {
   label: string;
   href: string;
   icon: IconType;
+  roles?: AuthUser['role'][];  // when set, only these roles see the item
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -36,6 +38,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Meetings & MoM', href: '/meetings', icon: CalendarDays },
   { label: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   { label: 'Excel Import', href: '/excel-import', icon: FileDown },
+  { label: 'Users', href: '/users', icon: UserCog, roles: ['ADMIN', 'SAM_HEAD'] },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -43,10 +46,12 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function Sidebar({ user }: { user: AuthUser }) {
   const pathname = usePathname() ?? '/';
   const router = useRouter();
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => !item.roles || item.roles.includes(user.role),
+  );
 
   async function onLogout() {
     try {
@@ -73,7 +78,7 @@ export function Sidebar({ user }: { user: AuthUser }) {
 
       <nav className="flex-1 py-2">
         <ul>
-          {NAV_ITEMS.map((item) => {
+          {visibleNavItems.map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
             const baseClass =
