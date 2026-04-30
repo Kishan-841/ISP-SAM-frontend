@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import './globals.css';
-import { Header } from '../components/header';
+import { Sidebar } from '../components/sidebar';
+import { TopBar } from '../components/top-bar';
 import { getMe } from '../services/auth';
 
 export const metadata: Metadata = {
@@ -31,8 +32,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body>
-        {user && <Header user={user} />}
-        {children}
+        {user ? (
+          <div className="min-h-screen flex bg-gray-50">
+            <Sidebar user={user} />
+            <div className="flex-1 flex flex-col min-w-0">
+              <TopBar user={user} />
+              <main className="flex-1">{children}</main>
+            </div>
+          </div>
+        ) : (
+          <main>{children}</main>
+        )}
       </body>
     </html>
   );

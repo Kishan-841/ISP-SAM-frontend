@@ -41,7 +41,7 @@ describe('LoginPage', () => {
     expect(pushMock).not.toHaveBeenCalled();
   });
 
-  it('on success calls router.push("/accounts")', async () => {
+  it('on success calls router.push("/existing-base")', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ user: { id: 'u', email: 'a@b.com', name: 'A', role: 'ADMIN' } }),
@@ -53,7 +53,7 @@ describe('LoginPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith('/accounts');
+      expect(pushMock).toHaveBeenCalledWith('/existing-base');
     });
   });
 });

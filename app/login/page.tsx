@@ -17,7 +17,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await login(email, password);
-      router.push('/accounts');
+      router.push('/existing-base');
       // Force the root layout to re-run getMe with the new cookie so the
       // Header renders. Without refresh(), the layout is reused from the
       // /login render where user was null.
