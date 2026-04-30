@@ -61,6 +61,7 @@ export default async function ExistingBaseDashboardPage() {
             icon={Users}
             iconBg="bg-blue-50"
             iconColor="text-blue-600"
+            href="/customers?kittyType=BASE"
           />
           <StatCard
             title="Total Base ARC (start of period)"
@@ -69,6 +70,7 @@ export default async function ExistingBaseDashboardPage() {
             icon={BarChart3}
             iconBg="bg-purple-50"
             iconColor="text-purple-600"
+            href="/customers?kittyType=BASE"
           />
           <StatCard
             title="Current Customers"
@@ -77,6 +79,7 @@ export default async function ExistingBaseDashboardPage() {
             icon={Users}
             iconBg="bg-orange-50"
             iconColor="text-brand-600"
+            href="/customers?kittyType=BASE&status=ACTIVE"
           />
           <StatCard
             title="Current ARC"
@@ -85,6 +88,7 @@ export default async function ExistingBaseDashboardPage() {
             icon={BarChart3}
             iconBg="bg-orange-50"
             iconColor="text-brand-600"
+            href="/customers?kittyType=BASE&status=ACTIVE"
           />
         </div>
 
@@ -97,6 +101,7 @@ export default async function ExistingBaseDashboardPage() {
             iconBg="bg-emerald-50"
             iconColor="text-emerald-600"
             valueColor="text-emerald-600"
+            href="/transactions?type=UPGRADE"
           />
           <StatCard
             title={`Downgrades (${metrics.downgrades.count})`}
@@ -106,6 +111,7 @@ export default async function ExistingBaseDashboardPage() {
             iconBg="bg-amber-50"
             iconColor="text-amber-600"
             valueColor="text-amber-600"
+            href="/transactions?type=DOWNGRADE"
           />
           <StatCard
             title={`Rate Revisions (${metrics.rateRevisions.count})`}
@@ -114,6 +120,7 @@ export default async function ExistingBaseDashboardPage() {
             icon={Shield}
             iconBg="bg-indigo-50"
             iconColor="text-indigo-600"
+            href="/transactions?type=RATE_REVISION"
           />
           <StatCard
             title={`Terminations (${metrics.terminations.count})`}
@@ -123,6 +130,7 @@ export default async function ExistingBaseDashboardPage() {
             iconBg="bg-red-50"
             iconColor="text-red-600"
             valueColor="text-red-600"
+            href="/transactions?type=TERMINATION"
           />
         </div>
       </section>

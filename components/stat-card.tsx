@@ -1,4 +1,5 @@
 import type { ComponentType, SVGProps } from 'react';
+import Link from 'next/link';
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -10,6 +11,7 @@ export function StatCard({
   iconBg,
   iconColor,
   valueColor,
+  href,
 }: {
   title: string;
   value: string;
@@ -18,9 +20,14 @@ export function StatCard({
   iconBg: string;
   iconColor: string;
   valueColor?: string;
+  href?: string;
 }) {
-  return (
-    <div className="bg-white shadow-sm rounded-lg p-5 border border-gray-100 relative">
+  const inner = (
+    <div
+      className={`bg-white shadow-sm rounded-lg p-5 border border-gray-100 relative ${
+        href ? 'hover:border-brand-300 hover:shadow-md transition-all cursor-pointer' : ''
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm text-gray-600">{title}</p>
@@ -35,5 +42,12 @@ export function StatCard({
         </div>
       </div>
     </div>
+  );
+  return href ? (
+    <Link href={href} className="block">
+      {inner}
+    </Link>
+  ) : (
+    inner
   );
 }

@@ -1,4 +1,35 @@
 import { env } from '../lib/env';
+import { apiGet, type ApiOpts } from './api-client';
+
+export type CommercialChangeListItem = {
+  id: string;
+  accountId: string;
+  changeType: 'UPGRADE' | 'DOWNGRADE' | 'RATE_REVISION' | 'TERMINATION';
+  oldMrr: string;
+  newMrr: string;
+  effectiveDate: string;
+  clientApprovalAttached: boolean;
+  approvalFileUrl: string | null;
+  reason: string | null;
+  oldBandwidthMbps: number | null;
+  newBandwidthMbps: number | null;
+  createdAt: string;
+  account: {
+    id: string;
+    clientName: string;
+    customerCode: string | null;
+    circuitId: string | null;
+    kittyType: 'BASE' | 'NEW';
+  };
+};
+
+export function getCommercialChanges(
+  filters: { type?: 'UPGRADE' | 'DOWNGRADE' | 'RATE_REVISION' | 'TERMINATION' } = {},
+  opts: ApiOpts = {},
+) {
+  const qs = filters.type ? `?type=${filters.type}` : '';
+  return apiGet<{ changes: CommercialChangeListItem[] }>(`/commercial-changes${qs}`, opts);
+}
 
 export type CommitInput = {
   accountId: string;
