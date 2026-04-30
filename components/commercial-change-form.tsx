@@ -32,9 +32,26 @@ const ACTION_LABELS: Record<CommitInput['changeType'], string> = {
 
 const STEPS = ['Fill commercials', 'Upload approval', 'Commit & notify'];
 
-function formatCustomerLabel(account: Account): string {
-  const code = account.customerCode ? ` · ${account.customerCode}` : '';
-  return `${account.clientName}${code}`;
+function CustomerOption({ account }: { account: Account }) {
+  const mrr = Number(account.currentMrr);
+  const detailParts: string[] = [];
+  if (account.bandwidthMbps != null) detailParts.push(`${account.bandwidthMbps} Mbps`);
+  if (mrr > 0) detailParts.push(`₹${mrr.toLocaleString('en-IN')}/mo`);
+  if (account.currentPlan) detailParts.push(account.currentPlan);
+
+  return (
+    <div className="flex flex-col gap-0.5 py-0.5">
+      <div className="flex items-center gap-2 text-sm text-gray-900">
+        <span className="font-medium">{account.clientName}</span>
+        {account.customerCode && (
+          <span className="font-mono text-xs text-brand-600">{account.customerCode}</span>
+        )}
+      </div>
+      {detailParts.length > 0 && (
+        <div className="text-xs text-gray-500">{detailParts.join(' · ')}</div>
+      )}
+    </div>
+  );
 }
 
 function todayIso(): string {
@@ -159,13 +176,24 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
             >
               <FormField label="Customer" required fullWidth>
                 <Select value={customerId} onValueChange={setCustomerId}>
-                  <SelectTrigger className="w-full h-10">
-                    <SelectValue placeholder="Select customer" />
+                  <SelectTrigger className="w-full h-12">
+                    <SelectValue placeholder="Select customer">
+                      {selectedAccount && (
+                        <span className="flex items-center gap-2 text-sm">
+                          <span className="font-medium text-gray-900">{selectedAccount.clientName}</span>
+                          {selectedAccount.customerCode && (
+                            <span className="font-mono text-xs text-brand-600">
+                              {selectedAccount.customerCode}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {accounts.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
-                        {formatCustomerLabel(a)}
+                        <CustomerOption account={a} />
                       </SelectItem>
                     ))}
                   </SelectContent>

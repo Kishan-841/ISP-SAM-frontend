@@ -97,16 +97,32 @@ export function LogMeetingDialog({ accounts }: { accounts: Account[] }) {
               </span>
             </Label>
             <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger id="meeting-customer" className="w-full h-9">
+              <SelectTrigger id="meeting-customer" className="w-full h-12">
                 <SelectValue placeholder="Select customer" />
               </SelectTrigger>
               <SelectContent>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.clientName}
-                    {a.customerCode ? ` (${a.customerCode})` : ''}
-                  </SelectItem>
-                ))}
+                {accounts.map((a) => {
+                  const mrr = Number(a.currentMrr);
+                  const detailParts: string[] = [];
+                  if (a.bandwidthMbps != null) detailParts.push(`${a.bandwidthMbps} Mbps`);
+                  if (mrr > 0) detailParts.push(`₹${mrr.toLocaleString('en-IN')}/mo`);
+                  if (a.currentPlan) detailParts.push(a.currentPlan);
+                  return (
+                    <SelectItem key={a.id} value={a.id}>
+                      <div className="flex flex-col gap-0.5 py-0.5">
+                        <div className="flex items-center gap-2 text-sm text-gray-900">
+                          <span className="font-medium">{a.clientName}</span>
+                          {a.customerCode && (
+                            <span className="font-mono text-xs text-brand-600">{a.customerCode}</span>
+                          )}
+                        </div>
+                        {detailParts.length > 0 && (
+                          <div className="text-xs text-gray-500">{detailParts.join(' · ')}</div>
+                        )}
+                      </div>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
