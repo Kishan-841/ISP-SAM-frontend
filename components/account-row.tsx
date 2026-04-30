@@ -3,50 +3,68 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import type { Account } from '../services/accounts';
+import { StatusPill, type PillTone } from './status-pill';
+import { dataTableClasses } from './data-table';
 
-const STATUS_COLOR: Record<Account['contractStatus'], string> = {
-  ACTIVE: 'text-emerald-700',
-  PENDING: 'text-amber-700',
-  EXPIRED: 'text-gray-600',
-  TERMINATED: 'text-red-700',
+const STATUS_TONE: Record<Account['contractStatus'], PillTone> = {
+  ACTIVE: 'emerald',
+  PENDING: 'amber',
+  EXPIRED: 'gray',
+  TERMINATED: 'red',
+};
+
+const STATUS_LABEL: Record<Account['contractStatus'], string> = {
+  ACTIVE: 'Active',
+  PENDING: 'Pending',
+  EXPIRED: 'Expired',
+  TERMINATED: 'Terminated',
 };
 
 export function AccountRow({ account }: { account: Account }) {
   const [open, setOpen] = useState(false);
-  const kittyColor =
-    account.kittyType === 'BASE'
-      ? 'bg-brand-100 text-brand-900'
-      : 'bg-emerald-100 text-emerald-800';
-
   const arc = Number(account.currentMrr) * 12;
   const metadataEntries = account.metadata ? Object.entries(account.metadata) : [];
 
   return (
     <>
-      <tr className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onClick={() => setOpen(o => !o)}>
-        <td className="px-3 py-3 text-gray-400">
+      <tr
+        className={`${dataTableClasses.tr} cursor-pointer`}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <td className="px-5 py-4 text-gray-400 w-8">
           {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </td>
-        <td className="px-3 py-3 font-mono text-xs text-brand-700">{account.customerCode ?? '—'}</td>
-        <td className="px-3 py-3 font-medium">{account.clientName}</td>
-        <td className="px-3 py-3 text-gray-600">{account.companyName ?? '—'}</td>
-        <td className="px-3 py-3 text-gray-600">{account.currentPlan ?? '—'}</td>
-        <td className="px-3 py-3 text-right text-gray-600">
+        <td className="px-5 py-4 font-mono text-xs text-orange-600">
+          {account.customerCode ?? '—'}
+        </td>
+        <td className="px-5 py-4">
+          <div className={dataTableClasses.twoLine.primary}>{account.clientName}</div>
+          {account.companyName && (
+            <div className={dataTableClasses.twoLine.secondary}>{account.companyName}</div>
+          )}
+        </td>
+        <td className={dataTableClasses.tdSecondary}>{account.companyName ?? '—'}</td>
+        <td className={dataTableClasses.tdSecondary}>{account.currentPlan ?? '—'}</td>
+        <td className={`${dataTableClasses.tdSecondary} text-right`}>
           {account.bandwidthMbps != null ? `${account.bandwidthMbps} Mbps` : '—'}
         </td>
-        <td className="px-3 py-3">
-          <span className={`px-2 py-1 rounded text-xs font-semibold ${kittyColor}`}>
+        <td className="px-5 py-4">
+          <StatusPill tone={account.kittyType === 'BASE' ? 'orange' : 'emerald'}>
             {account.kittyType}
-          </span>
+          </StatusPill>
         </td>
-        <td className="px-3 py-3 text-right">₹{Number(account.currentMrr).toLocaleString('en-IN')}</td>
-        <td className={`px-3 py-3 text-xs font-semibold ${STATUS_COLOR[account.contractStatus]}`}>
-          {account.contractStatus}
+        <td className={`${dataTableClasses.tdPrimary} text-right`}>
+          ₹{Number(account.currentMrr).toLocaleString('en-IN')}
+        </td>
+        <td className="px-5 py-4">
+          <StatusPill tone={STATUS_TONE[account.contractStatus]}>
+            {STATUS_LABEL[account.contractStatus]}
+          </StatusPill>
         </td>
       </tr>
       {open && (
-        <tr className="border-b border-gray-100 bg-gray-50/60">
-          <td className="px-3 py-4" colSpan={9}>
+        <tr className="bg-gray-50/60">
+          <td className="px-5 py-4" colSpan={9}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3 text-sm">
               <Detail label="Circuit ID" value={account.circuitId} mono />
               <Detail label="Lead ID" value={account.leadId} />
