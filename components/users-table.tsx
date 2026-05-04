@@ -43,13 +43,6 @@ export function UsersTable({ users, canCreate = true }: { users: UserRecord[]; c
       cell: (u) => <StatusPill tone={ROLE_TONE[u.role]}>{ROLE_LABEL[u.role]}</StatusPill>,
       className: 'px-5 py-4 text-center',
     },
-    {
-      key: 'samHead',
-      header: 'Reports To',
-      align: 'center',
-      cell: (u) => u.samHead?.name ?? '—',
-      className: 'px-5 py-4 text-sm text-gray-500 text-center',
-    },
   ];
 
   return (
@@ -58,7 +51,7 @@ export function UsersTable({ users, canCreate = true }: { users: UserRecord[]; c
       totalCount={users.length}
       searchable
       searchPlaceholder="Search by name, email, role"
-      searchKeys={['name', 'email', 'role', 'samHead.name']}
+      searchKeys={['name', 'email', 'role']}
       pagination
       columns={columns}
       rows={users}

@@ -8,7 +8,7 @@ export default async function UsersPage() {
   const { users } = await getUsers({ cookieHeader });
 
   return (
-    <div className="px-8 py-6 max-w-6xl">
+    <div className="px-8 py-6">
       <PageHeader title="Users" subtitle="Team members" />
       <UsersTable users={users} />
     </div>

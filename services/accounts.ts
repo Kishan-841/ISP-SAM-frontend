@@ -12,6 +12,7 @@ export type Account = {
   externalCrmId: string | null;
   // Added in P2.A — populated by Excel import.
   companyName?: string | null;
+  email?: string | null;
   mobileNumber?: string | null;
   leadId?: string | null;
   currentPlan?: string | null;

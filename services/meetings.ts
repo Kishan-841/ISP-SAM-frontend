@@ -1,5 +1,16 @@
 import { apiGet, apiPost, type ApiOpts } from './api-client';
 
+export type MeetingType = 'ONLINE' | 'PHYSICAL';
+
+export type ActionItem = {
+  srNo: number;
+  discussionDescription: string;
+  actionOwner: string;
+  planOfAction: string;
+  closureDate: string | null;
+  currentStatus: 'Open' | 'In Progress' | 'Closed';
+};
+
 export type MeetingRow = {
   id: string;
   accountId: string;
@@ -8,21 +19,25 @@ export type MeetingRow = {
   momSentAt: string | null;
   momContent: string | null;
   agenda: string | null;
+  meetingType: MeetingType;
+  location: string | null;
+  clientParticipants: string | null;
+  gazonParticipants: string | null;
+  actionItems: ActionItem[] | null;
   account: {
     id: string;
     clientName: string;
+    companyName: string | null;
+    customerCode: string | null;
+    circuitId: string | null;
     kittyType: 'BASE' | 'NEW';
     samOwnerId: string | null;
     samOwner: { id: string; name: string; email: string } | null;
   };
+  createdByUser: { id: string; name: string; email: string } | null;
 };
 
-export type MeetingDetail = MeetingRow & {
-  account: MeetingRow['account'] & {
-    customerCode?: string | null;
-    circuitId?: string | null;
-  };
-};
+export type MeetingDetail = MeetingRow;
 
 export function getMeetings(opts: ApiOpts & { recent?: boolean } = {}) {
   const { recent, ...rest } = opts;
@@ -34,7 +49,18 @@ export function getMeeting(id: string, opts: ApiOpts = {}) {
   return apiGet<{ meeting: MeetingDetail }>(`/meetings/${id}`, opts);
 }
 
-export function logMeeting(input: { accountId: string; scheduledAt: string; agenda?: string }) {
+export type LogMeetingInput = {
+  accountId: string;
+  scheduledAt: string;
+  agenda?: string;
+  meetingType: MeetingType;
+  location?: string;
+  clientParticipants?: string;
+  gazonParticipants?: string;
+  actionItems?: ActionItem[];
+};
+
+export function logMeeting(input: LogMeetingInput) {
   return apiPost<{ meeting: MeetingRow }>('/meetings', input);
 }
 

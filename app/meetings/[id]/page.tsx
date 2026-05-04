@@ -8,7 +8,9 @@ import { PageHeader, SectionHeading } from '../../../components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { MarkHeldButton } from '../../../components/mark-held-button';
 import { MomEditor } from '../../../components/mom-editor';
+import { MomDetails } from '../../../components/mom-details';
 import { Within48hBadge } from '../../../components/within-48h-badge';
+import { formatDateTime } from '../../../lib/format-date';
 
 export default async function MeetingDetailPage({
   params,
@@ -46,11 +48,8 @@ export default async function MeetingDetailPage({
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 pt-4 text-sm">
           <Field label="Scheduled" value={formatDateTime(meeting.scheduledAt)} />
           <Field label="SAM" value={meeting.account.samOwner?.name ?? '—'} />
-          <Field label="Held" value={meeting.heldAt ? formatDateTime(meeting.heldAt) : '—'} />
-          <Field
-            label="MoM Sent"
-            value={meeting.momSentAt ? formatDateTime(meeting.momSentAt) : '—'}
-          />
+          <Field label="Held" value={formatDateTime(meeting.heldAt)} />
+          <Field label="MoM Sent" value={formatDateTime(meeting.momSentAt)} />
           <Field label="Customer" value={meeting.account.clientName} />
           <Field label="Circuit ID" value={meeting.account.circuitId ?? '—'} />
           <Field label="Within 48h" value={null}>
@@ -70,6 +69,21 @@ export default async function MeetingDetailPage({
           </Card>
         </section>
       )}
+
+      <section className="flex flex-col gap-3">
+        <SectionHeading>Minutes of Meeting</SectionHeading>
+        <Card>
+          <CardContent className="pt-4">
+            <MomDetails
+              meetingType={meeting.meetingType}
+              location={meeting.location}
+              clientParticipants={meeting.clientParticipants}
+              gazonParticipants={meeting.gazonParticipants}
+              actionItems={meeting.actionItems}
+            />
+          </CardContent>
+        </Card>
+      </section>
 
       <section className="flex flex-col gap-3">
         <SectionHeading>1 · Mark as Held</SectionHeading>
@@ -125,10 +139,3 @@ function Field({
   );
 }
 
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  const date = d.toISOString().slice(0, 10);
-  const hh = String(d.getUTCHours()).padStart(2, '0');
-  const mm = String(d.getUTCMinutes()).padStart(2, '0');
-  return `${date} ${hh}:${mm}`;
-}

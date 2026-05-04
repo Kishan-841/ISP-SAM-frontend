@@ -5,7 +5,7 @@ if (!apiBase) {
 
 // Server-side fetches can't resolve relative URLs (no origin). They bypass the
 // Next.js proxy and hit the backend directly; cookies are forwarded explicitly.
-const internalApiBase = process.env.BACKEND_URL ?? 'http://localhost:3001';
+const internalApiBase = process.env.BACKEND_URL ?? 'http://localhost:5500';
 
 export const env = {
   apiBase,

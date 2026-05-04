@@ -5,6 +5,7 @@ import { ClipboardList } from 'lucide-react';
 import { DataTable, type Column } from './data-table';
 import { StatusPill, type PillTone } from './status-pill';
 import type { CommercialChangeListItem } from '../services/commercial-changes';
+import { formatRupeesCompact } from '../lib/format-rupees';
 
 const TYPE_TONE: Record<CommercialChangeListItem['changeType'], PillTone> = {
   UPGRADE: 'emerald',
@@ -54,13 +55,17 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
     },
     {
       key: 'oldNew',
-      header: 'MRR Change',
+      header: 'ARC Change',
       align: 'center',
       cell: (c) => (
         <div className="flex items-center justify-center gap-2 text-sm tabular-nums">
-          <span className="text-gray-500">₹{Number(c.oldMrr).toLocaleString('en-IN')}</span>
+          <span className="text-gray-500" title={`₹${Number(c.oldMrr).toLocaleString('en-IN')}`}>
+            {formatRupeesCompact(Number(c.oldMrr))}
+          </span>
           <span className="text-gray-400">→</span>
-          <span className="font-medium text-gray-900">₹{Number(c.newMrr).toLocaleString('en-IN')}</span>
+          <span className="font-medium text-gray-900" title={`₹${Number(c.newMrr).toLocaleString('en-IN')}`}>
+            {formatRupeesCompact(Number(c.newMrr))}
+          </span>
         </div>
       ),
       className: 'px-5 py-4 text-center',

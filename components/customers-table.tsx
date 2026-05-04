@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, Users as UsersIcon } from 'lucide-react';
 import { DataTable, type Column } from './data-table';
 import { StatusPill, type PillTone } from './status-pill';
 import type { Account } from '../services/accounts';
+import { formatRupeesCompact } from '../lib/format-rupees';
 
 const STATUS_TONE: Record<Account['contractStatus'], PillTone> = {
   ACTIVE: 'emerald',
@@ -76,10 +77,10 @@ export function CustomersTable({ accounts }: { accounts: Account[] }) {
     },
     {
       key: 'currentMrr',
-      header: 'Current MRR',
+      header: 'Current ARC',
       sortable: true,
       align: 'right',
-      cell: (a) => `₹${Number(a.currentMrr).toLocaleString('en-IN')}`,
+      cell: (a) => formatRupeesCompact(Number(a.currentMrr)),
       className: 'px-5 py-4 text-sm font-medium text-gray-900 text-right',
     },
     {
@@ -114,7 +115,6 @@ export function CustomersTable({ accounts }: { accounts: Account[] }) {
 }
 
 function CustomerDetails({ account }: { account: Account }) {
-  const arc = Number(account.currentMrr) * 12;
   const metadataEntries = account.metadata ? Object.entries(account.metadata) : [];
   return (
     <div>
@@ -122,14 +122,14 @@ function CustomerDetails({ account }: { account: Account }) {
         <Detail label="Circuit ID" value={account.circuitId} mono />
         <Detail label="Lead ID" value={account.leadId} />
         <Detail label="External CRM ID" value={account.externalCrmId} />
+        <Detail label="Email" value={account.email} />
         <Detail label="Mobile" value={account.mobileNumber} />
         <Detail label="Onboarded" value={formatDate(account.onboardingDate)} />
-        <Detail label="ARC (annual)" value={`₹${arc.toLocaleString('en-IN')}`} />
         <Detail
-          label="Start-of-period MRR"
+          label="Start-of-period ARC"
           value={
             account.startOfPeriodMrr != null
-              ? `₹${Number(account.startOfPeriodMrr).toLocaleString('en-IN')}`
+              ? formatRupeesCompact(Number(account.startOfPeriodMrr))
               : null
           }
         />

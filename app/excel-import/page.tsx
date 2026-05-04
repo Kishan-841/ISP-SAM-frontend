@@ -64,11 +64,11 @@ export default function ExcelImportPage() {
             <CardContent className="px-6 pt-6 pb-0 divide-y divide-gray-100">
               <FormSection
                 title="Upload"
-                description="Required columns: Customer Name and Onboarding Date. Common columns (Company, Mobile, Lead ID, Plan, Status, MRR/ARC) are auto-detected when present. Anything else is preserved as metadata."
+                description="Required columns: Customer Name and Onboarding Date. Common columns (Company, Mobile, Lead ID, Plan, Status, ARC) are auto-detected when present. Anything else is preserved as metadata."
               >
                 <div className="sm:col-span-2 flex flex-col gap-3">
                   <p className="text-sm text-gray-500">
-                    Rows without MRR/ARC import with ₹0 — fill in later from the customer page.
+                    Rows without ARC import with ₹0 — fill in later from the customer page.
                   </p>
                   <FileDropZone
                     accept=".xlsx,.xls,.csv"

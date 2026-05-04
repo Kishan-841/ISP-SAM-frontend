@@ -36,7 +36,7 @@ function CustomerOption({ account }: { account: Account }) {
   const mrr = Number(account.currentMrr);
   const detailParts: string[] = [];
   if (account.bandwidthMbps != null) detailParts.push(`${account.bandwidthMbps} Mbps`);
-  if (mrr > 0) detailParts.push(`₹${mrr.toLocaleString('en-IN')}/mo`);
+  if (mrr > 0) detailParts.push(`₹${mrr.toLocaleString('en-IN')} ARC`);
   if (account.currentPlan) detailParts.push(account.currentPlan);
 
   return (
@@ -100,14 +100,14 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
 
     if (actionType === 'UPGRADE') {
       if (newMrrNum !== null && newMrrNum <= currentMrr) {
-        mrr = `Upgrade requires New MRR greater than current ₹${currentMrr.toLocaleString('en-IN')}.`;
+        mrr = `Upgrade requires New ARC greater than current ₹${currentMrr.toLocaleString('en-IN')}.`;
       }
       if (newBwNum !== null && currentBw !== null && newBwNum <= currentBw) {
         bw = `Upgrade requires New Bandwidth greater than current ${currentBw} Mbps.`;
       }
     } else if (actionType === 'DOWNGRADE') {
       if (newMrrNum !== null && newMrrNum >= currentMrr) {
-        mrr = `Downgrade requires New MRR less than current ₹${currentMrr.toLocaleString('en-IN')}.`;
+        mrr = `Downgrade requires New ARC less than current ₹${currentMrr.toLocaleString('en-IN')}.`;
       }
       if (newBwNum !== null && currentBw !== null && newBwNum > currentBw) {
         bw = `Downgrade can't increase bandwidth — use Upgrade or Rate Revision instead.`;
@@ -115,7 +115,7 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
     } else if (actionType === 'RATE_REVISION') {
       // Rate revision: bandwidth uplift; ARC neutral or down (per CLAUDE.md §2)
       if (newMrrNum !== null && newMrrNum > currentMrr) {
-        mrr = `Rate Revision keeps MRR neutral or lower than current ₹${currentMrr.toLocaleString('en-IN')}.`;
+        mrr = `Rate Revision keeps ARC neutral or lower than current ₹${currentMrr.toLocaleString('en-IN')}.`;
       }
       if (newBwNum !== null && currentBw !== null && newBwNum < currentBw) {
         bw = `Rate Revision typically uplifts bandwidth — use Downgrade if you're reducing.`;
@@ -192,7 +192,7 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
     bwError !== null;
 
   const currentMrrHint = selectedAccount
-    ? `Current MRR: ₹${Number(selectedAccount.currentMrr).toLocaleString('en-IN')}`
+    ? `Current ARC: ₹${Number(selectedAccount.currentMrr).toLocaleString('en-IN')}`
     : 'Select a customer first';
   const currentBandwidthHint = selectedAccount
     ? selectedAccount.bandwidthMbps != null
@@ -280,7 +280,7 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
 
             <FormSection
               title="Commercials"
-              description="The new bandwidth and MRR after this change takes effect. For terminations, MRR is set to ₹0 automatically."
+              description="The new bandwidth and ARC after this change takes effect. For terminations, ARC is set to ₹0 automatically."
             >
               <FormField
                 label="New Bandwidth (Mbps)"
@@ -300,7 +300,7 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
                 />
               </FormField>
               <FormField
-                label="New MRR (₹)"
+                label="New ARC (₹)"
                 required={!isTermination}
                 hint={isTermination ? 'Forced to ₹0 for terminations' : currentMrrHint}
                 error={mrrError}

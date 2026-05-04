@@ -12,15 +12,22 @@ import { QuarterFilter } from '../../components/quarter-filter';
 import { RevenueWaterfall } from '../../components/revenue-waterfall';
 import { WaterfallDetail } from '../../components/waterfall-detail';
 import { getCookieHeader } from '../../lib/get-cookie-header';
-import { getExistingBaseMetrics } from '../../services/dashboard';
+import { getExistingBaseMetrics, type FyQuarter } from '../../services/dashboard';
+import { formatRupeesCompact } from '../../lib/format-rupees';
 
 const LAKH = 100_000;
 
-export default async function ExistingBaseDashboardPage() {
-  const cookieHeader = await getCookieHeader();
-  const metrics = await getExistingBaseMetrics({ cookieHeader });
-  const terminatedArcLakh = metrics.totalBaseArcLakh - metrics.currentArcLakh;
+const QUARTERS: ReadonlySet<string> = new Set(['Q1', 'Q2', 'Q3', 'Q4']);
 
+export default async function ExistingBaseDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ quarter?: string }>;
+}) {
+  const sp = await searchParams;
+  const quarter = QUARTERS.has(sp.quarter ?? '') ? (sp.quarter as FyQuarter) : undefined;
+  const cookieHeader = await getCookieHeader();
+  const metrics = await getExistingBaseMetrics({ quarter }, { cookieHeader });
   // Convert metrics (lakh-denominated) into rupees for the chart + detail table.
   const startArcRupees = metrics.totalBaseArcLakh * LAKH;
   const upgradesArcRupees = metrics.upgrades.arcAddedLakh * LAKH;
@@ -33,6 +40,8 @@ export default async function ExistingBaseDashboardPage() {
     downgradesArcRupees -
     rateRevisionsArcRupees -
     terminationsArcRupees;
+  const currentArcRupees = metrics.currentArcLakh * LAKH;
+  const netDeltaRupees = currentArcRupees - startArcRupees;
   const waterfallInput = {
     startArcRupees,
     upgradesArcRupees,
@@ -46,8 +55,8 @@ export default async function ExistingBaseDashboardPage() {
     <div className="px-8 py-6 max-w-7xl">
       <PageHeader
         title="Existing Base Dashboard"
-        subtitle="FYTD · April 1st Base accounts"
-        right={<QuarterFilter />}
+        subtitle={`${quarter ?? 'FYTD'} · April 1st Base accounts`}
+        right={<QuarterFilter active={quarter} />}
       />
 
       <section className="mb-8">
@@ -65,8 +74,8 @@ export default async function ExistingBaseDashboardPage() {
           />
           <StatCard
             title="Total Base ARC (start of period)"
-            value={`₹${metrics.totalBaseArcLakh.toFixed(1)}L`}
-            subtitle={`MRR ₹${metrics.totalBaseMrrLakh.toFixed(1)}L × 12`}
+            value={formatRupeesCompact(startArcRupees)}
+            subtitle="Annual recurring contribution"
             icon={BarChart3}
             iconBg="bg-purple-50"
             iconColor="text-purple-600"
@@ -75,7 +84,7 @@ export default async function ExistingBaseDashboardPage() {
           <StatCard
             title="Current Customers"
             value={metrics.currentCustomers.toString()}
-            subtitle={`= ${metrics.totalCustomers} start - ${metrics.terminatedCount} terminated`}
+            subtitle={`${metrics.totalCustomers} start · ${metrics.terminatedCount} terminated`}
             icon={Users}
             iconBg="bg-orange-50"
             iconColor="text-brand-600"
@@ -83,8 +92,8 @@ export default async function ExistingBaseDashboardPage() {
           />
           <StatCard
             title="Current ARC"
-            value={`₹${metrics.currentArcLakh.toFixed(1)}L`}
-            subtitle={`= ₹${metrics.totalBaseArcLakh.toFixed(1)}L start - ₹${terminatedArcLakh.toFixed(1)}L terminated`}
+            value={formatRupeesCompact(currentArcRupees)}
+            subtitle={`Δ ${formatRupeesCompact(netDeltaRupees, { signed: true })} since April 1`}
             icon={BarChart3}
             iconBg="bg-orange-50"
             iconColor="text-brand-600"
@@ -95,7 +104,7 @@ export default async function ExistingBaseDashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title={`Upgrades (${metrics.upgrades.count})`}
-            value={`+₹${metrics.upgrades.arcAddedLakh.toFixed(1)}L`}
+            value={formatRupeesCompact(Math.abs(upgradesArcRupees), { signed: true })}
             subtitle="ARC added"
             icon={TrendingUp}
             iconBg="bg-emerald-50"
@@ -105,7 +114,7 @@ export default async function ExistingBaseDashboardPage() {
           />
           <StatCard
             title={`Downgrades (${metrics.downgrades.count})`}
-            value={`-₹${metrics.downgrades.arcReducedLakh.toFixed(1)}L`}
+            value={formatRupeesCompact(-Math.abs(downgradesArcRupees), { signed: true })}
             subtitle="ARC reduced"
             icon={TrendingDown}
             iconBg="bg-amber-50"
@@ -115,7 +124,7 @@ export default async function ExistingBaseDashboardPage() {
           />
           <StatCard
             title={`Rate Revisions (${metrics.rateRevisions.count})`}
-            value={`₹${metrics.rateRevisions.arcChangeLakh.toFixed(1)}L`}
+            value={formatRupeesCompact(-Math.abs(rateRevisionsArcRupees), { signed: true })}
             subtitle="Bandwidth uplift; ARC neutral or down"
             icon={Shield}
             iconBg="bg-indigo-50"
@@ -124,7 +133,7 @@ export default async function ExistingBaseDashboardPage() {
           />
           <StatCard
             title={`Terminations (${metrics.terminations.count})`}
-            value={`-₹${metrics.terminations.arcLostLakh.toFixed(1)}L`}
+            value={formatRupeesCompact(-Math.abs(terminationsArcRupees), { signed: true })}
             subtitle="ARC lost"
             icon={UserX}
             iconBg="bg-red-50"

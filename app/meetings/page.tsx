@@ -12,7 +12,7 @@ export default async function MeetingsPage() {
   ]);
 
   return (
-    <div className="px-8 py-6 max-w-6xl flex flex-col gap-4">
+    <div className="px-8 py-6 flex flex-col gap-4">
       <PageHeader
         title="Meetings & MoM"
         subtitle={`${meetingsRes.meetings.length} total`}

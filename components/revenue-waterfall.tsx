@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { formatRupees } from '../lib/format-rupees';
 
 // Distinct hue per bar so each commercial event reads at a glance.
 const COLOR_START = '#1e40af';        // blue-800
@@ -78,6 +79,3 @@ function formatLakh(v: number): string {
   return `₹${(v / 1000).toFixed(0)}K`;
 }
 
-function formatRupees(v: number): string {
-  return `₹${Math.round(v).toLocaleString('en-IN')}`;
-}

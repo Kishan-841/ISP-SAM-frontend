@@ -13,6 +13,39 @@ export type ExistingBaseMetrics = {
   terminations: { count: number; arcLostLakh: number };
 };
 
-export function getExistingBaseMetrics(opts: ApiOpts = {}) {
-  return apiGet<ExistingBaseMetrics>('/dashboard/existing-base', opts);
+export type NewBaseMetrics = {
+  totalCustomers: number;
+  totalNewMrrLakh: number;
+  totalNewArcLakh: number;
+  addedThisMonth:   { count: number; arcLakh: number };
+  addedThisQuarter: { count: number; arcLakh: number };
+  addedThisFy:      { count: number; arcLakh: number };
+  avgTimeToFirstMomDays: number | null;
+  customersWithoutMeeting: number;
+  earlyUpgrades: { count: number; arcAddedLakh: number };
+  immediateRateRevisions: number;
+  earlyDowngrades: number;
+  recentAdditions: Array<{
+    id: string;
+    clientName: string;
+    companyName: string | null;
+    customerCode: string | null;
+    onboardingDate: string;
+    currentMrrLakh: number;
+    contractStatus: string;
+  }>;
+};
+
+export type FyQuarter = 'Q1' | 'Q2' | 'Q3' | 'Q4';
+
+export function getExistingBaseMetrics(
+  filters: { quarter?: FyQuarter } = {},
+  opts: ApiOpts = {},
+) {
+  const qs = filters.quarter ? `?quarter=${filters.quarter}` : '';
+  return apiGet<ExistingBaseMetrics>(`/dashboard/existing-base${qs}`, opts);
+}
+
+export function getNewBaseMetrics(opts: ApiOpts = {}) {
+  return apiGet<NewBaseMetrics>('/dashboard/new-base', opts);
 }

@@ -29,7 +29,7 @@ export default async function LeaderboardPage() {
           <CardContent className="pt-6 text-sm space-y-3">
             <p>
               <span className="font-semibold text-gray-900">Revenue (40%)</span>
-              <span className="text-gray-600"> — Net MRR Δ on owned Base + Expansion ratio</span>
+              <span className="text-gray-600"> — Net ARC Δ on owned Base + Expansion ratio</span>
             </p>
             <p>
               <span className="font-semibold text-gray-900">MOM Discipline (20%)</span>

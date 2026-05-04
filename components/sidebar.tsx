@@ -15,6 +15,7 @@ import {
   Lock,
   LogOut,
   ChevronLeft,
+  Plug,
 } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import type { AuthUser } from '../services/auth';
@@ -39,6 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   { label: 'Excel Import', href: '/excel-import', icon: FileDown },
   { label: 'Users', href: '/users', icon: UserCog, roles: ['ADMIN', 'SAM_HEAD'] },
+  { label: 'Integration Log', href: '/integrations', icon: Plug, roles: ['ADMIN'] },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -64,7 +66,7 @@ export function Sidebar({ user }: { user: AuthUser }) {
   }
 
   return (
-    <aside className="w-56 shrink-0 bg-white border-r border-gray-200 flex flex-col min-h-screen sticky top-0">
+    <aside className="w-56 shrink-0 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 overflow-y-auto">
       <div className="px-4 py-4 flex items-center justify-between border-b border-gray-100">
         <span className="text-brand-600 font-bold text-lg lowercase tracking-tight">gazon</span>
         <button
