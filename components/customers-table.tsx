@@ -80,7 +80,9 @@ export function CustomersTable({ accounts }: { accounts: Account[] }) {
       header: 'Current ARC',
       sortable: true,
       align: 'right',
-      cell: (a) => formatRupeesCompact(Number(a.currentMrr)),
+      // currentMrr in DB is the monthly figure (CRM sends it that way).
+      // ARC = annualised = × 12.
+      cell: (a) => formatRupeesCompact(Number(a.currentMrr) * 12),
       className: 'px-5 py-4 text-sm font-medium text-gray-900 text-right',
     },
     {
@@ -129,7 +131,7 @@ function CustomerDetails({ account }: { account: Account }) {
           label="Start-of-period ARC"
           value={
             account.startOfPeriodMrr != null
-              ? formatRupeesCompact(Number(account.startOfPeriodMrr))
+              ? formatRupeesCompact(Number(account.startOfPeriodMrr) * 12)
               : null
           }
         />
