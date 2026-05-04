@@ -31,7 +31,7 @@ export type NewBaseMetrics = {
     companyName: string | null;
     customerCode: string | null;
     onboardingDate: string;
-    currentMrrLakh: number;
+    currentArcLakh: number;
     contractStatus: string;
   }>;
 };

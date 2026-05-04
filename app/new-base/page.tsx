@@ -193,7 +193,7 @@ export default async function NewBaseDashboardPage() {
                         {formatDate(a.onboardingDate)}
                       </td>
                       <td className="px-5 py-4 text-right tabular-nums text-gray-900">
-                        ₹{a.currentMrrLakh.toFixed(1)}L
+                        ₹{a.currentArcLakh.toFixed(1)}L
                       </td>
                       <td className="px-5 py-4 text-center">
                         <StatusPill tone={STATUS_TONE[a.contractStatus] ?? 'gray'}>
