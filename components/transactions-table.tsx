@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { ClipboardList } from 'lucide-react';
 import { DataTable, type Column } from './data-table';
 import { StatusPill, type PillTone } from './status-pill';
+import { CrmStatusPill } from './crm-status-pill';
+import { CrmRowActions } from './crm-row-actions';
 import type { CommercialChangeListItem } from '../services/commercial-changes';
 import { formatRupeesCompact } from '../lib/format-rupees';
 
@@ -125,6 +127,43 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
         ) : (
           '—'
         ),
+      className: 'px-5 py-4 text-center',
+    },
+    {
+      key: 'crmOrder',
+      header: 'CRM Order',
+      align: 'center',
+      cell: (c) =>
+        c.crmOrderNumber ? (
+          <span
+            className="font-mono text-xs text-gray-700"
+            title={c.crmServiceOrderId ?? undefined}
+          >
+            {c.crmOrderNumber}
+          </span>
+        ) : (
+          <span className="text-xs text-gray-400">—</span>
+        ),
+      className: 'px-5 py-4 text-center',
+    },
+    {
+      key: 'crmStatus',
+      header: 'CRM Status',
+      align: 'center',
+      cell: (c) => <CrmStatusPill status={c.crmStatus} />,
+      className: 'px-5 py-4 text-center',
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'center',
+      cell: (c) => (
+        <CrmRowActions
+          changeId={c.id}
+          crmStatus={c.crmStatus}
+          hasCrmOrder={!!c.crmServiceOrderId}
+        />
+      ),
       className: 'px-5 py-4 text-center',
     },
   ];

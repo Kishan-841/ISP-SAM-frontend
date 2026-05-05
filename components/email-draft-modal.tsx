@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Download, Check, CheckCircle2 } from 'lucide-react';
+import { Copy, Download, Check, CheckCircle2, AlertTriangle, Send } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -20,18 +20,25 @@ const CHANGE_LABEL: Record<ChangeType, string> = {
   DISCONNECTION: 'disconnection',
 };
 
+type CrmOutcome =
+  | { ok: true; orderId: string; orderNumber: string; status: string }
+  | { ok: false; error: string; status?: number }
+  | { ok: 'disabled' };
+
 export function EmailDraftModal({
   open,
   onOpenChange,
   draft,
   changeType,
   clientName,
+  crm,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   draft: { subject: string; body: string } | null;
   changeType?: ChangeType | null;
   clientName?: string | null;
+  crm?: CrmOutcome | null;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -74,12 +81,45 @@ export function EmailDraftModal({
           <div className="flex flex-col gap-1">
             <p className="text-sm font-semibold text-emerald-900">{actionTitle}</p>
             <p className="text-sm text-emerald-800 leading-relaxed">
-              The {actionLabel}{forClient} has been recorded with the client&apos;s approval
-              attached. The Accounts team will be notified and will update billing — copy or
-              download the draft below to send the alert immediately.
+              The {actionLabel}{forClient} has been recorded on this side with the client&apos;s
+              approval attached.
             </p>
           </div>
         </div>
+
+        {/* CRM service-order outcome */}
+        {crm && crm.ok === true && (
+          <div className="flex gap-3 rounded-md border border-blue-200 bg-blue-50 p-4">
+            <Send className="h-5 w-5 shrink-0 text-blue-600 mt-0.5" />
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-semibold text-blue-900">
+                Service order created in CRM · {crm.orderNumber}
+              </p>
+              <p className="text-sm text-blue-800 leading-relaxed">
+                Status:{' '}
+                <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-white border border-blue-200">
+                  {crm.status}
+                </span>{' '}
+                — the relevant CRM team has been notified and will action it.
+              </p>
+            </div>
+          </div>
+        )}
+        {crm && crm.ok === false && (
+          <div className="flex gap-3 rounded-md border border-red-200 bg-red-50 p-4">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-red-600 mt-0.5" />
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-semibold text-red-900">
+                CRM service-order failed{crm.status ? ` (${crm.status})` : ''}
+              </p>
+              <p className="text-sm text-red-800 leading-relaxed">{crm.error}</p>
+              <p className="text-xs text-red-700 mt-1">
+                The SAM-side change is saved. Use the email draft below as a fallback while the
+                CRM bridge is investigated.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Email draft preview */}
         <div className="bg-gray-50 rounded-md border border-gray-200 p-4">

@@ -18,6 +18,7 @@ import {
   commitCommercialChange,
   type CommitInput,
   type CommitResult,
+  type DisconnectionCategory,
 } from '../services/commercial-changes';
 import type { Account } from '../services/accounts';
 
@@ -59,7 +60,13 @@ function todayIso(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
-export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
+export function CommercialChangeForm({
+  accounts,
+  disconnectionCategories = [],
+}: {
+  accounts: Account[];
+  disconnectionCategories?: DisconnectionCategory[];
+}) {
   const router = useRouter();
   const [customerId, setCustomerId] = useState<string>('');
   const [actionType, setActionType] = useState<ActionType>('');
@@ -67,6 +74,8 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
   const [newBandwidthMbps, setNewBandwidthMbps] = useState<string>('');
   const [newMrr, setNewMrr] = useState<string>('');
   const [reason, setReason] = useState<string>('');
+  const [disconnectionCategoryId, setDisconnectionCategoryId] = useState<string>('');
+  const [disconnectionSubCategoryId, setDisconnectionSubCategoryId] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -132,6 +141,8 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
     setNewBandwidthMbps('');
     setNewMrr('');
     setReason('');
+    setDisconnectionCategoryId('');
+    setDisconnectionSubCategoryId('');
     setFile(null);
     setError(null);
   }
@@ -148,6 +159,7 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
     e.preventDefault();
     if (!customerId || !actionType || !effectiveDate || !file) return;
     if (!isTermination && !newMrr) return;
+    if (isTermination && (!disconnectionCategoryId || !disconnectionSubCategoryId)) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -160,6 +172,11 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
       };
       if (newBandwidthMbps) payload.newBandwidthMbps = Number(newBandwidthMbps);
       if (reason.trim()) payload.reason = reason.trim();
+      if (isTermination) {
+        payload.disconnectionCategoryId = disconnectionCategoryId;
+        payload.disconnectionSubCategoryId = disconnectionSubCategoryId;
+        if (reason.trim()) payload.disconnectionReason = reason.trim();
+      }
 
       const res = await commitCommercialChange(payload);
       setResult(res);
@@ -186,10 +203,15 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
     !actionType ||
     !effectiveDate ||
     (!isTermination && !newMrr) ||
+    (isTermination && (!disconnectionCategoryId || !disconnectionSubCategoryId)) ||
     !file ||
     submitting ||
     mrrError !== null ||
     bwError !== null;
+
+  const selectedDisconnectionCategory = disconnectionCategories.find(
+    (c) => c.id === disconnectionCategoryId,
+  );
 
   const currentMrrHint = selectedAccount
     ? `Current ARC: ₹${Number(selectedAccount.currentMrr).toLocaleString('en-IN')}`
@@ -278,55 +300,129 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
               </FormField>
             </FormSection>
 
-            <FormSection
-              title="Commercials"
-              description="The new bandwidth and ARC after this change takes effect. For terminations, ARC is set to ₹0 automatically."
-            >
-              <FormField
-                label="New Bandwidth (Mbps)"
-                hint={currentBandwidthHint}
-                error={bwError}
+            {isTermination ? (
+              <FormSection
+                title="Disconnection details"
+                description="The CRM auto-sets the disconnection date to today + 30 days (notice period). Pick a reason from the predefined list — the operator team uses these to track churn drivers."
               >
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  value={newBandwidthMbps}
-                  onChange={(e) => setNewBandwidthMbps(e.target.value)}
-                  placeholder="e.g. 100"
-                  disabled={isTermination}
-                  className={`h-10 ${bwError ? 'border-red-300 focus-visible:ring-red-500/20 focus-visible:border-red-500' : ''}`}
-                  aria-invalid={bwError ? true : undefined}
-                />
-              </FormField>
-              <FormField
-                label="New ARC (₹)"
-                required={!isTermination}
-                hint={isTermination ? 'Forced to ₹0 for disconnections' : currentMrrHint}
-                error={mrrError}
+                <FormField label="Reason category" required>
+                  <Select
+                    value={disconnectionCategoryId}
+                    onValueChange={(v) => {
+                      setDisconnectionCategoryId(v);
+                      setDisconnectionSubCategoryId('');
+                    }}
+                  >
+                    <SelectTrigger className="w-full h-10">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {disconnectionCategories
+                        .filter((c) => c.isActive)
+                        .map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+                <FormField label="Sub-category" required>
+                  <Select
+                    value={disconnectionSubCategoryId}
+                    onValueChange={setDisconnectionSubCategoryId}
+                    disabled={!selectedDisconnectionCategory}
+                  >
+                    <SelectTrigger className="w-full h-10">
+                      <SelectValue
+                        placeholder={
+                          selectedDisconnectionCategory
+                            ? 'Select sub-category'
+                            : 'Pick a category first'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(selectedDisconnectionCategory?.subCategories ?? [])
+                        .filter((s) => s.isActive)
+                        .map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+                <FormField
+                  label="Notes"
+                  fullWidth
+                  hint="Free-text. Forwarded to the CRM as the disconnection reason. Visible to the Accounts Team."
+                >
+                  <Textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="e.g. Office shutting down — moving to fiber from another ISP."
+                    rows={3}
+                  />
+                </FormField>
+                {disconnectionCategories.length === 0 && (
+                  <div className="sm:col-span-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                    Disconnection reasons couldn&apos;t be loaded from CRM. The
+                    SAM-side commercial change will save, but the CRM service-order
+                    creation will fail without category/sub-category. Ask the CRM
+                    team if the bridge is up.
+                  </div>
+                )}
+              </FormSection>
+            ) : (
+              <FormSection
+                title="Commercials"
+                description="The new bandwidth and ARC after this change takes effect."
               >
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={isTermination ? '0' : newMrr}
-                  onChange={(e) => setNewMrr(e.target.value)}
-                  placeholder="0"
-                  disabled={isTermination}
-                  className={`h-10 ${mrrError ? 'border-red-300 focus-visible:ring-red-500/20 focus-visible:border-red-500' : ''}`}
-                  aria-invalid={mrrError ? true : undefined}
-                />
-              </FormField>
-              <FormField label="Reason" fullWidth hint="Why is this change happening? Visible in the audit log.">
-                <Textarea
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="e.g. Customer capacity expansion ahead of new branch rollout."
-                  rows={3}
-                />
-              </FormField>
-            </FormSection>
+                <FormField
+                  label="New Bandwidth (Mbps)"
+                  hint={currentBandwidthHint}
+                  error={bwError}
+                >
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={newBandwidthMbps}
+                    onChange={(e) => setNewBandwidthMbps(e.target.value)}
+                    placeholder="e.g. 100"
+                    className={`h-10 ${bwError ? 'border-red-300 focus-visible:ring-red-500/20 focus-visible:border-red-500' : ''}`}
+                    aria-invalid={bwError ? true : undefined}
+                  />
+                </FormField>
+                <FormField
+                  label="New ARC (₹)"
+                  required
+                  hint={currentMrrHint}
+                  error={mrrError}
+                >
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    value={newMrr}
+                    onChange={(e) => setNewMrr(e.target.value)}
+                    placeholder="0"
+                    className={`h-10 ${mrrError ? 'border-red-300 focus-visible:ring-red-500/20 focus-visible:border-red-500' : ''}`}
+                    aria-invalid={mrrError ? true : undefined}
+                  />
+                </FormField>
+                <FormField label="Reason" fullWidth hint="Why is this change happening? Visible in the audit log.">
+                  <Textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="e.g. Customer capacity expansion ahead of new branch rollout."
+                    rows={3}
+                  />
+                </FormField>
+              </FormSection>
+            )}
 
             <FormSection
               title="Approval"
@@ -389,6 +485,7 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
         draft={result?.emailDraft ?? null}
         changeType={result?.commercialChange.changeType ?? null}
         clientName={selectedAccount?.clientName ?? null}
+        crm={result?.crm ?? null}
       />
     </div>
   );
