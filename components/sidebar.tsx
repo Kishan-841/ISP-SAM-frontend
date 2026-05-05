@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronLeft,
   Plug,
+  ListChecks,
 } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import type { AuthUser } from '../services/auth';
@@ -36,6 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'New Base', href: '/new-base', icon: TrendingUp },
   { label: 'Customers', href: '/customers', icon: Users },
   { label: 'Commercial Change', href: '/commercial-change', icon: ClipboardList },
+  { label: 'Transactions', href: '/transactions', icon: ListChecks },
   { label: 'Meetings & MoM', href: '/meetings', icon: CalendarDays },
   { label: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   { label: 'Excel Import', href: '/excel-import', icon: FileDown },
