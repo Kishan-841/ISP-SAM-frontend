@@ -2,7 +2,7 @@ import { getMeetings } from '../../services/meetings';
 import { getAccounts } from '../../services/accounts';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { PageHeader } from '../../components/page-header';
-import { MeetingsTable } from '../../components/meetings-table';
+import { MeetingsView } from '../../components/meetings-view';
 
 export default async function MeetingsPage() {
   const cookieHeader = await getCookieHeader();
@@ -12,12 +12,12 @@ export default async function MeetingsPage() {
   ]);
 
   return (
-    <div className="px-8 py-6 flex flex-col gap-4">
+    <div className="px-8 py-6 flex flex-col gap-6">
       <PageHeader
         title="Meetings & MoM"
         subtitle={`${meetingsRes.meetings.length} total`}
       />
-      <MeetingsTable meetings={meetingsRes.meetings} accounts={accountsRes.accounts} />
+      <MeetingsView meetings={meetingsRes.meetings} accounts={accountsRes.accounts} />
     </div>
   );
 }
