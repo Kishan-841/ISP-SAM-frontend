@@ -72,7 +72,9 @@ export function CommercialChangeForm({
   const [actionType, setActionType] = useState<ActionType>('');
   const [effectiveDate, setEffectiveDate] = useState<string>(todayIso());
   const [newBandwidthMbps, setNewBandwidthMbps] = useState<string>('');
-  const [newMrr, setNewMrr] = useState<string>('');
+  // The user types the ANNUAL ARC here. We divide by 12 at submit before
+  // sending to the backend (which still stores monthly as currentMrr).
+  const [newArc, setNewArc] = useState<string>('');
   const [reason, setReason] = useState<string>('');
   const [disconnectionCategoryId, setDisconnectionCategoryId] = useState<string>('');
   const [disconnectionSubCategoryId, setDisconnectionSubCategoryId] = useState<string>('');
@@ -99,32 +101,33 @@ export function CommercialChangeForm({
     if (!selectedAccount || !actionType || isTermination) {
       return { mrrError: null, bwError: null };
     }
-    const currentMrr = Number(selectedAccount.currentMrr);
+    // Annualised current ARC for human-readable comparison + error messages.
+    const currentArc = Number(selectedAccount.currentMrr) * 12;
     const currentBw = selectedAccount.bandwidthMbps ?? null;
-    const newMrrNum = newMrr === '' ? null : Number(newMrr);
+    const newArcNum = newArc === '' ? null : Number(newArc);
     const newBwNum = newBandwidthMbps === '' ? null : Number(newBandwidthMbps);
 
     let mrr: string | null = null;
     let bw: string | null = null;
 
     if (actionType === 'UPGRADE') {
-      if (newMrrNum !== null && newMrrNum <= currentMrr) {
-        mrr = `Upgrade requires New ARC greater than current ₹${currentMrr.toLocaleString('en-IN')}.`;
+      if (newArcNum !== null && newArcNum <= currentArc) {
+        mrr = `Upgrade requires New ARC greater than current ₹${currentArc.toLocaleString('en-IN')}.`;
       }
       if (newBwNum !== null && currentBw !== null && newBwNum <= currentBw) {
         bw = `Upgrade requires New Bandwidth greater than current ${currentBw} Mbps.`;
       }
     } else if (actionType === 'DOWNGRADE') {
-      if (newMrrNum !== null && newMrrNum >= currentMrr) {
-        mrr = `Downgrade requires New ARC less than current ₹${currentMrr.toLocaleString('en-IN')}.`;
+      if (newArcNum !== null && newArcNum >= currentArc) {
+        mrr = `Downgrade requires New ARC less than current ₹${currentArc.toLocaleString('en-IN')}.`;
       }
       if (newBwNum !== null && currentBw !== null && newBwNum > currentBw) {
         bw = `Downgrade can't increase bandwidth — use Upgrade or Rate Revision instead.`;
       }
     } else if (actionType === 'RATE_REVISION') {
       // Rate revision: bandwidth uplift; ARC neutral or down (per CLAUDE.md §2)
-      if (newMrrNum !== null && newMrrNum > currentMrr) {
-        mrr = `Rate Revision keeps ARC neutral or lower than current ₹${currentMrr.toLocaleString('en-IN')}.`;
+      if (newArcNum !== null && newArcNum > currentArc) {
+        mrr = `Rate Revision keeps ARC neutral or lower than current ₹${currentArc.toLocaleString('en-IN')}.`;
       }
       if (newBwNum !== null && currentBw !== null && newBwNum < currentBw) {
         bw = `Rate Revision typically uplifts bandwidth — use Downgrade if you're reducing.`;
@@ -132,14 +135,14 @@ export function CommercialChangeForm({
     }
 
     return { mrrError: mrr, bwError: bw };
-  }, [selectedAccount, actionType, isTermination, newMrr, newBandwidthMbps]);
+  }, [selectedAccount, actionType, isTermination, newArc, newBandwidthMbps]);
 
   function resetForm() {
     setCustomerId('');
     setActionType('');
     setEffectiveDate(todayIso());
     setNewBandwidthMbps('');
-    setNewMrr('');
+    setNewArc('');
     setReason('');
     setDisconnectionCategoryId('');
     setDisconnectionSubCategoryId('');
@@ -158,15 +161,18 @@ export function CommercialChangeForm({
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!customerId || !actionType || !effectiveDate || !file) return;
-    if (!isTermination && !newMrr) return;
+    if (!isTermination && !newArc) return;
     if (isTermination && (!disconnectionCategoryId || !disconnectionSubCategoryId)) return;
     setSubmitting(true);
     setError(null);
     try {
+      // The form takes ANNUAL ARC; the backend stores MONTHLY (currentMrr).
+      // Divide by 12 here so the column semantic stays consistent across
+      // webhook ingest, Excel imports, and manual commercial changes.
       const payload: CommitInput = {
         accountId: customerId,
         changeType: actionType,
-        newMrr: isTermination ? 0 : Number(newMrr),
+        newMrr: isTermination ? 0 : Number(newArc) / 12,
         effectiveDate,
         file,
       };
@@ -194,7 +200,7 @@ export function CommercialChangeForm({
   // 2: ready to commit (file present)
   const currentStep = (() => {
     if (file) return 2;
-    const commercialsFilled = customerId && actionType && effectiveDate && (isTermination || newMrr);
+    const commercialsFilled = customerId && actionType && effectiveDate && (isTermination || newArc);
     return commercialsFilled ? 1 : 0;
   })();
 
@@ -202,7 +208,7 @@ export function CommercialChangeForm({
     !customerId ||
     !actionType ||
     !effectiveDate ||
-    (!isTermination && !newMrr) ||
+    (!isTermination && !newArc) ||
     (isTermination && (!disconnectionCategoryId || !disconnectionSubCategoryId)) ||
     !file ||
     submitting ||
@@ -214,7 +220,7 @@ export function CommercialChangeForm({
   );
 
   const currentMrrHint = selectedAccount
-    ? `Current ARC: ₹${Number(selectedAccount.currentMrr).toLocaleString('en-IN')}`
+    ? `Current ARC: ₹${(Number(selectedAccount.currentMrr) * 12).toLocaleString('en-IN')} per year`
     : 'Select a customer first';
   const currentBandwidthHint = selectedAccount
     ? selectedAccount.bandwidthMbps != null
@@ -396,7 +402,7 @@ export function CommercialChangeForm({
                   />
                 </FormField>
                 <FormField
-                  label="New ARC (₹)"
+                  label="New ARC (annual ₹)"
                   required
                   hint={currentMrrHint}
                   error={mrrError}
@@ -405,10 +411,10 @@ export function CommercialChangeForm({
                     type="number"
                     inputMode="decimal"
                     min={0}
-                    step="0.01"
-                    value={newMrr}
-                    onChange={(e) => setNewMrr(e.target.value)}
-                    placeholder="0"
+                    step="1"
+                    value={newArc}
+                    onChange={(e) => setNewArc(e.target.value)}
+                    placeholder="e.g. 1000000 (₹10L per year)"
                     className={`h-10 ${mrrError ? 'border-red-300 focus-visible:ring-red-500/20 focus-visible:border-red-500' : ''}`}
                     aria-invalid={mrrError ? true : undefined}
                   />
