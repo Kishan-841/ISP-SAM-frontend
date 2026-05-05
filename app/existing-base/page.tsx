@@ -132,14 +132,14 @@ export default async function ExistingBaseDashboardPage({
             href="/transactions?type=RATE_REVISION"
           />
           <StatCard
-            title={`Terminations (${metrics.terminations.count})`}
+            title={`Disconnections (${metrics.terminations.count})`}
             value={formatRupeesCompact(-Math.abs(terminationsArcRupees), { signed: true })}
             subtitle="ARC lost"
             icon={UserX}
             iconBg="bg-red-50"
             iconColor="text-red-600"
             valueColor="text-red-600"
-            href="/transactions?type=TERMINATION"
+            href="/transactions?type=DISCONNECTION"
           />
         </div>
       </section>

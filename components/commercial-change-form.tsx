@@ -27,7 +27,7 @@ const ACTION_LABELS: Record<CommitInput['changeType'], string> = {
   UPGRADE: 'Upgrade',
   DOWNGRADE: 'Downgrade',
   RATE_REVISION: 'Rate Revision',
-  TERMINATION: 'Termination',
+  DISCONNECTION: 'Disconnection',
 };
 
 const STEPS = ['Fill commercials', 'Upload approval', 'Commit & notify'];
@@ -78,7 +78,7 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
     [accounts, customerId],
   );
 
-  const isTermination = actionType === 'TERMINATION';
+  const isTermination = actionType === 'DISCONNECTION';
 
   // Action-aware client-side validation. Each rule returns null when the input
   // is OK or hasn't been provided yet, and an error string when the value
@@ -204,7 +204,7 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
     <div className="px-8 py-6 max-w-5xl flex flex-col gap-6">
       <PageHeader
         title="Initiate Commercial Change"
-        subtitle="Upgrade · Downgrade · Rate Revision · Termination — client approval is mandatory."
+        subtitle="Upgrade · Downgrade · Rate Revision · Disconnection — client approval is mandatory."
       />
 
       {/* Step indicator */}
@@ -302,7 +302,7 @@ export function CommercialChangeForm({ accounts }: { accounts: Account[] }) {
               <FormField
                 label="New ARC (₹)"
                 required={!isTermination}
-                hint={isTermination ? 'Forced to ₹0 for terminations' : currentMrrHint}
+                hint={isTermination ? 'Forced to ₹0 for disconnections' : currentMrrHint}
                 error={mrrError}
               >
                 <Input

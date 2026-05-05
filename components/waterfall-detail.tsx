@@ -72,11 +72,11 @@ export function WaterfallDetail({ input }: { input: WaterfallDetailInput }) {
       hrefHint: 'See rate revision transactions',
     },
     {
-      label: 'Terminations',
+      label: 'Disconnections',
       arc: input.terminationsArcRupees,
       tone: 'negative',
       sign: '−',
-      href: '/transactions?type=TERMINATION',
+      href: '/transactions?type=DISCONNECTION',
       hrefHint: 'See termination transactions',
     },
     {

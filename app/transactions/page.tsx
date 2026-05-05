@@ -3,14 +3,14 @@ import { getCookieHeader } from '../../lib/get-cookie-header';
 import { PageHeader } from '../../components/page-header';
 import { TransactionsTable } from '../../components/transactions-table';
 
-const VALID_TYPES = ['UPGRADE', 'DOWNGRADE', 'RATE_REVISION', 'TERMINATION'] as const;
+const VALID_TYPES = ['UPGRADE', 'DOWNGRADE', 'RATE_REVISION', 'DISCONNECTION'] as const;
 type ValidType = (typeof VALID_TYPES)[number];
 
 const META: Record<ValidType, { label: string; subtitle: string }> = {
   UPGRADE: { label: 'Upgrades', subtitle: 'ARC added' },
   DOWNGRADE: { label: 'Downgrades', subtitle: 'ARC reduced' },
   RATE_REVISION: { label: 'Rate Revisions', subtitle: 'Bandwidth uplift; ARC neutral or down' },
-  TERMINATION: { label: 'Terminations', subtitle: 'ARC lost' },
+  DISCONNECTION: { label: 'Disconnections', subtitle: 'ARC lost' },
 };
 
 export default async function TransactionsPage({

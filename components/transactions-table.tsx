@@ -11,14 +11,14 @@ const TYPE_TONE: Record<CommercialChangeListItem['changeType'], PillTone> = {
   UPGRADE: 'emerald',
   DOWNGRADE: 'amber',
   RATE_REVISION: 'purple',
-  TERMINATION: 'red',
+  DISCONNECTION: 'red',
 };
 
 const TYPE_LABEL: Record<CommercialChangeListItem['changeType'], string> = {
   UPGRADE: 'Upgrade',
   DOWNGRADE: 'Downgrade',
   RATE_REVISION: 'Rate Revision',
-  TERMINATION: 'Termination',
+  DISCONNECTION: 'Disconnection',
 };
 
 export function TransactionsTable({ changes }: { changes: CommercialChangeListItem[] }) {

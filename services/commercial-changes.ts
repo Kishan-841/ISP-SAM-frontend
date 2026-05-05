@@ -4,7 +4,7 @@ import { apiGet, type ApiOpts } from './api-client';
 export type CommercialChangeListItem = {
   id: string;
   accountId: string;
-  changeType: 'UPGRADE' | 'DOWNGRADE' | 'RATE_REVISION' | 'TERMINATION';
+  changeType: 'UPGRADE' | 'DOWNGRADE' | 'RATE_REVISION' | 'DISCONNECTION';
   oldMrr: string;
   newMrr: string;
   effectiveDate: string;
@@ -24,7 +24,7 @@ export type CommercialChangeListItem = {
 };
 
 export function getCommercialChanges(
-  filters: { type?: 'UPGRADE' | 'DOWNGRADE' | 'RATE_REVISION' | 'TERMINATION' } = {},
+  filters: { type?: 'UPGRADE' | 'DOWNGRADE' | 'RATE_REVISION' | 'DISCONNECTION' } = {},
   opts: ApiOpts = {},
 ) {
   const qs = filters.type ? `?type=${filters.type}` : '';
@@ -33,7 +33,7 @@ export function getCommercialChanges(
 
 export type CommitInput = {
   accountId: string;
-  changeType: 'UPGRADE' | 'DOWNGRADE' | 'RATE_REVISION' | 'TERMINATION';
+  changeType: 'UPGRADE' | 'DOWNGRADE' | 'RATE_REVISION' | 'DISCONNECTION';
   newMrr: number;
   newBandwidthMbps?: number;
   effectiveDate: string; // YYYY-MM-DD

@@ -35,7 +35,7 @@ export function RevenueWaterfall({ input }: { input: WaterfallInput }) {
     { name: 'Upgrades', value: input.upgradesArcRupees, fill: COLOR_UPGRADES },
     { name: 'Downgrades', value: -input.downgradesArcRupees, fill: COLOR_DOWNGRADES },
     { name: 'Rate Rev. ↓', value: -input.rateRevisionsArcRupees, fill: COLOR_RATE_REV },
-    { name: 'Terminations', value: -input.terminationsArcRupees, fill: COLOR_TERMINATIONS },
+    { name: 'Disconnections', value: -input.terminationsArcRupees, fill: COLOR_TERMINATIONS },
     { name: 'End of Period', value: input.endArcRupees, fill: COLOR_END },
   ];
 

@@ -11,13 +11,13 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
-type ChangeType = 'UPGRADE' | 'DOWNGRADE' | 'RATE_REVISION' | 'TERMINATION';
+type ChangeType = 'UPGRADE' | 'DOWNGRADE' | 'RATE_REVISION' | 'DISCONNECTION';
 
 const CHANGE_LABEL: Record<ChangeType, string> = {
   UPGRADE: 'upgrade',
   DOWNGRADE: 'downgrade',
   RATE_REVISION: 'rate revision',
-  TERMINATION: 'termination',
+  DISCONNECTION: 'disconnection',
 };
 
 export function EmailDraftModal({
