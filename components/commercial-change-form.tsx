@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, AlertTriangle } from 'lucide-react';
+import { ArrowRight, AlertTriangle, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,10 +34,11 @@ const ACTION_LABELS: Record<CommitInput['changeType'], string> = {
 const STEPS = ['Fill commercials', 'Upload approval & PO', 'Commit & notify'];
 
 function CustomerOption({ account }: { account: Account }) {
-  const mrr = Number(account.currentMrr);
+  // Account.currentMrr is the monthly figure on the wire; multiply by 12 for ARC.
+  const arc = Number(account.currentMrr) * 12;
   const detailParts: string[] = [];
   if (account.bandwidthMbps != null) detailParts.push(`${account.bandwidthMbps} Mbps`);
-  if (mrr > 0) detailParts.push(`₹${mrr.toLocaleString('en-IN')} ARC`);
+  if (arc > 0) detailParts.push(`₹${arc.toLocaleString('en-IN')} ARC`);
   if (account.currentPlan) detailParts.push(account.currentPlan);
 
   return (
@@ -46,6 +47,9 @@ function CustomerOption({ account }: { account: Account }) {
         <span className="font-medium">{account.clientName}</span>
         {account.customerCode && (
           <span className="font-mono text-xs text-brand-600">{account.customerCode}</span>
+        )}
+        {account.companyName && (
+          <span className="text-xs text-gray-500 truncate">· {account.companyName}</span>
         )}
       </div>
       {detailParts.length > 0 && (
@@ -69,6 +73,8 @@ export function CommercialChangeForm({
 }) {
   const router = useRouter();
   const [customerId, setCustomerId] = useState<string>('');
+  const [customerSearch, setCustomerSearch] = useState<string>('');
+  const [searchOpen, setSearchOpen] = useState<boolean>(false);
   const [actionType, setActionType] = useState<ActionType>('');
   const [effectiveDate, setEffectiveDate] = useState<string>(todayIso());
   const [newBandwidthMbps, setNewBandwidthMbps] = useState<string>('');
@@ -140,6 +146,8 @@ export function CommercialChangeForm({
 
   function resetForm() {
     setCustomerId('');
+    setCustomerSearch('');
+    setSearchOpen(false);
     setActionType('');
     setEffectiveDate(todayIso());
     setNewBandwidthMbps('');
@@ -228,6 +236,25 @@ export function CommercialChangeForm({
     (c) => c.id === disconnectionCategoryId,
   );
 
+  // Typeahead filter: matches across name, company, customer code, circuit ID.
+  // Same pattern as the MOM dialog so the muscle memory is consistent.
+  const filteredAccounts = useMemo(() => {
+    const q = customerSearch.trim().toLowerCase();
+    if (!q) return accounts.slice(0, 25);
+    return accounts
+      .filter((a) =>
+        [a.clientName, a.companyName, a.customerCode, a.circuitId, a.mobileNumber]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q)),
+      )
+      .slice(0, 25);
+  }, [accounts, customerSearch]);
+
+  function customerLabel(a: Account): string {
+    const left = a.companyName || a.clientName;
+    return a.customerCode ? `${left} · ${a.customerCode}` : left;
+  }
+
   const currentMrrHint = selectedAccount
     ? `Current ARC: ₹${(Number(selectedAccount.currentMrr) * 12).toLocaleString('en-IN')} per year`
     : 'Select a customer first';
@@ -259,29 +286,49 @@ export function CommercialChangeForm({
               description="Pick the affected customer and the type of commercial change you're recording."
             >
               <FormField label="Customer" required fullWidth>
-                <Select value={customerId} onValueChange={setCustomerId}>
-                  <SelectTrigger className="w-full h-12">
-                    <SelectValue placeholder="Select customer">
-                      {selectedAccount && (
-                        <span className="flex items-center gap-2 text-sm">
-                          <span className="font-medium text-gray-900">{selectedAccount.clientName}</span>
-                          {selectedAccount.customerCode && (
-                            <span className="font-mono text-xs text-brand-600">
-                              {selectedAccount.customerCode}
-                            </span>
-                          )}
-                        </span>
-                      )}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        <CustomerOption account={a} />
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    <Input
+                      value={selectedAccount ? customerLabel(selectedAccount) : customerSearch}
+                      onChange={(e) => {
+                        setCustomerSearch(e.target.value);
+                        setCustomerId('');
+                        setSearchOpen(true);
+                      }}
+                      onFocus={() => setSearchOpen(true)}
+                      onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
+                      placeholder="Search by name, company, customer code, circuit ID, mobile"
+                      className="pl-9 h-12"
+                    />
+                  </div>
+                  {searchOpen && filteredAccounts.length > 0 && (
+                    <div className="absolute z-50 left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-80 overflow-y-auto">
+                      {filteredAccounts.map((a) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setCustomerId(a.id);
+                            setCustomerSearch('');
+                            setSearchOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 hover:bg-orange-50 border-b border-gray-100 last:border-b-0"
+                        >
+                          <CustomerOption account={a} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {searchOpen &&
+                    customerSearch.trim().length > 0 &&
+                    filteredAccounts.length === 0 && (
+                      <div className="absolute z-50 left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg px-3 py-3 text-sm text-gray-500">
+                        No matches.
+                      </div>
+                    )}
+                </div>
               </FormField>
               <FormField label="Circuit" hint="Auto-derived from the selected customer">
                 <Input
