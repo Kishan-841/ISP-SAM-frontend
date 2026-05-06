@@ -52,6 +52,12 @@ function CustomerOption({ account }: { account: Account }) {
           <span className="text-xs text-gray-500 truncate">· {account.companyName}</span>
         )}
       </div>
+      {account.circuitId && (
+        <div className="flex items-center gap-1 text-[11px] text-gray-500">
+          <span className="uppercase tracking-wider font-medium text-gray-400">Circuit</span>
+          <span className="font-mono text-gray-700">{account.circuitId}</span>
+        </div>
+      )}
       {detailParts.length > 0 && (
         <div className="text-xs text-gray-500">{detailParts.join(' · ')}</div>
       )}
