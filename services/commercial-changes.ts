@@ -68,7 +68,8 @@ export type CommitInput = {
   disconnectionCategoryId?: string;
   disconnectionSubCategoryId?: string;
   disconnectionReason?: string;
-  file: File;
+  approvalFile: File;
+  poFile: File;
 };
 
 export type CommitResult = {
@@ -94,7 +95,8 @@ export type CommitResult = {
 export async function commitCommercialChange(input: CommitInput): Promise<CommitResult> {
   const base = typeof window === 'undefined' ? env.internalApiBase : env.apiBase;
   const form = new FormData();
-  form.append('file', input.file);
+  form.append('approvalFile', input.approvalFile);
+  form.append('poFile', input.poFile);
   form.append('accountId', input.accountId);
   form.append('changeType', input.changeType);
   form.append('newMrr', String(input.newMrr));

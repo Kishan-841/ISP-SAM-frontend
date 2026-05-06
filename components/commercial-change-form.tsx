@@ -31,7 +31,7 @@ const ACTION_LABELS: Record<CommitInput['changeType'], string> = {
   DISCONNECTION: 'Disconnection',
 };
 
-const STEPS = ['Fill commercials', 'Upload approval', 'Commit & notify'];
+const STEPS = ['Fill commercials', 'Upload approval & PO', 'Commit & notify'];
 
 function CustomerOption({ account }: { account: Account }) {
   const mrr = Number(account.currentMrr);
@@ -78,7 +78,8 @@ export function CommercialChangeForm({
   const [reason, setReason] = useState<string>('');
   const [disconnectionCategoryId, setDisconnectionCategoryId] = useState<string>('');
   const [disconnectionSubCategoryId, setDisconnectionSubCategoryId] = useState<string>('');
-  const [file, setFile] = useState<File | null>(null);
+  const [approvalFile, setApprovalFile] = useState<File | null>(null);
+  const [poFile, setPoFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<CommitResult | null>(null);
@@ -146,7 +147,8 @@ export function CommercialChangeForm({
     setReason('');
     setDisconnectionCategoryId('');
     setDisconnectionSubCategoryId('');
-    setFile(null);
+    setApprovalFile(null);
+    setPoFile(null);
     setError(null);
   }
 
@@ -160,7 +162,7 @@ export function CommercialChangeForm({
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!customerId || !actionType || !effectiveDate || !file) return;
+    if (!customerId || !actionType || !effectiveDate || !approvalFile || !poFile) return;
     if (!isTermination && !newArc) return;
     if (isTermination && (!disconnectionCategoryId || !disconnectionSubCategoryId)) return;
     setSubmitting(true);
@@ -174,7 +176,8 @@ export function CommercialChangeForm({
         changeType: actionType,
         newMrr: isTermination ? 0 : Number(newArc) / 12,
         effectiveDate,
-        file,
+        approvalFile,
+        poFile,
       };
       if (newBandwidthMbps) payload.newBandwidthMbps = Number(newBandwidthMbps);
       if (reason.trim()) payload.reason = reason.trim();
@@ -195,11 +198,11 @@ export function CommercialChangeForm({
   }
 
   // Step indicator: which step is the user "in"?
-  // 0: filling commercials (no file yet, customer/action partially filled)
-  // 1: ready to upload approval (commercials filled but no file)
-  // 2: ready to commit (file present)
+  // 0: filling commercials (no files yet, customer/action partially filled)
+  // 1: ready to upload documents (commercials filled but ≥1 file missing)
+  // 2: ready to commit (BOTH approval + PO present)
   const currentStep = (() => {
-    if (file) return 2;
+    if (approvalFile && poFile) return 2;
     const commercialsFilled = customerId && actionType && effectiveDate && (isTermination || newArc);
     return commercialsFilled ? 1 : 0;
   })();
@@ -214,7 +217,8 @@ export function CommercialChangeForm({
     !effectiveDate ||
     (!isTermination && !newArc) ||
     (isTermination && (!disconnectionCategoryId || !disconnectionSubCategoryId)) ||
-    !file ||
+    !approvalFile ||
+    !poFile ||
     submitting ||
     mrrError !== null ||
     bwError !== null ||
@@ -449,25 +453,40 @@ export function CommercialChangeForm({
             )}
 
             <FormSection
-              title="Approval"
-              description="The client's confirmation is the hard gate. Without it, the system will refuse the commit."
+              title="Documents"
+              description="Both the customer's mail/PDF approval AND the Purchase Order are mandatory. They're uploaded to Cloudinary and forwarded to CRM Docs for review."
             >
               <div className="sm:col-span-2 rounded-lg border border-red-200 bg-red-50/50 p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-red-700">
                   <AlertTriangle className="w-4 h-4" />
-                  <span className="text-sm font-semibold">Gate 2 — Client Approval Required (HARD STOP)</span>
+                  <span className="text-sm font-semibold">Gate 2 — Approval + PO Required (HARD STOP)</span>
                 </div>
                 <p className="text-sm text-red-800/80">
-                  Upload the client&apos;s confirmation email (.eml / .msg) or a signed approval (.pdf).
-                  The transaction cannot be committed without it.
+                  Both files are required. The commit refuses unless both are present.
+                  .eml / .msg / .pdf only, max 10 MB each.
                 </p>
-                <FileDropZone
-                  accept=".eml,.msg,.pdf"
-                  file={file}
-                  onFileChange={setFile}
-                  helper=".eml, .msg or .pdf · up to 10 MB"
-                  disabled={submitting}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-medium text-red-900">Client approval (mail / PDF)</span>
+                    <FileDropZone
+                      accept=".eml,.msg,.pdf"
+                      file={approvalFile}
+                      onFileChange={setApprovalFile}
+                      helper=".eml, .msg or .pdf · up to 10 MB"
+                      disabled={submitting}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-medium text-red-900">Purchase Order (PO)</span>
+                    <FileDropZone
+                      accept=".eml,.msg,.pdf"
+                      file={poFile}
+                      onFileChange={setPoFile}
+                      helper=".eml, .msg or .pdf · up to 10 MB"
+                      disabled={submitting}
+                    />
+                  </div>
+                </div>
               </div>
             </FormSection>
 
