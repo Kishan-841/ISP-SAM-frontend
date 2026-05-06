@@ -237,10 +237,12 @@ export function CommercialChangeForm({
   );
 
   // Typeahead filter: matches across name, company, customer code, circuit ID.
-  // Same pattern as the MOM dialog so the muscle memory is consistent.
+  // Empty query → show only the 5 most recent customers (the API already
+  // returns them ordered by createdAt desc). Once the operator types, search
+  // the full list and cap visible matches at 25 so the dropdown stays scannable.
   const filteredAccounts = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
-    if (!q) return accounts.slice(0, 25);
+    if (!q) return accounts.slice(0, 5);
     return accounts
       .filter((a) =>
         [a.clientName, a.companyName, a.customerCode, a.circuitId, a.mobileNumber]
@@ -249,6 +251,9 @@ export function CommercialChangeForm({
       )
       .slice(0, 25);
   }, [accounts, customerSearch]);
+
+  const showRecentHint =
+    customerSearch.trim() === '' && accounts.length > filteredAccounts.length;
 
   function customerLabel(a: Account): string {
     const left = a.companyName || a.clientName;
@@ -304,6 +309,11 @@ export function CommercialChangeForm({
                   </div>
                   {searchOpen && filteredAccounts.length > 0 && (
                     <div className="absolute z-50 left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-80 overflow-y-auto">
+                      {showRecentHint && (
+                        <div className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-semibold text-gray-500 bg-gray-50 border-b border-gray-100">
+                          Latest {filteredAccounts.length} · type to search all {accounts.length}
+                        </div>
+                      )}
                       {filteredAccounts.map((a) => (
                         <button
                           key={a.id}
