@@ -204,6 +204,10 @@ export function CommercialChangeForm({
     return commercialsFilled ? 1 : 0;
   })();
 
+  // A customer that wasn't synced from CRM (no externalCrmId) can't have a
+  // service order created on the CRM side — the POST would 400 with
+  // 'Customer not found'. Block submission with a clear warning.
+  const isCustomerCrmSynced = !!selectedAccount?.externalCrmId;
   const submitDisabled =
     !customerId ||
     !actionType ||
@@ -213,7 +217,8 @@ export function CommercialChangeForm({
     !file ||
     submitting ||
     mrrError !== null ||
-    bwError !== null;
+    bwError !== null ||
+    (selectedAccount !== null && !isCustomerCrmSynced);
 
   const selectedDisconnectionCategory = disconnectionCategories.find(
     (c) => c.id === disconnectionCategoryId,
@@ -305,6 +310,19 @@ export function CommercialChangeForm({
                 />
               </FormField>
             </FormSection>
+
+            {selectedAccount && !isCustomerCrmSynced && (
+              <div className="px-6 py-4">
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    This customer doesn&apos;t have a CRM external ID — likely imported manually
+                    or via Excel. The CRM bridge requires a synced customer; the service-order
+                    POST will 400. Re-sync this customer from CRM (or activate a plan in CRM
+                    so the customer.activated webhook fires) before raising a commercial change.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
 
             {isTermination ? (
               <FormSection

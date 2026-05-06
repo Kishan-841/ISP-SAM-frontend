@@ -142,17 +142,29 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       key: 'crmOrder',
       header: 'CRM Order',
       align: 'center',
-      cell: (c) =>
-        c.crmOrderNumber ? (
-          <span
-            className="font-mono text-xs text-gray-700"
-            title={c.crmServiceOrderId ?? undefined}
-          >
-            {c.crmOrderNumber}
-          </span>
-        ) : (
-          <span className="text-xs text-gray-400">—</span>
-        ),
+      cell: (c) => {
+        // Same SAM-XXXXXXXX reference we send to CRM as `notes` — handy for
+        // cross-system support: ops can find this row in CRM by searching
+        // their notes column for the SAM ref.
+        const samRef = `SAM-${c.id.slice(0, 8).toUpperCase()}`;
+        return (
+          <div className="flex flex-col items-center gap-0.5">
+            {c.crmOrderNumber ? (
+              <span
+                className="font-mono text-xs text-gray-700"
+                title={c.crmServiceOrderId ?? undefined}
+              >
+                {c.crmOrderNumber}
+              </span>
+            ) : (
+              <span className="text-xs text-gray-400">—</span>
+            )}
+            <span className="font-mono text-[10px] text-gray-400" title={c.id}>
+              {samRef}
+            </span>
+          </div>
+        );
+      },
       className: 'px-5 py-4 text-center',
     },
     {
