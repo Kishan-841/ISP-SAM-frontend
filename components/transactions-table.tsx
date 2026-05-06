@@ -59,17 +59,22 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       key: 'oldNew',
       header: 'ARC Change',
       align: 'center',
-      cell: (c) => (
-        <div className="flex items-center justify-center gap-2 text-sm tabular-nums">
-          <span className="text-gray-500" title={`₹${Number(c.oldMrr).toLocaleString('en-IN')}`}>
-            {formatRupeesCompact(Number(c.oldMrr))}
-          </span>
-          <span className="text-gray-400">→</span>
-          <span className="font-medium text-gray-900" title={`₹${Number(c.newMrr).toLocaleString('en-IN')}`}>
-            {formatRupeesCompact(Number(c.newMrr))}
-          </span>
-        </div>
-      ),
+      cell: (c) => {
+        // oldMrr / newMrr are stored monthly. ARC = annual = × 12.
+        const oldArc = Number(c.oldMrr) * 12;
+        const newArc = Number(c.newMrr) * 12;
+        return (
+          <div className="flex items-center justify-center gap-2 text-sm tabular-nums">
+            <span className="text-gray-500" title={`₹${oldArc.toLocaleString('en-IN')} per year`}>
+              {formatRupeesCompact(oldArc)}
+            </span>
+            <span className="text-gray-400">→</span>
+            <span className="font-medium text-gray-900" title={`₹${newArc.toLocaleString('en-IN')} per year`}>
+              {formatRupeesCompact(newArc)}
+            </span>
+          </div>
+        );
+      },
       className: 'px-5 py-4 text-center',
     },
     {
@@ -77,12 +82,16 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       header: 'Δ',
       align: 'center',
       cell: (c) => {
-        const delta = Number(c.newMrr) - Number(c.oldMrr);
+        // Annualised delta to match the "ARC Change" column above.
+        const delta = (Number(c.newMrr) - Number(c.oldMrr)) * 12;
         const cls = delta > 0 ? 'text-emerald-600' : delta < 0 ? 'text-red-600' : 'text-gray-400';
         const sign = delta > 0 ? '+' : '';
         return (
-          <span className={`text-sm font-medium ${cls}`}>
-            {sign}₹{Math.round(delta).toLocaleString('en-IN')}
+          <span
+            className={`text-sm font-medium ${cls}`}
+            title={`${sign}₹${Math.round(delta).toLocaleString('en-IN')} per year`}
+          >
+            {sign}{formatRupeesCompact(delta)}
           </span>
         );
       },
