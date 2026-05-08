@@ -26,17 +26,20 @@ export function formatRupeesCompact(
   let sign = value < 0 ? '−' : '';
   if (opts.signed && value > 0) sign = '+';
   const abs = Math.abs(value);
+  // Round to the nearest ₹100 before threshold checks. Legacy data that
+  // round-tripped through monthly storage (e.g. ₹1L stored as 8333/month →
+  // 99,996 after the ARC migration) would otherwise fall into the K branch
+  // and display as ₹100K instead of ₹1L.
+  const rounded = Math.round(abs / 100) * 100;
 
-  if (abs >= 1_00_00_000) {
-    // ≥ 1 crore
-    return `${sign}₹${trim(abs / 1_00_00_000)}Cr`;
+  if (rounded >= 1_00_00_000) {
+    return `${sign}₹${trim(rounded / 1_00_00_000)}Cr`;
   }
-  if (abs >= 1_00_000) {
-    // ≥ 1 lakh
-    return `${sign}₹${trim(abs / 1_00_000)}L`;
+  if (rounded >= 1_00_000) {
+    return `${sign}₹${trim(rounded / 1_00_000)}L`;
   }
-  if (abs >= 1_000) {
-    return `${sign}₹${trim(abs / 1_000)}K`;
+  if (rounded >= 1_000) {
+    return `${sign}₹${trim(rounded / 1_000)}K`;
   }
   return `${sign}₹${Math.round(abs)}`;
 }

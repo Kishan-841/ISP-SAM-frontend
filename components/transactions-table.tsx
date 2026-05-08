@@ -29,8 +29,8 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       key: 'effectiveDate',
       header: 'Effective',
       sortable: true,
-      cell: (c) => c.effectiveDate.slice(0, 10),
-      className: 'px-5 py-4 text-sm text-gray-700 text-center',
+      cell: (c) => formatDate(c.effectiveDate),
+      className: 'px-5 py-4 text-sm text-gray-700 text-center whitespace-nowrap',
       align: 'center',
     },
     {
@@ -38,10 +38,10 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       header: 'Customer',
       sortable: true,
       cell: (c) => (
-        <div className="flex flex-col">
-          <span className="text-sm font-medium text-gray-900">{c.account.clientName}</span>
+        <div className="flex flex-col items-center">
+          <span className="text-sm font-medium text-gray-900 whitespace-nowrap">{c.account.clientName}</span>
           {c.account.customerCode && (
-            <span className="font-mono text-xs text-brand-600">{c.account.customerCode}</span>
+            <span className="font-mono text-xs text-brand-600 whitespace-nowrap">{c.account.customerCode}</span>
           )}
         </div>
       ),
@@ -53,18 +53,17 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       header: 'Type',
       cell: (c) => <StatusPill tone={TYPE_TONE[c.changeType]}>{TYPE_LABEL[c.changeType]}</StatusPill>,
       align: 'center',
-      className: 'px-5 py-4 text-center',
+      className: 'px-5 py-4 text-center whitespace-nowrap',
     },
     {
       key: 'oldNew',
       header: 'ARC Change',
       align: 'center',
       cell: (c) => {
-        // oldMrr / newMrr are stored monthly. ARC = annual = × 12.
-        const oldArc = Number(c.oldMrr) * 12;
-        const newArc = Number(c.newMrr) * 12;
+        const oldArc = Number(c.oldArc);
+        const newArc = Number(c.newArc);
         return (
-          <div className="flex items-center justify-center gap-2 text-sm tabular-nums">
+          <div className="flex items-center justify-center gap-2 text-sm tabular-nums whitespace-nowrap">
             <span className="text-gray-500" title={`₹${oldArc.toLocaleString('en-IN')} per year`}>
               {formatRupeesCompact(oldArc)}
             </span>
@@ -82,13 +81,12 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       header: 'Δ',
       align: 'center',
       cell: (c) => {
-        // Annualised delta to match the "ARC Change" column above.
-        const delta = (Number(c.newMrr) - Number(c.oldMrr)) * 12;
+        const delta = Number(c.newArc) - Number(c.oldArc);
         const cls = delta > 0 ? 'text-emerald-600' : delta < 0 ? 'text-red-600' : 'text-gray-400';
         const sign = delta > 0 ? '+' : '';
         return (
           <span
-            className={`text-sm font-medium ${cls}`}
+            className={`text-sm font-medium tabular-nums whitespace-nowrap ${cls}`}
             title={`${sign}₹${Math.round(delta).toLocaleString('en-IN')} per year`}
           >
             {sign}{formatRupeesCompact(delta)}
@@ -103,7 +101,7 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       align: 'center',
       cell: (c) =>
         c.oldBandwidthMbps !== null && c.newBandwidthMbps !== null ? (
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-500 whitespace-nowrap">
             {c.oldBandwidthMbps} →{' '}
             <span className="text-gray-900 font-medium">{c.newBandwidthMbps} Mbps</span>
           </div>
@@ -115,8 +113,18 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
     {
       key: 'reason',
       header: 'Reason',
-      cell: (c) => c.reason ?? '—',
-      className: 'px-5 py-4 text-sm text-gray-500',
+      cell: (c) =>
+        c.reason ? (
+          <span
+            className="text-sm text-gray-500 line-clamp-2 max-w-[200px]"
+            title={c.reason}
+          >
+            {c.reason}
+          </span>
+        ) : (
+          <span className="text-gray-400">—</span>
+        ),
+      className: 'px-5 py-4',
     },
     {
       key: 'approval',
@@ -136,7 +144,7 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
         ) : (
           '—'
         ),
-      className: 'px-5 py-4 text-center',
+      className: 'px-5 py-4 text-center whitespace-nowrap',
     },
     {
       key: 'crmOrder',
@@ -151,7 +159,7 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
           <div className="flex flex-col items-center gap-0.5">
             {c.crmOrderNumber ? (
               <span
-                className="font-mono text-xs text-gray-700"
+                className="font-mono text-xs text-gray-700 whitespace-nowrap"
                 title={c.crmServiceOrderId ?? undefined}
               >
                 {c.crmOrderNumber}
@@ -159,7 +167,7 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
             ) : (
               <span className="text-xs text-gray-400">—</span>
             )}
-            <span className="font-mono text-[10px] text-gray-400" title={c.id}>
+            <span className="font-mono text-[10px] text-gray-400 whitespace-nowrap" title={c.id}>
               {samRef}
             </span>
           </div>
@@ -172,7 +180,7 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       header: 'CRM Status',
       align: 'center',
       cell: (c) => <CrmStatusPill status={c.crmStatus} />,
-      className: 'px-5 py-4 text-center',
+      className: 'px-5 py-4 text-center whitespace-nowrap',
     },
     {
       key: 'actions',
@@ -185,7 +193,7 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
           hasCrmOrder={!!c.crmServiceOrderId}
         />
       ),
-      className: 'px-5 py-4 text-center',
+      className: 'px-5 py-4 text-center whitespace-nowrap',
     },
   ];
 
@@ -201,7 +209,19 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       emptyTitle="No commercial changes yet"
       emptySubtitle="Initiate one from Commercial Change."
       emptyIcon={ClipboardList}
-      minWidth="min-w-[1100px]"
+      minWidth="min-w-[1400px]"
     />
   );
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "2026-05-08" → "8 May 2026". */
+function formatDate(value: string): string {
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return value;
+  const [, y, mo, d] = m;
+  const monthIdx = Number(mo) - 1;
+  if (monthIdx < 0 || monthIdx > 11) return value;
+  return `${Number(d)} ${MONTHS[monthIdx]} ${y}`;
 }

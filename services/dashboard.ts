@@ -3,7 +3,6 @@ import { apiGet, type ApiOpts } from './api-client';
 export type ExistingBaseMetrics = {
   totalCustomers: number;
   totalBaseArcLakh: number;
-  totalBaseMrrLakh: number;
   currentCustomers: number;
   currentArcLakh: number;
   terminatedCount: number;
@@ -15,7 +14,6 @@ export type ExistingBaseMetrics = {
 
 export type NewBaseMetrics = {
   totalCustomers: number;
-  totalNewMrrLakh: number;
   totalNewArcLakh: number;
   addedThisMonth:   { count: number; arcLakh: number };
   addedThisQuarter: { count: number; arcLakh: number };

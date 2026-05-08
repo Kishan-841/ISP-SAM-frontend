@@ -2,7 +2,14 @@
 
 import { useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, AlertTriangle, Search } from 'lucide-react';
+import {
+  ArrowRight,
+  Search,
+  Loader2,
+  ShieldCheck,
+  FileSignature,
+  ClipboardCheck,
+} from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,8 +41,7 @@ const ACTION_LABELS: Record<CommitInput['changeType'], string> = {
 const STEPS = ['Fill commercials', 'Upload approval & PO', 'Commit & notify'];
 
 function CustomerOption({ account }: { account: Account }) {
-  // Account.currentMrr is the monthly figure on the wire; multiply by 12 for ARC.
-  const arc = Number(account.currentMrr) * 12;
+  const arc = Number(account.currentArc);
   const detailParts: string[] = [];
   if (account.bandwidthMbps != null) detailParts.push(`${account.bandwidthMbps} Mbps`);
   if (arc > 0) detailParts.push(`₹${arc.toLocaleString('en-IN')} ARC`);
@@ -84,8 +90,6 @@ export function CommercialChangeForm({
   const [actionType, setActionType] = useState<ActionType>('');
   const [effectiveDate, setEffectiveDate] = useState<string>(todayIso());
   const [newBandwidthMbps, setNewBandwidthMbps] = useState<string>('');
-  // The user types the ANNUAL ARC here. We divide by 12 at submit before
-  // sending to the backend (which still stores monthly as currentMrr).
   const [newArc, setNewArc] = useState<string>('');
   const [reason, setReason] = useState<string>('');
   const [disconnectionCategoryId, setDisconnectionCategoryId] = useState<string>('');
@@ -107,32 +111,31 @@ export function CommercialChangeForm({
   // Action-aware client-side validation. Each rule returns null when the input
   // is OK or hasn't been provided yet, and an error string when the value
   // contradicts the chosen action type.
-  const { mrrError, bwError } = useMemo<{
-    mrrError: string | null;
+  const { arcError, bwError } = useMemo<{
+    arcError: string | null;
     bwError: string | null;
   }>(() => {
     if (!selectedAccount || !actionType || isTermination) {
-      return { mrrError: null, bwError: null };
+      return { arcError: null, bwError: null };
     }
-    // Annualised current ARC for human-readable comparison + error messages.
-    const currentArc = Number(selectedAccount.currentMrr) * 12;
+    const currentArc = Number(selectedAccount.currentArc);
     const currentBw = selectedAccount.bandwidthMbps ?? null;
     const newArcNum = newArc === '' ? null : Number(newArc);
     const newBwNum = newBandwidthMbps === '' ? null : Number(newBandwidthMbps);
 
-    let mrr: string | null = null;
+    let arc: string | null = null;
     let bw: string | null = null;
 
     if (actionType === 'UPGRADE') {
       if (newArcNum !== null && newArcNum <= currentArc) {
-        mrr = `Upgrade requires New ARC greater than current ₹${currentArc.toLocaleString('en-IN')}.`;
+        arc = `Upgrade requires New ARC greater than current ₹${currentArc.toLocaleString('en-IN')}.`;
       }
       if (newBwNum !== null && currentBw !== null && newBwNum <= currentBw) {
         bw = `Upgrade requires New Bandwidth greater than current ${currentBw} Mbps.`;
       }
     } else if (actionType === 'DOWNGRADE') {
       if (newArcNum !== null && newArcNum >= currentArc) {
-        mrr = `Downgrade requires New ARC less than current ₹${currentArc.toLocaleString('en-IN')}.`;
+        arc = `Downgrade requires New ARC less than current ₹${currentArc.toLocaleString('en-IN')}.`;
       }
       if (newBwNum !== null && currentBw !== null && newBwNum > currentBw) {
         bw = `Downgrade can't increase bandwidth — use Upgrade or Rate Revision instead.`;
@@ -140,14 +143,14 @@ export function CommercialChangeForm({
     } else if (actionType === 'RATE_REVISION') {
       // Rate revision: bandwidth uplift; ARC neutral or down (per CLAUDE.md §2)
       if (newArcNum !== null && newArcNum > currentArc) {
-        mrr = `Rate Revision keeps ARC neutral or lower than current ₹${currentArc.toLocaleString('en-IN')}.`;
+        arc = `Rate Revision keeps ARC neutral or lower than current ₹${currentArc.toLocaleString('en-IN')}.`;
       }
       if (newBwNum !== null && currentBw !== null && newBwNum < currentBw) {
         bw = `Rate Revision typically uplifts bandwidth — use Downgrade if you're reducing.`;
       }
     }
 
-    return { mrrError: mrr, bwError: bw };
+    return { arcError: arc, bwError: bw };
   }, [selectedAccount, actionType, isTermination, newArc, newBandwidthMbps]);
 
   function resetForm() {
@@ -182,13 +185,10 @@ export function CommercialChangeForm({
     setSubmitting(true);
     setError(null);
     try {
-      // The form takes ANNUAL ARC; the backend stores MONTHLY (currentMrr).
-      // Divide by 12 here so the column semantic stays consistent across
-      // webhook ingest, Excel imports, and manual commercial changes.
       const payload: CommitInput = {
         accountId: customerId,
         changeType: actionType,
-        newMrr: isTermination ? 0 : Number(newArc) / 12,
+        newArc: isTermination ? 0 : Number(newArc),
         effectiveDate,
         approvalFile,
         poFile,
@@ -234,7 +234,7 @@ export function CommercialChangeForm({
     !approvalFile ||
     !poFile ||
     submitting ||
-    mrrError !== null ||
+    arcError !== null ||
     bwError !== null ||
     (selectedAccount !== null && !isCustomerCrmSynced);
 
@@ -266,8 +266,8 @@ export function CommercialChangeForm({
     return a.customerCode ? `${left} · ${a.customerCode}` : left;
   }
 
-  const currentMrrHint = selectedAccount
-    ? `Current ARC: ₹${(Number(selectedAccount.currentMrr) * 12).toLocaleString('en-IN')} per year`
+  const currentArcHint = selectedAccount
+    ? `Current ARC: ₹${Number(selectedAccount.currentArc).toLocaleString('en-IN')} per year`
     : 'Select a customer first';
   const currentBandwidthHint = selectedAccount
     ? selectedAccount.bandwidthMbps != null
@@ -276,14 +276,15 @@ export function CommercialChangeForm({
     : 'Select a customer first';
 
   return (
-    <div className="px-8 py-6 max-w-5xl flex flex-col gap-6">
+    <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-5xl flex flex-col gap-6">
       <PageHeader
         title="Initiate Commercial Change"
         subtitle="Upgrade · Downgrade · Rate Revision · Disconnection — client approval is mandatory."
       />
 
       {/* Step indicator */}
-      <Card>
+      <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
         <CardContent className="pt-6">
           <StepIndicator steps={STEPS} currentIndex={currentStep} />
         </CardContent>
@@ -489,8 +490,8 @@ export function CommercialChangeForm({
                 <FormField
                   label="New ARC (annual ₹)"
                   required
-                  hint={currentMrrHint}
-                  error={mrrError}
+                  hint={currentArcHint}
+                  error={arcError}
                 >
                   <Input
                     type="number"
@@ -500,8 +501,8 @@ export function CommercialChangeForm({
                     value={newArc}
                     onChange={(e) => setNewArc(e.target.value)}
                     placeholder="e.g. 1000000 (₹10L per year)"
-                    className={`h-10 ${mrrError ? 'border-red-300 focus-visible:ring-red-500/20 focus-visible:border-red-500' : ''}`}
-                    aria-invalid={mrrError ? true : undefined}
+                    className={`h-10 ${arcError ? 'border-red-300 focus-visible:ring-red-500/20 focus-visible:border-red-500' : ''}`}
+                    aria-invalid={arcError ? true : undefined}
                   />
                 </FormField>
                 <FormField label="Reason" fullWidth hint="Why is this change happening? Visible in the audit log.">
@@ -517,39 +518,39 @@ export function CommercialChangeForm({
 
             <FormSection
               title="Documents"
-              description="Both the customer's mail/PDF approval AND the Purchase Order are mandatory. They're uploaded to Cloudinary and forwarded to CRM Docs for review."
+              description="Both the customer's approval and the Purchase Order are required. They're forwarded to the CRM Docs review."
             >
-              <div className="sm:col-span-2 rounded-lg border border-red-200 bg-red-50/50 p-4 flex flex-col gap-3">
-                <div className="flex items-center gap-2 text-red-700">
-                  <AlertTriangle className="w-4 h-4" />
-                  <span className="text-sm font-semibold">Gate 2 — Approval + PO Required (HARD STOP)</span>
-                </div>
-                <p className="text-sm text-red-800/80">
-                  Both files are required. The commit refuses unless both are present.
-                  .eml / .msg / .pdf only, max 10 MB each.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-xs font-medium text-red-900">Client approval (mail / PDF)</span>
-                    <FileDropZone
-                      accept=".eml,.msg,.pdf"
-                      file={approvalFile}
-                      onFileChange={setApprovalFile}
-                      helper=".eml, .msg or .pdf · up to 10 MB"
-                      disabled={submitting}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-xs font-medium text-red-900">Purchase Order (PO)</span>
-                    <FileDropZone
-                      accept=".eml,.msg,.pdf"
-                      file={poFile}
-                      onFileChange={setPoFile}
-                      helper=".eml, .msg or .pdf · up to 10 MB"
-                      disabled={submitting}
-                    />
-                  </div>
-                </div>
+              <div className="sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <UploadSlot
+                  icon={FileSignature}
+                  label="Client approval"
+                  caption="Customer's email or signed PDF"
+                  state={approvalFile ? 'done' : 'pending'}
+                  accent="indigo"
+                >
+                  <FileDropZone
+                    accept=".eml,.msg,.pdf"
+                    file={approvalFile}
+                    onFileChange={setApprovalFile}
+                    helper=".eml, .msg or .pdf · up to 10 MB"
+                    disabled={submitting}
+                  />
+                </UploadSlot>
+                <UploadSlot
+                  icon={ClipboardCheck}
+                  label="Purchase Order"
+                  caption="Customer's PO document"
+                  state={poFile ? 'done' : 'pending'}
+                  accent="emerald"
+                >
+                  <FileDropZone
+                    accept=".eml,.msg,.pdf"
+                    file={poFile}
+                    onFileChange={setPoFile}
+                    helper=".eml, .msg or .pdf · up to 10 MB"
+                    disabled={submitting}
+                  />
+                </UploadSlot>
               </div>
             </FormSection>
 
@@ -576,10 +577,19 @@ export function CommercialChangeForm({
               type="submit"
               disabled={submitDisabled}
               size="lg"
-              className="bg-brand-600 text-white hover:bg-brand-700"
+              className="bg-brand-600 text-white hover:bg-brand-700 min-w-[180px]"
             >
-              {submitting ? 'Committing…' : 'Commit Change'}
-              {!submitting && <ArrowRight className="w-4 h-4 ml-1.5" />}
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Committing…
+                </>
+              ) : (
+                <>
+                  Commit Change
+                  <ArrowRight className="w-4 h-4 ml-1.5" />
+                </>
+              )}
             </Button>
           </div>
         </Card>
@@ -593,6 +603,73 @@ export function CommercialChangeForm({
         clientName={selectedAccount?.clientName ?? null}
         crm={result?.crm ?? null}
       />
+      </div>
+    </div>
+  );
+}
+
+const UPLOAD_ACCENTS: Record<
+  'indigo' | 'emerald',
+  { iconBg: string; iconColor: string; doneBg: string; doneText: string; ring: string }
+> = {
+  indigo: {
+    iconBg: 'bg-indigo-50',
+    iconColor: 'text-indigo-600',
+    doneBg: 'bg-indigo-50',
+    doneText: 'text-indigo-700',
+    ring: 'ring-indigo-100',
+  },
+  emerald: {
+    iconBg: 'bg-emerald-50',
+    iconColor: 'text-emerald-600',
+    doneBg: 'bg-emerald-50',
+    doneText: 'text-emerald-700',
+    ring: 'ring-emerald-100',
+  },
+};
+
+function UploadSlot({
+  icon: Icon,
+  label,
+  caption,
+  state,
+  accent,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  caption: string;
+  state: 'pending' | 'done';
+  accent: 'indigo' | 'emerald';
+  children: React.ReactNode;
+}) {
+  const a = UPLOAD_ACCENTS[accent];
+  return (
+    <div
+      className={`bg-white rounded-xl ring-1 ${a.ring} shadow-sm p-4 flex flex-col gap-3`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-9 h-9 rounded-lg ${a.iconBg} flex items-center justify-center flex-shrink-0`}>
+            <Icon className={`w-4 h-4 ${a.iconColor}`} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-gray-900">{label}</div>
+            <div className="text-xs text-gray-500 truncate">{caption}</div>
+          </div>
+        </div>
+        {state === 'done' ? (
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${a.doneBg} ${a.doneText}`}>
+            <ShieldCheck className="w-3 h-3" />
+            Attached
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-gray-100 text-gray-500">
+            Required
+          </span>
+        )}
+      </div>
+      {children}
     </div>
   );
 }

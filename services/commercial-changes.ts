@@ -7,8 +7,9 @@ export type CommercialChangeListItem = {
   id: string;
   accountId: string;
   changeType: ChangeType;
-  oldMrr: string;
-  newMrr: string;
+  /** Annual ₹ — Decimal serialised as a string. */
+  oldArc: string;
+  newArc: string;
   effectiveDate: string;
   clientApprovalAttached: boolean;
   approvalFileUrl: string | null;
@@ -59,7 +60,8 @@ export function getCommercialChanges(
 export type CommitInput = {
   accountId: string;
   changeType: ChangeType;
-  newMrr: number;
+  /** Annual ₹. */
+  newArc: number;
   newBandwidthMbps?: number;
   effectiveDate: string; // YYYY-MM-DD
   reason?: string;
@@ -77,8 +79,8 @@ export type CommitResult = {
     id: string;
     accountId: string;
     changeType: CommitInput['changeType'];
-    oldMrr: number;
-    newMrr: number;
+    oldArc: number;
+    newArc: number;
     effectiveDate: string;
     approvalFileUrl: string;
     crmServiceOrderId: string | null;
@@ -99,7 +101,7 @@ export async function commitCommercialChange(input: CommitInput): Promise<Commit
   form.append('poFile', input.poFile);
   form.append('accountId', input.accountId);
   form.append('changeType', input.changeType);
-  form.append('newMrr', String(input.newMrr));
+  form.append('newArc', String(input.newArc));
   form.append('effectiveDate', input.effectiveDate);
   if (input.newBandwidthMbps != null) form.append('newBandwidthMbps', String(input.newBandwidthMbps));
   if (input.reason) form.append('reason', input.reason);
