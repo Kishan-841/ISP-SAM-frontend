@@ -1,9 +1,9 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Bell } from 'lucide-react';
 import type { AuthUser } from '../services/auth';
 import { Breadcrumb, type BreadcrumbItem } from './breadcrumb';
+import { NotificationsBell } from './notifications-bell';
 
 const ROUTE_LABELS: Record<string, { dashboard?: boolean; label: string }> = {
   '/': { label: 'Home' },
@@ -40,17 +40,7 @@ export function TopBar({ user }: { user: AuthUser }) {
     <header className="bg-white border-b border-gray-200 px-8 py-3 flex items-center justify-between gap-4 sticky top-0 z-10">
       <Breadcrumb items={crumbs} />
       <div className="flex items-center gap-4">
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative w-9 h-9 grid place-items-center rounded-md text-gray-600 hover:bg-gray-50"
-        >
-          <Bell className="w-5 h-5" />
-          <span
-            aria-hidden="true"
-            className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white"
-          />
-        </button>
+        <NotificationsBell />
         <div className="flex items-center gap-2">
           <div
             className="w-8 h-8 rounded-full bg-brand-600 text-white grid place-items-center text-sm font-semibold"
