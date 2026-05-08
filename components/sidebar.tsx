@@ -17,6 +17,8 @@ import {
   ChevronLeft,
   Plug,
   ListChecks,
+  Activity,
+  History,
 } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import type { AuthUser } from '../services/auth';
@@ -40,8 +42,10 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Transactions', href: '/transactions', icon: ListChecks },
   { label: 'Meetings & MoM', href: '/meetings', icon: CalendarDays },
   { label: 'Leaderboard', href: '/leaderboard', icon: Trophy },
+  { label: 'Team Performance', href: '/team-performance', icon: Activity, roles: ['ADMIN', 'SAM_HEAD'] },
   { label: 'Excel Import', href: '/excel-import', icon: FileDown },
   { label: 'Users', href: '/users', icon: UserCog, roles: ['ADMIN', 'SAM_HEAD'] },
+  { label: 'Audit Log', href: '/audit', icon: History, roles: ['ADMIN', 'SAM_HEAD'] },
   { label: 'Integration Log', href: '/integrations', icon: Plug, roles: ['ADMIN'] },
 ];
 

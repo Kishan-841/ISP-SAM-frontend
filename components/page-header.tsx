@@ -13,7 +13,7 @@ export function PageHeader({
     <div className="flex items-start justify-between gap-4 mb-6">
       <div className="border-l-4 border-brand-600 pl-3">
         <h1 className="text-2xl font-bold text-gray-900 leading-tight">{title}</h1>
-        {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-gray-900 mt-1">{subtitle}</p>}
       </div>
       {right && <div className="flex items-center gap-2">{right}</div>}
     </div>
