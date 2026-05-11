@@ -125,7 +125,7 @@ export default async function ExistingBaseDashboardPage({
           <StatCard
             title={`Rate Revisions (${metrics.rateRevisions.count})`}
             value={formatRupeesCompact(-Math.abs(rateRevisionsArcRupees), { signed: true })}
-            subtitle="Bandwidth uplift; ARC neutral or down"
+            subtitle="Bandwidth uplift at the same ARC"
             icon={Shield}
             iconBg="bg-indigo-50"
             iconColor="text-indigo-600"

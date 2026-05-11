@@ -37,6 +37,8 @@ export type TeamPerformance = {
     arcDelta: number;
     totalChanges: number;
     momsPending: number;
+    momsSent: number;
+    meetingsHeld: number;
     activationPending: number;
     customersWithoutMeeting30d: number;
   };

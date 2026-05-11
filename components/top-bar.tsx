@@ -12,7 +12,6 @@ const ROUTE_LABELS: Record<string, { dashboard?: boolean; label: string }> = {
   '/customers': { label: 'Customers' },
   '/commercial-change': { label: 'Commercial Change' },
   '/meetings': { label: 'Meetings & MoM' },
-  '/leaderboard': { label: 'Leaderboard' },
   '/excel-import': { label: 'Excel Import' },
   '/change-password': { label: 'Change password' },
   '/users': { label: 'Users' },

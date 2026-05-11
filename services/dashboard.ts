@@ -13,8 +13,17 @@ export type ExistingBaseMetrics = {
 };
 
 export type NewBaseMetrics = {
+  // Components — mirrors ExistingBaseMetrics shape.
   totalCustomers: number;
   totalNewArcLakh: number;
+  currentCustomers: number;
+  currentArcLakh: number;
+  terminatedCount: number;
+  // Commercial-change breakdown across NEW kitty (all-time).
+  upgrades:      { count: number; arcAddedLakh: number };
+  downgrades:    { count: number; arcReducedLakh: number };
+  rateRevisions: { count: number; arcChangeLakh: number };
+  terminations:  { count: number; arcLostLakh: number };
   addedThisMonth:   { count: number; arcLakh: number };
   addedThisQuarter: { count: number; arcLakh: number };
   addedThisFy:      { count: number; arcLakh: number };

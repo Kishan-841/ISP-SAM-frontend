@@ -3,6 +3,8 @@ import {
   BarChart3,
   Clock,
   TrendingUp,
+  TrendingDown,
+  Shield,
   AlertTriangle,
   UserX,
   Sparkles,
@@ -15,6 +17,9 @@ import { StatusPill, type PillTone } from '../../components/status-pill';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { getNewBaseMetrics } from '../../services/dashboard';
 import { formatDate } from '../../lib/format-date';
+import { formatRupeesCompact } from '../../lib/format-rupees';
+
+const LAKH = 100_000;
 
 const STATUS_TONE: Record<string, PillTone> = {
   ACTIVE: 'emerald',
@@ -32,38 +37,117 @@ export default async function NewBaseDashboardPage() {
       ? '—'
       : `${metrics.avgTimeToFirstMomDays} days`;
 
+  // Convert lakh-denominated metrics into rupees so formatRupeesCompact can
+  // render them the same way the existing-base dashboard does.
+  const startArcRupees = metrics.totalNewArcLakh * LAKH;
+  const currentArcRupees = metrics.currentArcLakh * LAKH;
+  const upgradesArcRupees = metrics.upgrades.arcAddedLakh * LAKH;
+  const downgradesArcRupees = metrics.downgrades.arcReducedLakh * LAKH;
+  const rateRevisionsArcRupees = metrics.rateRevisions.arcChangeLakh * LAKH;
+  const terminationsArcRupees = metrics.terminations.arcLostLakh * LAKH;
+  const netDeltaRupees = currentArcRupees - startArcRupees;
+
   return (
-    <div className="px-8 py-6 flex flex-col gap-8">
+    <div className="px-8 py-6 max-w-7xl flex flex-col gap-8">
       <PageHeader
         title="New Base Dashboard"
         subtitle="Growth & velocity (post-April 1 customers)"
       />
 
-      {/* Headline */}
+      {/* Components — mirrors existing-base */}
       <section className="flex flex-col gap-3">
-        <SectionHeading>Headline</SectionHeading>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <SectionHeading>Components</SectionHeading>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <StatCard
             title="Total New Customers"
             value={metrics.totalCustomers.toString()}
-            subtitle="Active NEW-kitty accounts"
+            subtitle="All NEW-kitty since April 1"
             icon={Users}
             iconBg="bg-blue-50"
             iconColor="text-blue-600"
             href="/customers?kittyType=NEW"
           />
           <StatCard
-            title="Total New ARC"
-            value={`₹${metrics.totalNewArcLakh.toFixed(1)}L`}
-            subtitle="Annual recurring contribution"
+            title="Total New ARC (at onboarding)"
+            value={formatRupeesCompact(startArcRupees)}
+            subtitle="Sum of starting ARC across NEW base"
+            icon={BarChart3}
+            iconBg="bg-purple-50"
+            iconColor="text-purple-600"
+            href="/customers?kittyType=NEW"
+          />
+          <StatCard
+            title="Current Customers"
+            value={metrics.currentCustomers.toString()}
+            subtitle={`${metrics.totalCustomers} total · ${metrics.terminatedCount} terminated`}
+            icon={Users}
+            iconBg="bg-orange-50"
+            iconColor="text-brand-600"
+            href="/customers?kittyType=NEW&status=ACTIVE"
+          />
+          <StatCard
+            title="Current ARC"
+            value={formatRupeesCompact(currentArcRupees)}
+            subtitle={`Δ ${formatRupeesCompact(netDeltaRupees, { signed: true })} since onboarding`}
             icon={BarChart3}
             iconBg="bg-orange-50"
             iconColor="text-brand-600"
+            href="/customers?kittyType=NEW&status=ACTIVE"
           />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title={`Upgrades (${metrics.upgrades.count})`}
+            value={formatRupeesCompact(Math.abs(upgradesArcRupees), { signed: true })}
+            subtitle="ARC added"
+            icon={TrendingUp}
+            iconBg="bg-emerald-50"
+            iconColor="text-emerald-600"
+            valueColor="text-emerald-600"
+            href="/transactions?type=UPGRADE"
+          />
+          <StatCard
+            title={`Downgrades (${metrics.downgrades.count})`}
+            value={formatRupeesCompact(-Math.abs(downgradesArcRupees), { signed: true })}
+            subtitle="ARC reduced"
+            icon={TrendingDown}
+            iconBg="bg-amber-50"
+            iconColor="text-amber-600"
+            valueColor="text-amber-600"
+            href="/transactions?type=DOWNGRADE"
+          />
+          <StatCard
+            title={`Rate Revisions (${metrics.rateRevisions.count})`}
+            value={formatRupeesCompact(-Math.abs(rateRevisionsArcRupees), { signed: true })}
+            subtitle="Bandwidth uplift at the same ARC"
+            icon={Shield}
+            iconBg="bg-indigo-50"
+            iconColor="text-indigo-600"
+            href="/transactions?type=RATE_REVISION"
+          />
+          <StatCard
+            title={`Disconnections (${metrics.terminations.count})`}
+            value={formatRupeesCompact(-Math.abs(terminationsArcRupees), { signed: true })}
+            subtitle="ARC lost"
+            icon={UserX}
+            iconBg="bg-red-50"
+            iconColor="text-red-600"
+            valueColor="text-red-600"
+            href="/transactions?type=DISCONNECTION"
+          />
+        </div>
+      </section>
+
+      {/* Onboarding efficiency — single MOM card kept from old layout */}
+      <section className="flex flex-col gap-3">
+        <SectionHeading>Onboarding</SectionHeading>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Avg Time to First MOM"
             value={ttfm}
-            subtitle="Onboarding → first MOM"
+            subtitle="Onboarding → first MOM sent"
             icon={Clock}
             iconBg="bg-violet-50"
             iconColor="text-violet-600"

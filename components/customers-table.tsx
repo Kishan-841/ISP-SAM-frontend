@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ChevronDown,
@@ -70,14 +71,30 @@ export function CustomersTable({
       key: 'customerCode',
       header: 'Code',
       sortable: true,
-      cell: (a) => a.customerCode ?? '—',
+      cell: (a) => (
+        <Link
+          href={`/customers/${a.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="hover:underline"
+        >
+          {a.customerCode ?? '—'}
+        </Link>
+      ),
       className: 'px-5 py-4 font-mono text-xs text-orange-600',
     },
     {
       key: 'clientName',
       header: 'Customer',
       sortable: true,
-      cell: (a) => a.clientName,
+      cell: (a) => (
+        <Link
+          href={`/customers/${a.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="hover:text-brand-600"
+        >
+          {a.clientName}
+        </Link>
+      ),
       secondary: (a) => a.companyName ?? null,
     },
     {
@@ -298,7 +315,15 @@ const TONE_STYLES: Record<
 function CustomerDetails({ account }: { account: Account }) {
   const metadataEntries = account.metadata ? Object.entries(account.metadata) : [];
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="flex flex-col gap-4">
+      <Link
+        href={`/customers/${account.id}`}
+        className="self-end inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-b from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 shadow-sm ring-1 ring-brand-700/20 transition-all"
+      >
+        View full journey
+        <ChevronRight className="w-3.5 h-3.5" />
+      </Link>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <DetailCard title="Identifiers" icon={Fingerprint} tone="indigo">
         <Detail
           icon={Hash}
@@ -355,6 +380,7 @@ function CustomerDetails({ account }: { account: Account }) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

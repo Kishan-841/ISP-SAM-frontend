@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
@@ -107,6 +107,17 @@ export function CommercialChangeForm({
   );
 
   const isTermination = actionType === 'DISCONNECTION';
+  const isRateRevision = actionType === 'RATE_REVISION';
+
+  // Rate revision: ARC must equal current ARC. Auto-fill the input with the
+  // current value the moment the customer + action type are both set, so the
+  // SAM only has to enter bandwidth.
+  useEffect(() => {
+    if (isRateRevision && selectedAccount) {
+      const current = String(Math.round(Number(selectedAccount.currentArc)));
+      setNewArc((prev) => (prev === '' || prev !== current ? current : prev));
+    }
+  }, [isRateRevision, selectedAccount]);
 
   // Action-aware client-side validation. Each rule returns null when the input
   // is OK or hasn't been provided yet, and an error string when the value
@@ -141,12 +152,14 @@ export function CommercialChangeForm({
         bw = `Downgrade can't increase bandwidth — use Upgrade or Rate Revision instead.`;
       }
     } else if (actionType === 'RATE_REVISION') {
-      // Rate revision: bandwidth uplift; ARC neutral or down (per CLAUDE.md §2)
-      if (newArcNum !== null && newArcNum > currentArc) {
-        arc = `Rate Revision keeps ARC neutral or lower than current ₹${currentArc.toLocaleString('en-IN')}.`;
+      // Rate revision: bandwidth uplift at SAME ARC. Customer pays the same
+      // money but gets more speed — typically a renewal sweetener or a
+      // competitor-match move.
+      if (newArcNum !== null && newArcNum !== currentArc) {
+        arc = `Rate Revision keeps ARC the same as current ₹${currentArc.toLocaleString('en-IN')} — only bandwidth changes.`;
       }
-      if (newBwNum !== null && currentBw !== null && newBwNum < currentBw) {
-        bw = `Rate Revision typically uplifts bandwidth — use Downgrade if you're reducing.`;
+      if (newBwNum !== null && currentBw !== null && newBwNum <= currentBw) {
+        bw = `Rate Revision requires New Bandwidth greater than current ${currentBw} Mbps.`;
       }
     }
 
@@ -179,7 +192,8 @@ export function CommercialChangeForm({
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!customerId || !actionType || !effectiveDate || !approvalFile || !poFile) return;
+    // Document gate: at least ONE of approval / PO must be attached.
+    if (!customerId || !actionType || !effectiveDate || (!approvalFile && !poFile)) return;
     if (!isTermination && !newArc) return;
     if (isTermination && (!disconnectionCategoryId || !disconnectionSubCategoryId)) return;
     setSubmitting(true);
@@ -213,10 +227,10 @@ export function CommercialChangeForm({
 
   // Step indicator: which step is the user "in"?
   // 0: filling commercials (no files yet, customer/action partially filled)
-  // 1: ready to upload documents (commercials filled but ≥1 file missing)
-  // 2: ready to commit (BOTH approval + PO present)
+  // 1: ready to upload at least one document
+  // 2: ready to commit (≥1 document attached)
   const currentStep = (() => {
-    if (approvalFile && poFile) return 2;
+    if (approvalFile || poFile) return 2;
     const commercialsFilled = customerId && actionType && effectiveDate && (isTermination || newArc);
     return commercialsFilled ? 1 : 0;
   })();
@@ -231,8 +245,8 @@ export function CommercialChangeForm({
     !effectiveDate ||
     (!isTermination && !newArc) ||
     (isTermination && (!disconnectionCategoryId || !disconnectionSubCategoryId)) ||
-    !approvalFile ||
-    !poFile ||
+    // Documents — at least one of approval / PO must be attached.
+    (!approvalFile && !poFile) ||
     submitting ||
     arcError !== null ||
     bwError !== null ||
@@ -267,7 +281,9 @@ export function CommercialChangeForm({
   }
 
   const currentArcHint = selectedAccount
-    ? `Current ARC: ₹${Number(selectedAccount.currentArc).toLocaleString('en-IN')} per year`
+    ? isRateRevision
+      ? `Locked at current ₹${Number(selectedAccount.currentArc).toLocaleString('en-IN')} — rate revision keeps ARC the same`
+      : `Current ARC: ₹${Number(selectedAccount.currentArc).toLocaleString('en-IN')} per year`
     : 'Select a customer first';
   const currentBandwidthHint = selectedAccount
     ? selectedAccount.bandwidthMbps != null
@@ -488,7 +504,7 @@ export function CommercialChangeForm({
                   />
                 </FormField>
                 <FormField
-                  label="New ARC (annual ₹)"
+                  label={isRateRevision ? 'New ARC (locked)' : 'New ARC (annual ₹)'}
                   required
                   hint={currentArcHint}
                   error={arcError}
@@ -501,7 +517,15 @@ export function CommercialChangeForm({
                     value={newArc}
                     onChange={(e) => setNewArc(e.target.value)}
                     placeholder="e.g. 1000000 (₹10L per year)"
-                    className={`h-10 ${arcError ? 'border-red-300 focus-visible:ring-red-500/20 focus-visible:border-red-500' : ''}`}
+                    readOnly={isRateRevision}
+                    disabled={isRateRevision}
+                    className={`h-10 ${
+                      arcError
+                        ? 'border-red-300 focus-visible:ring-red-500/20 focus-visible:border-red-500'
+                        : isRateRevision
+                          ? 'bg-gray-50 text-gray-500 cursor-not-allowed'
+                          : ''
+                    }`}
                     aria-invalid={arcError ? true : undefined}
                   />
                 </FormField>
@@ -518,7 +542,7 @@ export function CommercialChangeForm({
 
             <FormSection
               title="Documents"
-              description="Both the customer's approval and the Purchase Order are required. They're forwarded to the CRM Docs review."
+              description="Attach at least one document — client approval or Purchase Order. Both is preferred and forwarded to the CRM Docs review."
             >
               <div className="sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
                 <UploadSlot
@@ -527,6 +551,7 @@ export function CommercialChangeForm({
                   caption="Customer's email or signed PDF"
                   state={approvalFile ? 'done' : 'pending'}
                   accent="indigo"
+                  optional
                 >
                   <FileDropZone
                     accept=".eml,.msg,.pdf"
@@ -542,6 +567,7 @@ export function CommercialChangeForm({
                   caption="Customer's PO document"
                   state={poFile ? 'done' : 'pending'}
                   accent="emerald"
+                  optional
                 >
                   <FileDropZone
                     accept=".eml,.msg,.pdf"
@@ -552,6 +578,11 @@ export function CommercialChangeForm({
                   />
                 </UploadSlot>
               </div>
+              {!approvalFile && !poFile && (
+                <p className="sm:col-span-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                  Attach at least one of the two to proceed.
+                </p>
+              )}
             </FormSection>
 
             {error && (
@@ -635,6 +666,7 @@ function UploadSlot({
   state,
   accent,
   children,
+  optional = false,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -642,6 +674,8 @@ function UploadSlot({
   state: 'pending' | 'done';
   accent: 'indigo' | 'emerald';
   children: React.ReactNode;
+  /** When true, the pending pill reads "Optional" instead of "Required". */
+  optional?: boolean;
 }) {
   const a = UPLOAD_ACCENTS[accent];
   return (
@@ -665,7 +699,7 @@ function UploadSlot({
           </span>
         ) : (
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-gray-100 text-gray-500">
-            Required
+            {optional ? 'Optional' : 'Required'}
           </span>
         )}
       </div>

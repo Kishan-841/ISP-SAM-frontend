@@ -70,8 +70,9 @@ export type CommitInput = {
   disconnectionCategoryId?: string;
   disconnectionSubCategoryId?: string;
   disconnectionReason?: string;
-  approvalFile: File;
-  poFile: File;
+  /** At least one of these is required (validated server-side). */
+  approvalFile?: File | null;
+  poFile?: File | null;
 };
 
 export type CommitResult = {
@@ -82,7 +83,8 @@ export type CommitResult = {
     oldArc: number;
     newArc: number;
     effectiveDate: string;
-    approvalFileUrl: string;
+    approvalFileUrl: string | null;
+    poFileUrl: string | null;
     crmServiceOrderId: string | null;
     crmOrderNumber: string | null;
     crmStatus: string | null;
@@ -97,8 +99,11 @@ export type CommitResult = {
 export async function commitCommercialChange(input: CommitInput): Promise<CommitResult> {
   const base = typeof window === 'undefined' ? env.internalApiBase : env.apiBase;
   const form = new FormData();
-  form.append('approvalFile', input.approvalFile);
-  form.append('poFile', input.poFile);
+  // Only append the file fields that are actually present. multer.fields()
+  // is happy with a missing field; appending null/undefined would corrupt
+  // the multipart body.
+  if (input.approvalFile) form.append('approvalFile', input.approvalFile);
+  if (input.poFile) form.append('poFile', input.poFile);
   form.append('accountId', input.accountId);
   form.append('changeType', input.changeType);
   form.append('newArc', String(input.newArc));

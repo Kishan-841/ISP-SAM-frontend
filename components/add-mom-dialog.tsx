@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { logMeeting, type ActionItem, type MeetingType } from '../services/meetings';
+import { logMeeting, markHeld, type ActionItem, type MeetingType } from '../services/meetings';
 import type { Account } from '../services/accounts';
 
 type Participant = { name: string; position: string };
@@ -90,7 +90,8 @@ export function AddMomDialog({ accounts }: { accounts: Account[] }) {
       const cleanItems = items
         .filter((i) => i.discussionDescription.trim())
         .map((i, idx) => ({ ...i, srNo: idx + 1 }));
-      await logMeeting({
+      // 1. Log the meeting record (with participants + action items).
+      const { meeting } = await logMeeting({
         accountId,
         scheduledAt,
         meetingType,
@@ -99,6 +100,12 @@ export function AddMomDialog({ accounts }: { accounts: Account[] }) {
         gazonParticipants: cleanGazon.length ? JSON.stringify(cleanGazon) : undefined,
         actionItems: cleanItems.length ? cleanItems : undefined,
       });
+      // 2. Mark it as held immediately. This dialog is for "I had a meeting,
+      //    here's what happened" — so the held timestamp is the same moment
+      //    as the meeting was scheduled (typically just now). Without this
+      //    step, the meeting lands in Schedule with heldAt=null and the SAM
+      //    can't find it in MOM Pending.
+      await markHeld(meeting.id, scheduledAt);
       setOpen(false);
       reset();
       router.refresh();

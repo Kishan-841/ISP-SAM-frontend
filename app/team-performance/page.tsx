@@ -80,12 +80,12 @@ export default async function TeamPerformancePage() {
             href="/transactions"
           />
           <StatCard
-            title="MOMs pending"
-            value={team.momsPending.toString()}
+            title="Meetings & MOM"
+            value={`${team.meetingsHeld} / ${team.momsSent}`}
             subtitle={
-              team.customersWithoutMeeting30d > 0
-                ? `${team.customersWithoutMeeting30d} customers without a meeting in 30d`
-                : 'All customers met recently'
+              team.momsPending > 0
+                ? `${team.momsPending} MOM${team.momsPending === 1 ? '' : 's'} pending · held / sent`
+                : `${team.meetingsHeld === 0 ? 'No meetings held yet' : 'Held / MOMs sent'}`
             }
             icon={CalendarClock}
             iconBg="bg-amber-50"
@@ -120,7 +120,7 @@ export default async function TeamPerformancePage() {
         ) : (
           <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[900px]">
+              <table className="w-full text-sm min-w-[1000px]">
                 <thead className="bg-gray-50/60 border-b border-gray-100">
                   <tr>
                     <Th>SAM</Th>
@@ -128,6 +128,7 @@ export default async function TeamPerformancePage() {
                     <Th align="right">Customers</Th>
                     <Th align="right">ARC</Th>
                     <Th align="center">Changes</Th>
+                    <Th align="center">Meetings</Th>
                     <Th align="center">MOM SLA</Th>
                     <Th align="center">Approval</Th>
                     <Th />
@@ -172,6 +173,9 @@ function SamTableRow({ sam }: { sam: import('../../services/team-performance').S
         <ChangesCell sam={sam} />
       </td>
       <td className="px-5 py-4 text-center">
+        <MeetingsCell sam={sam} />
+      </td>
+      <td className="px-5 py-4 text-center">
         <PercentPill value={sam.momSlaPercent} good={70} ok={50} />
       </td>
       <td className="px-5 py-4 text-center">
@@ -187,6 +191,47 @@ function SamTableRow({ sam }: { sam: import('../../services/team-performance').S
         </Link>
       </td>
     </tr>
+  );
+}
+
+function MeetingsCell({ sam }: { sam: import('../../services/team-performance').SamRow }) {
+  const momsPending = Math.max(0, sam.meetingsHeld - sam.momsSent);
+  const noMeeting = sam.customersWithoutMeeting;
+
+  if (sam.meetingsHeld === 0 && noMeeting === 0) {
+    return <span className="text-xs text-gray-300">No meetings</span>;
+  }
+
+  const chips: { count: number; label: string; classes: string }[] = [
+    {
+      count: sam.meetingsHeld,
+      label: 'Held',
+      classes: 'bg-blue-50 text-blue-700 ring-blue-100',
+    },
+    {
+      count: momsPending,
+      label: 'MOM pending',
+      classes: 'bg-amber-50 text-amber-700 ring-amber-100',
+    },
+    {
+      count: noMeeting,
+      label: 'No mtg',
+      classes: 'bg-red-50 text-red-700 ring-red-100',
+    },
+  ].filter((c) => c.count > 0);
+
+  return (
+    <div className="inline-flex items-center gap-1.5 flex-wrap justify-center">
+      {chips.map((c) => (
+        <span
+          key={c.label}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ring-1 tabular-nums ${c.classes}`}
+        >
+          <span>{c.count}</span>
+          <span className="text-[10px] uppercase tracking-wider opacity-70">{c.label}</span>
+        </span>
+      ))}
+    </div>
   );
 }
 

@@ -2,7 +2,8 @@ import { getMeetings } from '../../services/meetings';
 import { getAccounts } from '../../services/accounts';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { PageHeader } from '../../components/page-header';
-import { MeetingsView } from '../../components/meetings-view';
+import { MeetingsTable } from '../../components/meetings-table';
+import { CalendarViewButton } from '../../components/calendar-view-button';
 
 export default async function MeetingsPage() {
   const cookieHeader = await getCookieHeader();
@@ -11,13 +12,20 @@ export default async function MeetingsPage() {
     getAccounts({}, { cookieHeader }),
   ]);
 
+  const total = meetingsRes.meetings.length;
+  const subtitle = total === 0 ? 'No meetings yet' : `${total} total`;
+
   return (
-    <div className="px-8 py-6 flex flex-col gap-6">
+    <div className="px-8 py-6 max-w-7xl flex flex-col gap-6">
       <PageHeader
         title="Meetings & MoM"
-        subtitle={`${meetingsRes.meetings.length} total`}
+        subtitle={subtitle}
+        right={<CalendarViewButton meetings={meetingsRes.meetings} />}
       />
-      <MeetingsView meetings={meetingsRes.meetings} accounts={accountsRes.accounts} />
+      <MeetingsTable
+        meetings={meetingsRes.meetings}
+        accounts={accountsRes.accounts}
+      />
     </div>
   );
 }
