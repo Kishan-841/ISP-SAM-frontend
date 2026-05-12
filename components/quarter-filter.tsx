@@ -19,6 +19,15 @@ export function QuarterFilter({ active }: { active?: ActiveQuarter }) {
     });
   }
 
+  // Motion notes (per Emil's framework):
+  //  - Buttons need :active scale for tactile press feedback (subtle, 0.96).
+  //  - Specific transitions only — background-color + transform here.
+  //  - 160ms duration; tab/filter is "tens of times/day" so we reduce, not remove.
+  //  - Hover gated by `hoverable:` so touch doesn't strand a stale hover state.
+  const chipBase =
+    'min-w-[64px] px-3 py-1 text-xs font-medium rounded text-center ' +
+    'transition-[background-color,transform] duration-150 ease-[var(--ease-out)] ' +
+    'active:scale-[0.96] will-change-transform';
   return (
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-1 bg-white rounded-md p-1 border border-gray-200">
@@ -32,8 +41,8 @@ export function QuarterFilter({ active }: { active?: ActiveQuarter }) {
               disabled={pending}
               className={
                 isActive
-                  ? 'min-w-[64px] px-3 py-1 text-xs font-medium rounded bg-brand-600 text-white text-center disabled:opacity-70'
-                  : 'min-w-[64px] px-3 py-1 text-xs font-medium rounded bg-gray-100 text-gray-600 hover:bg-gray-200 text-center disabled:opacity-50'
+                  ? `${chipBase} bg-brand-600 text-white disabled:opacity-70`
+                  : `${chipBase} bg-gray-100 text-gray-600 hoverable:hover:bg-gray-200 disabled:opacity-50`
               }
             >
               {q === 'All' ? 'All Time' : q}
@@ -45,7 +54,7 @@ export function QuarterFilter({ active }: { active?: ActiveQuarter }) {
         type="button"
         aria-label="Refresh"
         onClick={() => router.refresh()}
-        className="w-8 h-8 grid place-items-center rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+        className="w-8 h-8 grid place-items-center rounded-md border border-gray-200 bg-white text-gray-600 transition-[background-color,transform] duration-150 ease-[var(--ease-out)] hoverable:hover:bg-gray-50 active:scale-[0.94]"
       >
         <RefreshCw className={`w-4 h-4 ${pending ? 'animate-spin' : ''}`} />
       </button>

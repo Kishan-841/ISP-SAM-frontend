@@ -1,4 +1,4 @@
-import { apiGet, apiPost, type ApiOpts } from './api-client';
+import { apiDelete, apiGet, apiPatch, apiPost, type ApiOpts } from './api-client';
 import type { AuthUser } from './auth';
 
 export type UserRecord = AuthUser & {
@@ -18,4 +18,23 @@ export function createUser(input: {
   samHeadId?: string;
 }) {
   return apiPost<{ user: UserRecord }>('/users', input);
+}
+
+export type UpdateUserInput = {
+  name?: string;
+  role?: 'ADMIN' | 'SAM_HEAD' | 'SAM';
+  /** null clears the reports-to. undefined leaves it alone. */
+  samHeadId?: string | null;
+  /** Admin password reset. */
+  password?: string;
+};
+
+export function updateUser(id: string, input: UpdateUserInput) {
+  return apiPatch<{ user: UserRecord }>(`/users/${id}`, input);
+}
+
+export function deleteUser(id: string) {
+  return apiDelete<{ deleted: true; snapshot: Record<string, unknown> }>(
+    `/users/${id}`,
+  );
 }

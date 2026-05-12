@@ -1,8 +1,19 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarPlus, Plus, Search, Trash2, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarPlus,
+  Eye,
+  Plus,
+  RefreshCw,
+  Search,
+  Send,
+  Trash2,
+  X,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -22,33 +34,118 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { logMeeting, markHeld, type ActionItem, type MeetingType } from '../services/meetings';
+import {
+  completeMeeting,
+  sendMomEmail,
+  type ActionItem,
+  type MeetingRow,
+  type MeetingType,
+} from '../services/meetings';
+import { parseParticipants } from '../lib/participants';
+import { MomFormattedPreview } from './mom-formatted-preview';
 import type { Account } from '../services/accounts';
 
 type Participant = { name: string; position: string };
+type Step = 1 | 2;
 
 const STATUS_OPTIONS: ActionItem['currentStatus'][] = ['Open', 'In Progress', 'Closed'];
 
-export function AddMomDialog({ accounts }: { accounts: Account[] }) {
+export function AddMomDialog({
+  accounts,
+  existingMeeting = null,
+  trigger,
+  open: controlledOpen,
+  onOpenChange,
+}: {
+  accounts: Account[];
+  /** When set, the dialog runs in "complete existing meeting" mode:
+   *  customer/date/type are locked to the existing meeting; submit updates
+   *  the existing record instead of creating a new one. */
+  existingMeeting?: MeetingRow | null;
+  /** Replace the default "Add MOM" button. */
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [accountId, setAccountId] = useState('');
+  const editing = existingMeeting !== null;
+
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = (o: boolean) => {
+    onOpenChange?.(o);
+    if (controlledOpen === undefined) setUncontrolledOpen(o);
+  };
+
+  const [step, setStep] = useState<Step>(1);
+
+  // Initial values come from the existing meeting (edit mode) or defaults.
+  const initialClientPpts =
+    existingMeeting && parseParticipants(existingMeeting.clientParticipants).length > 0
+      ? parseParticipants(existingMeeting.clientParticipants)
+      : [{ name: '', position: '' }];
+  const initialGazonPpts =
+    existingMeeting && parseParticipants(existingMeeting.gazonParticipants).length > 0
+      ? parseParticipants(existingMeeting.gazonParticipants)
+      : [{ name: '', position: '' }];
+  const initialItems =
+    existingMeeting?.actionItems && existingMeeting.actionItems.length > 0
+      ? existingMeeting.actionItems
+      : [blankItem(1)];
+
+  // ── Step 1: meeting details ────────────────────────────────────────
+  const [accountId, setAccountId] = useState(existingMeeting?.accountId ?? '');
   const [customerSearch, setCustomerSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [date, setDate] = useState(todayIso());
-  const [time, setTime] = useState('');
-  const [meetingType, setMeetingType] = useState<MeetingType>('ONLINE');
-  const [location, setLocation] = useState('');
-  const [clientPpts, setClientPpts] = useState<Participant[]>([{ name: '', position: '' }]);
-  const [gazonPpts, setGazonPpts] = useState<Participant[]>([{ name: '', position: '' }]);
-  const [items, setItems] = useState<ActionItem[]>([blankItem(1)]);
+  const [date, setDate] = useState(
+    existingMeeting ? isoDateOf(existingMeeting.scheduledAt) : todayIso(),
+  );
+  const [time, setTime] = useState(
+    existingMeeting ? isoTimeOf(existingMeeting.scheduledAt) : nowHm(),
+  );
+  const [meetingType, setMeetingType] = useState<MeetingType>(
+    existingMeeting?.meetingType ?? 'ONLINE',
+  );
+  const [location, setLocation] = useState(existingMeeting?.location ?? '');
+  const [clientPpts, setClientPpts] = useState<Participant[]>(initialClientPpts);
+  const [gazonPpts, setGazonPpts] = useState<Participant[]>(initialGazonPpts);
+  const [items, setItems] = useState<ActionItem[]>(initialItems);
+
+  // ── Step 2: email composer ────────────────────────────────────────
+  const [to, setTo] = useState('');
+  const [toEdited, setToEdited] = useState(false);
+  const [cc, setCc] = useState('');
+  const [subject, setSubject] = useState('');
+  const [subjectEdited, setSubjectEdited] = useState(false);
+  const [body, setBody] = useState(existingMeeting?.momContent ?? '');
+  const [bodyEdited, setBodyEdited] = useState(!!existingMeeting?.momContent);
+  const [designation, setDesignation] = useState('');
+  const [phone, setPhone] = useState('');
+  const [testMode, setTestMode] = useState(false);
+
+  const [previewKey, setPreviewKey] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const selectedAccount = useMemo(
-    () => accounts.find((a) => a.id === accountId) ?? null,
-    [accounts, accountId],
-  );
+  const selectedAccount = useMemo<Account | null>(() => {
+    if (existingMeeting) {
+      // The meetings list may have fewer fields than Account; reuse what we have.
+      const fromList = accounts.find((a) => a.id === existingMeeting.accountId);
+      if (fromList) return fromList;
+      // Synthesize a minimal Account from the embedded meeting.account for display.
+      return {
+        ...existingMeeting.account,
+        contractStatus: 'ACTIVE',
+        currentArc: '0',
+        onboardingDate: existingMeeting.scheduledAt,
+        externalCrmId: null,
+        lastMomDate: null,
+        lastMeetingDate: null,
+      } as unknown as Account;
+    }
+    return accounts.find((a) => a.id === accountId) ?? null;
+  }, [accounts, accountId, existingMeeting]);
 
   const filteredAccounts = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
@@ -62,60 +159,143 @@ export function AddMomDialog({ accounts }: { accounts: Account[] }) {
       .slice(0, 25);
   }, [accounts, customerSearch]);
 
+  const cleanClient = useMemo(
+    () => clientPpts.filter((p) => p.name.trim()),
+    [clientPpts],
+  );
+  const cleanGazon = useMemo(
+    () => gazonPpts.filter((p) => p.name.trim()),
+    [gazonPpts],
+  );
+  const cleanItems = useMemo(
+    () =>
+      items
+        .filter((i) => i.discussionDescription.trim())
+        .map((i, idx) => ({ ...i, srNo: idx + 1 })),
+    [items],
+  );
+
+  // Whenever step 1 data changes, refresh step 2 auto-fills (unless edited).
+  useEffect(() => {
+    if (!selectedAccount) return;
+    if (!toEdited) setTo(selectedAccount.email ?? '');
+    if (!subjectEdited) {
+      const customerName = selectedAccount.companyName || selectedAccount.clientName;
+      setSubject(`Minutes of Meeting — ${customerName} — ${formatHumanDate(date)}`);
+    }
+    if (!bodyEdited) {
+      setBody(
+        composeBodyFromMeeting({
+          clientName: selectedAccount.clientName,
+          companyName: selectedAccount.companyName ?? null,
+          actionItems: cleanItems,
+        }),
+      );
+    }
+  }, [selectedAccount, date, cleanItems, toEdited, subjectEdited, bodyEdited]);
+
   function reset() {
-    setAccountId('');
+    setStep(1);
+    setAccountId(existingMeeting?.accountId ?? '');
     setCustomerSearch('');
     setSearchOpen(false);
-    setDate(todayIso());
-    setTime('');
-    setMeetingType('ONLINE');
-    setLocation('');
-    setClientPpts([{ name: '', position: '' }]);
-    setGazonPpts([{ name: '', position: '' }]);
-    setItems([blankItem(1)]);
+    setDate(existingMeeting ? isoDateOf(existingMeeting.scheduledAt) : todayIso());
+    setTime(existingMeeting ? isoTimeOf(existingMeeting.scheduledAt) : nowHm());
+    setMeetingType(existingMeeting?.meetingType ?? 'ONLINE');
+    setLocation(existingMeeting?.location ?? '');
+    setClientPpts(initialClientPpts);
+    setGazonPpts(initialGazonPpts);
+    setItems(initialItems);
+    setTo('');
+    setToEdited(false);
+    setCc('');
+    setSubject('');
+    setSubjectEdited(false);
+    setBody(existingMeeting?.momContent ?? '');
+    setBodyEdited(!!existingMeeting?.momContent);
+    setDesignation('');
+    setPhone('');
+    setTestMode(false);
+    setPreviewKey(0);
     setError(null);
+    setSuccess(null);
+  }
+
+  function goToStep2() {
+    if (!accountId) {
+      setError('Pick a customer.');
+      return;
+    }
+    if (!date || !time) {
+      setError('Date and time are required.');
+      return;
+    }
+    setError(null);
+    setStep(2);
   }
 
   async function submit() {
-    if (!accountId || !date || !time) {
-      setError('Customer, date and time are required.');
-      return;
-    }
+    if (!testMode && !to.trim()) return setError('Recipient email is required.');
+    if (!subject.trim()) return setError('Subject is required.');
+    if (!body.trim()) return setError('Email body is required.');
+
     setSubmitting(true);
     setError(null);
+    setSuccess(null);
     try {
-      const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
-      const cleanClient = clientPpts.filter((p) => p.name.trim());
-      const cleanGazon = gazonPpts.filter((p) => p.name.trim());
-      const cleanItems = items
-        .filter((i) => i.discussionDescription.trim())
-        .map((i, idx) => ({ ...i, srNo: idx + 1 }));
-      // 1. Log the meeting record (with participants + action items).
-      const { meeting } = await logMeeting({
-        accountId,
-        scheduledAt,
-        meetingType,
-        location: meetingType === 'PHYSICAL' ? location.trim() || undefined : undefined,
+      const ccList = cc
+        .split(/[,;]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const sharedPayload = {
         clientParticipants: cleanClient.length ? JSON.stringify(cleanClient) : undefined,
         gazonParticipants: cleanGazon.length ? JSON.stringify(cleanGazon) : undefined,
         actionItems: cleanItems.length ? cleanItems : undefined,
-      });
-      // 2. Mark it as held immediately. This dialog is for "I had a meeting,
-      //    here's what happened" — so the held timestamp is the same moment
-      //    as the meeting was scheduled (typically just now). Without this
-      //    step, the meeting lands in Schedule with heldAt=null and the SAM
-      //    can't find it in MOM Pending.
-      await markHeld(meeting.id, scheduledAt);
-      setOpen(false);
-      reset();
+        momContent: body.trim(),
+        to: to.trim() || undefined,
+        cc: ccList.length > 0 ? ccList : undefined,
+        subject: subject.trim(),
+        samDesignation: designation.trim() || undefined,
+        samPhone: phone.trim() || undefined,
+        testMode,
+      };
+
+      const { emailStatus } = editing
+        ? await completeMeeting(existingMeeting!.id, sharedPayload)
+        : await sendMomEmail({
+            accountId,
+            scheduledAt: new Date(`${date}T${time}:00`).toISOString(),
+            meetingType,
+            location: meetingType === 'PHYSICAL' ? location.trim() || undefined : undefined,
+            ...sharedPayload,
+          });
+
+      if (testMode) {
+        setSuccess(
+          'Test run complete — meeting saved, no email dispatched. Toggle off "Test mode" to send for real.',
+        );
+      } else if (emailStatus === 'SENT') {
+        setOpen(false);
+        reset();
+      } else {
+        setError(
+          emailStatus === 'SKIPPED'
+            ? 'MoM saved. Email transport is currently disabled (ACCOUNTS_NOTIFICATIONS_ENABLED=false) — no email was sent.'
+            : emailStatus === 'MISCONFIGURED'
+              ? 'MoM saved, but the email could not be sent (recipient or sender misconfigured). Check audit log for details.'
+              : 'MoM saved, but the email transport returned a failure. Check audit log.',
+        );
+      }
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save MOM');
+      setError(err instanceof Error ? err.message : 'Failed to send MoM email');
     } finally {
       setSubmitting(false);
     }
   }
 
+  const customerName =
+    selectedAccount?.companyName || selectedAccount?.clientName || 'Customer';
   return (
     <Dialog
       open={open}
@@ -124,170 +304,458 @@ export function AddMomDialog({ accounts }: { accounts: Account[] }) {
         if (!o) reset();
       }}
     >
-      <DialogTrigger asChild>
-        <Button>
-          <CalendarPlus className="w-4 h-4 mr-2" />
-          Add MOM
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-5xl w-[80vw] !gap-0 p-0 overflow-hidden">
-        <DialogHeader className="bg-orange-50 px-6 py-4 border-b border-orange-100">
-          <DialogTitle className="text-xl font-semibold text-gray-900">Add MOM</DialogTitle>
+      {controlledOpen === undefined && (
+        <DialogTrigger asChild>
+          {trigger ?? (
+            <Button>
+              <CalendarPlus className="w-4 h-4 mr-2" />
+              Add MOM
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
+      <DialogContent className="sm:max-w-5xl w-[90vw] max-h-[90vh] !gap-0 p-0 overflow-hidden flex flex-col">
+        <DialogHeader className="bg-orange-50 px-6 py-4 border-b border-orange-100 flex-shrink-0">
+          <DialogTitle className="text-xl font-semibold text-gray-900">
+            {step === 1
+              ? editing
+                ? 'Complete Meeting'
+                : 'Add MOM'
+              : 'Send MOM Email'}
+          </DialogTitle>
           <DialogDescription className="text-sm text-gray-600">
-            Record minutes of a meeting
+            {step === 1
+              ? editing
+                ? 'Fill in participants, action items and minutes — then compose the email.'
+                : 'Record minutes of a meeting'
+              : 'Compose the minutes-of-meeting email — preview it, then send to the customer.'}
           </DialogDescription>
+          <StepIndicator step={step} />
         </DialogHeader>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void submit();
-          }}
-          className="px-6 py-5 flex flex-col gap-5 max-h-[70vh] overflow-y-auto"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex flex-col gap-2 relative">
-              <Label htmlFor="mom-customer">
-                Customer<RequiredStar />
-              </Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        {step === 1 ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              goToStep2();
+            }}
+            className="flex flex-col min-h-0 flex-1"
+          >
+            <div className="px-6 py-5 flex flex-col gap-5 overflow-y-auto flex-1 min-h-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-col gap-2 relative">
+                <Label htmlFor="mom-customer">
+                  Customer<RequiredStar />
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <Input
+                    id="mom-customer"
+                    value={selectedAccount ? labelFor(selectedAccount) : customerSearch}
+                    onChange={(e) => {
+                      if (editing) return;
+                      setCustomerSearch(e.target.value);
+                      setAccountId('');
+                      setSearchOpen(true);
+                    }}
+                    onFocus={() => !editing && setSearchOpen(true)}
+                    onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
+                    placeholder="Search by company, username, circuit ID"
+                    className="pl-9"
+                    readOnly={editing}
+                    disabled={editing}
+                  />
+                </div>
+                {!editing && searchOpen && filteredAccounts.length > 0 && (
+                  <div className="absolute z-[60] left-0 top-full mt-1 w-[320px] max-w-[420px] bg-white border border-gray-200 rounded-md shadow-lg max-h-72 overflow-y-auto">
+                    {filteredAccounts.map((a) => (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setAccountId(a.id);
+                          setCustomerSearch('');
+                          setSearchOpen(false);
+                          setToEdited(false);
+                          setSubjectEdited(false);
+                          setBodyEdited(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-orange-50 border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="text-sm text-gray-900 font-medium truncate">
+                          {a.companyName || a.clientName}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5 truncate">
+                          {[a.customerCode, a.circuitId, a.companyName ? a.clientName : null]
+                            .filter(Boolean)
+                            .join(' · ') || a.clientName}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="mom-date">
+                  Date<RequiredStar />
+                </Label>
                 <Input
-                  id="mom-customer"
-                  value={selectedAccount ? labelFor(selectedAccount) : customerSearch}
-                  onChange={(e) => {
-                    setCustomerSearch(e.target.value);
-                    setAccountId('');
-                    setSearchOpen(true);
-                  }}
-                  onFocus={() => setSearchOpen(true)}
-                  onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
-                  placeholder="Search by company, username, circuit ID"
-                  className="pl-9"
+                  id="mom-date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  readOnly={editing}
+                  disabled={editing}
                 />
               </div>
-              {searchOpen && filteredAccounts.length > 0 && (
-                <div className="absolute z-[60] left-0 top-full mt-1 w-[320px] max-w-[420px] bg-white border border-gray-200 rounded-md shadow-lg max-h-72 overflow-y-auto">
-                  {filteredAccounts.map((a) => (
-                    <button
-                      key={a.id}
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setAccountId(a.id);
-                        setCustomerSearch('');
-                        setSearchOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 hover:bg-orange-50 border-b border-gray-100 last:border-b-0"
-                    >
-                      <div className="text-sm text-gray-900 font-medium truncate">
-                        {a.companyName || a.clientName}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-0.5 truncate">
-                        {[a.customerCode, a.circuitId, a.companyName ? a.clientName : null]
-                          .filter(Boolean)
-                          .join(' · ') || a.clientName}
-                      </div>
-                    </button>
-                  ))}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="mom-time">
+                  Time<RequiredStar />
+                </Label>
+                <Input
+                  id="mom-time"
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  readOnly={editing}
+                  disabled={editing}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="mom-type">Meeting Type</Label>
+                <Select
+                  value={meetingType}
+                  onValueChange={(v) => setMeetingType(v as MeetingType)}
+                  disabled={editing}
+                >
+                  <SelectTrigger id="mom-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ONLINE">Online</SelectItem>
+                    <SelectItem value="PHYSICAL">Physical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {meetingType === 'PHYSICAL' && (
+                <div className="md:col-span-2 flex flex-col gap-2">
+                  <Label htmlFor="mom-venue">Venue</Label>
+                  <Input
+                    id="mom-venue"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="e.g. Pune office, 10th floor"
+                    readOnly={editing}
+                    disabled={editing}
+                  />
                 </div>
               )}
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="mom-date">
-                Date<RequiredStar />
-              </Label>
-              <Input
-                id="mom-date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="mom-time">
-                Time<RequiredStar />
-              </Label>
-              <Input
-                id="mom-time"
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="mom-type">Meeting Type</Label>
-              <Select
-                value={meetingType}
-                onValueChange={(v) => setMeetingType(v as MeetingType)}
-              >
-                <SelectTrigger id="mom-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ONLINE">Online</SelectItem>
-                  <SelectItem value="PHYSICAL">Physical</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ParticipantList
+                title="Client Participants"
+                rows={clientPpts}
+                onChange={setClientPpts}
+              />
+              <ParticipantList
+                title="Gazon Participants"
+                rows={gazonPpts}
+                onChange={setGazonPpts}
+              />
             </div>
-            {meetingType === 'PHYSICAL' && (
-              <div className="md:col-span-2 flex flex-col gap-2">
-                <Label htmlFor="mom-venue">Venue</Label>
+
+            <ActionItemsTable items={items} onChange={setItems} />
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            </div>
+
+            <div className="flex justify-end gap-2 px-6 py-3 border-t border-gray-100 bg-white flex-shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!accountId || !date || !time}>
+                Next: Compose Email
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit();
+            }}
+            className="flex flex-col min-h-0 flex-1"
+          >
+            <div className="px-6 py-5 flex flex-col gap-5 overflow-y-auto flex-1 min-h-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="mom-to">
+                  To<RequiredStar />
+                </Label>
                 <Input
-                  id="mom-venue"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g. Pune office, 10th floor"
+                  id="mom-to"
+                  type="email"
+                  value={to}
+                  onChange={(e) => {
+                    setTo(e.target.value);
+                    setToEdited(true);
+                  }}
+                  placeholder="customer@example.com"
                 />
               </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="mom-cc">CC</Label>
+                <Input
+                  id="mom-cc"
+                  value={cc}
+                  onChange={(e) => setCc(e.target.value)}
+                  placeholder="email1@example.com, email2@example.com"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="mom-subject">
+                Subject<RequiredStar />
+              </Label>
+              <Input
+                id="mom-subject"
+                value={subject}
+                onChange={(e) => {
+                  setSubject(e.target.value);
+                  setSubjectEdited(true);
+                }}
+                placeholder="Minutes of Meeting — Acme — 11 May 2026"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="mom-body">
+                Email Body<RequiredStar />
+              </Label>
+              <Textarea
+                id="mom-body"
+                value={body}
+                onChange={(e) => {
+                  setBody(e.target.value);
+                  setBodyEdited(true);
+                }}
+                rows={10}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-gray-500">
+                Plain text. Paragraph breaks are preserved in the email. The body was
+                auto-filled from your action items — edit as needed.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="mom-designation">Designation</Label>
+                <Input
+                  id="mom-designation"
+                  value={designation}
+                  onChange={(e) => setDesignation(e.target.value)}
+                  placeholder="e.g. AGM Service Assurance"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="mom-phone">Phone</Label>
+                <Input
+                  id="mom-phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="e.g. +91 89562 38065"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPreviewKey((k) => k + 1)}
+              >
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                Refresh Preview
+              </Button>
+              <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={testMode}
+                  onChange={(e) => setTestMode(e.target.checked)}
+                  className="w-4 h-4 accent-orange-600"
+                />
+                <span className="text-sm text-gray-700">
+                  Test mode <span className="text-gray-500">— don&apos;t send email</span>
+                </span>
+              </label>
+            </div>
+
+            {testMode && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                Test mode is ON. Submitting will save the meeting and MoM record, but no email
+                will leave the box. Audit logs the attempt with{' '}
+                <code className="bg-amber-100 px-1 rounded">testMode=true</code>.
+              </div>
             )}
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ParticipantList
-              title="Client Participants"
-              rows={clientPpts}
-              onChange={setClientPpts}
-            />
-            <ParticipantList
-              title="Gazon Participants"
-              rows={gazonPpts}
-              onChange={setGazonPpts}
-            />
-          </div>
+            <div className="border-t border-gray-100 pt-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Eye className="w-4 h-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Email Preview</span>
+              </div>
 
-          <ActionItemsTable items={items} onChange={setItems} />
+              {/* Envelope header */}
+              <div className="rounded-t-lg border border-b-0 border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-700 flex flex-col gap-0.5 max-w-3xl mx-auto">
+                <div>
+                  <span className="text-gray-400 inline-block w-14">To:</span>
+                  <span className="text-gray-900">{to || '—'}</span>
+                </div>
+                {cc.trim() && (
+                  <div>
+                    <span className="text-gray-400 inline-block w-14">CC:</span>
+                    <span className="text-gray-900">{cc}</span>
+                  </div>
+                )}
+                <div>
+                  <span className="text-gray-400 inline-block w-14">Subject:</span>
+                  <span className="text-gray-900 font-medium">{subject || '—'}</span>
+                </div>
+              </div>
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+              <div className="rounded-b-lg overflow-hidden" key={previewKey}>
+                <MomFormattedPreview
+                  customerName={customerName}
+                  scheduledAt={new Date(`${date}T${time || '00:00'}:00`).toISOString()}
+                  heldAt={null}
+                  meetingType={meetingType}
+                  location={meetingType === 'PHYSICAL' ? location : null}
+                  clientParticipants={cleanClient}
+                  gazonParticipants={cleanGazon}
+                  actionItems={cleanItems}
+                  body={body}
+                  samName="Owning SAM"
+                  designation={designation}
+                  phone={phone}
+                />
+              </div>
+            </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={!accountId || !date || !time || submitting}
-            >
-              {submitting ? 'Saving…' : 'Save MOM'}
-            </Button>
-          </div>
-        </form>
+            {success && (
+              <Alert className="border-emerald-200 bg-emerald-50">
+                <AlertDescription className="text-emerald-800">{success}</AlertDescription>
+              </Alert>
+            )}
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            </div>
+
+            <div className="flex justify-between gap-2 px-6 py-3 border-t border-gray-100 bg-white flex-shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setError(null);
+                  setSuccess(null);
+                  setStep(1);
+                }}
+                disabled={submitting}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={
+                    (!testMode && !to) || !subject || !body || submitting
+                  }
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  {submitting
+                    ? testMode
+                      ? 'Saving…'
+                      : 'Sending…'
+                    : testMode
+                      ? 'Save (Test)'
+                      : 'Send Email'}
+                </Button>
+              </div>
+            </div>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
+
+// ─── Step indicator ───────────────────────────────────────────────────
+
+function StepIndicator({ step }: { step: Step }) {
+  return (
+    <div className="flex items-center gap-3 mt-3">
+      <StepPill index={1} active={step === 1} done={step > 1} label="Meeting details" />
+      <div className="flex-1 h-px bg-orange-200" />
+      <StepPill index={2} active={step === 2} done={false} label="Email preview & send" />
+    </div>
+  );
+}
+
+function StepPill({
+  index,
+  active,
+  done,
+  label,
+}: {
+  index: number;
+  active: boolean;
+  done: boolean;
+  label: string;
+}) {
+  const tone = done
+    ? 'bg-emerald-600 text-white'
+    : active
+      ? 'bg-brand-600 text-white'
+      : 'bg-white text-gray-500 border border-gray-300';
+  const labelTone = active || done ? 'text-gray-900 font-medium' : 'text-gray-500';
+  return (
+    <div className="inline-flex items-center gap-2">
+      <span
+        className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold ${tone}`}
+      >
+        {index}
+      </span>
+      <span className={`text-xs ${labelTone}`}>{label}</span>
+    </div>
+  );
+}
+
+// ─── Participants ─────────────────────────────────────────────────────
 
 function ParticipantList({
   title,
@@ -351,6 +819,8 @@ function ParticipantList({
     </div>
   );
 }
+
+// ─── Action items table ───────────────────────────────────────────────
 
 function ActionItemsTable({
   items,
@@ -467,6 +937,35 @@ function ActionItemsTable({
   );
 }
 
+// ─── Body autocompose ─────────────────────────────────────────────────
+
+function composeBodyFromMeeting(input: {
+  clientName: string;
+  companyName: string | null;
+  actionItems: ActionItem[];
+}): string {
+  const lines: string[] = [];
+  lines.push(`Dear ${input.clientName},`);
+  lines.push('');
+  lines.push(
+    'Thank you for your time. Please find below the minutes of our recent meeting.',
+  );
+  if (input.actionItems.length > 0) {
+    lines.push('');
+    lines.push('Action items:');
+    for (const it of input.actionItems) {
+      const owner = it.actionOwner ? ` (Owner: ${it.actionOwner})` : '';
+      const plan = it.planOfAction ? ` — ${it.planOfAction}` : '';
+      lines.push(`- ${it.discussionDescription}${owner}${plan}`);
+    }
+  }
+  lines.push('');
+  lines.push('Reply to this email if anything needs correction.');
+  return lines.join('\n');
+}
+
+// ─── Tiny utils ───────────────────────────────────────────────────────
+
 function RequiredStar() {
   return (
     <span className="ml-0.5 text-red-500" aria-hidden="true">
@@ -493,4 +992,41 @@ function labelFor(a: Account): string {
 function todayIso(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function nowHm(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function isoDateOf(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return todayIso();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function isoTimeOf(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return nowHm();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function formatHumanDate(isoDate: string): string {
+  if (!isoDate) return '';
+  const d = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return isoDate;
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatHumanDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
 }

@@ -1,5 +1,6 @@
 import { getMeetings } from '../../services/meetings';
 import { getAccounts } from '../../services/accounts';
+import { getMe } from '../../services/auth';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { PageHeader } from '../../components/page-header';
 import { MeetingsTable } from '../../components/meetings-table';
@@ -7,9 +8,10 @@ import { CalendarViewButton } from '../../components/calendar-view-button';
 
 export default async function MeetingsPage() {
   const cookieHeader = await getCookieHeader();
-  const [meetingsRes, accountsRes] = await Promise.all([
+  const [meetingsRes, accountsRes, meRes] = await Promise.all([
     getMeetings({ cookieHeader }),
     getAccounts({}, { cookieHeader }),
+    getMe({ cookieHeader }),
   ]);
 
   const total = meetingsRes.meetings.length;
@@ -25,6 +27,7 @@ export default async function MeetingsPage() {
       <MeetingsTable
         meetings={meetingsRes.meetings}
         accounts={accountsRes.accounts}
+        currentUser={meRes.user}
       />
     </div>
   );

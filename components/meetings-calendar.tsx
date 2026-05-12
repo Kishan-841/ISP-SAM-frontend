@@ -1,14 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
 import {
   ChevronLeft,
   ChevronRight,
   Clock,
   CheckCircle2,
-  AlertCircle,
-  ArrowUpRight,
   Calendar as CalendarIcon,
 } from 'lucide-react';
 import type { MeetingRow } from '../services/meetings';
@@ -17,36 +14,29 @@ import { formatDate } from '../lib/format-date';
 /**
  * DIY month calendar for the Meetings & MOM page. No external deps.
  *
- * Status of each meeting is derived from existing fields, so no schema
- * change is required:
- *   heldAt null,    momSentAt null  → SCHEDULED  (amber dot)
- *   heldAt set,     momSentAt null  → HELD       (red dot — overdue MOM)
- *   heldAt set,     momSentAt set   → COMPLETED  (green dot)
+ * Two buckets, matching the meetings table:
+ *   momSentAt null → PENDING    (amber dot)
+ *   momSentAt set  → COMPLETED  (green dot)
  */
 
-type Status = 'SCHEDULED' | 'HELD' | 'COMPLETED';
+type Status = 'PENDING' | 'COMPLETED';
 
 function statusOf(m: MeetingRow): Status {
-  if (m.heldAt && m.momSentAt) return 'COMPLETED';
-  if (m.heldAt) return 'HELD';
-  return 'SCHEDULED';
+  return m.momSentAt ? 'COMPLETED' : 'PENDING';
 }
 
 const STATUS_COLOUR: Record<Status, string> = {
-  SCHEDULED: 'bg-amber-500',
-  HELD: 'bg-red-500',
+  PENDING: 'bg-amber-500',
   COMPLETED: 'bg-emerald-500',
 };
 
 const STATUS_LABEL: Record<Status, string> = {
-  SCHEDULED: 'Scheduled',
-  HELD: 'Held — MOM pending',
+  PENDING: 'Pending',
   COMPLETED: 'Completed',
 };
 
 const STATUS_ICON: Record<Status, typeof Clock> = {
-  SCHEDULED: Clock,
-  HELD: AlertCircle,
+  PENDING: Clock,
   COMPLETED: CheckCircle2,
 };
 
@@ -237,7 +227,7 @@ export function MeetingsCalendar({ meetings }: { meetings: MeetingRow[] }) {
 
       {/* Legend */}
       <div className="flex items-center gap-4 text-xs text-gray-600">
-        {(['SCHEDULED', 'HELD', 'COMPLETED'] as Status[]).map((s) => (
+        {(['PENDING', 'COMPLETED'] as Status[]).map((s) => (
           <span key={s} className="inline-flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${STATUS_COLOUR[s]}`} />
             {STATUS_LABEL[s]}
@@ -285,17 +275,9 @@ export function MeetingsCalendar({ meetings }: { meetings: MeetingRow[] }) {
                     </div>
                     <div className="text-xs text-gray-500 mt-0.5">{STATUS_LABEL[s]}</div>
                   </div>
-                  <Link
-                    href={`/meetings/${m.id}`}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
-                  >
-                    {s === 'SCHEDULED'
-                      ? 'Mark held & add MOM'
-                      : s === 'HELD'
-                      ? 'Add MOM'
-                      : 'View'}
-                    <ArrowUpRight className="w-3.5 h-3.5" />
-                  </Link>
+                  <span className="text-xs text-gray-400">
+                    {s === 'PENDING' ? 'MoM pending' : 'Completed'}
+                  </span>
                 </li>
               );
             })}

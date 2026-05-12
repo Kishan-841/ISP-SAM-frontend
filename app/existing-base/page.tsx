@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import {
   Users,
   BarChart3,
@@ -5,6 +6,8 @@ import {
   TrendingDown,
   Shield,
   UserX,
+  ShieldAlert,
+  ArrowRight,
 } from 'lucide-react';
 import { PageHeader, SectionHeading } from '../../components/page-header';
 import { StatCard } from '../../components/stat-card';
@@ -18,6 +21,14 @@ import { formatRupeesCompact } from '../../lib/format-rupees';
 const LAKH = 100_000;
 
 const QUARTERS: ReadonlySet<string> = new Set(['Q1', 'Q2', 'Q3', 'Q4']);
+
+function bucketHref(
+  slug: 'upgrades' | 'downgrades' | 'rate-revisions' | 'disconnections',
+  quarter: FyQuarter | undefined,
+): string {
+  const base = `/existing-base/${slug}`;
+  return quarter ? `${base}?quarter=${quarter}` : base;
+}
 
 export default async function ExistingBaseDashboardPage({
   searchParams,
@@ -42,6 +53,7 @@ export default async function ExistingBaseDashboardPage({
     terminationsArcRupees;
   const currentArcRupees = metrics.currentArcLakh * LAKH;
   const netDeltaRupees = currentArcRupees - startArcRupees;
+  const probableChurnArcRupees = metrics.probableChurn.arcAtRiskLakh * LAKH;
   const waterfallInput = {
     startArcRupees,
     upgradesArcRupees,
@@ -62,7 +74,7 @@ export default async function ExistingBaseDashboardPage({
       <section className="mb-8">
         <SectionHeading>Components</SectionHeading>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="card-stagger grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <StatCard
             title="Total Customers (start of period)"
             value={metrics.totalCustomers.toString()}
@@ -101,7 +113,34 @@ export default async function ExistingBaseDashboardPage({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {metrics.probableChurn.count > 0 && (
+          <Link
+            href="/probable-churn"
+            className="group flex items-center justify-between gap-4 mb-4 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 transition-[background-color,border-color,transform] duration-200 ease-[var(--ease-out)] hoverable:hover:bg-amber-100 hoverable:hover:border-amber-300 active:scale-[0.995]"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-md grid place-items-center shrink-0 bg-amber-100 text-amber-700">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex flex-col">
+                <p className="text-sm font-semibold text-amber-900">
+                  {metrics.probableChurn.count} customer{metrics.probableChurn.count === 1 ? '' : 's'}{' '}
+                  in the retention queue
+                </p>
+                <p className="text-xs text-amber-800">
+                  {formatRupeesCompact(probableChurnArcRupees)} ARC at risk — excluded from Current ARC
+                  until disconnection is decided.
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-900 whitespace-nowrap">
+              Review retention queue
+              <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 ease-[var(--ease-out)] hoverable:group-hover:translate-x-0.5" />
+            </span>
+          </Link>
+        )}
+
+        <div className="card-stagger grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title={`Upgrades (${metrics.upgrades.count})`}
             value={formatRupeesCompact(Math.abs(upgradesArcRupees), { signed: true })}
@@ -110,7 +149,7 @@ export default async function ExistingBaseDashboardPage({
             iconBg="bg-emerald-50"
             iconColor="text-emerald-600"
             valueColor="text-emerald-600"
-            href="/transactions?type=UPGRADE"
+            href={metrics.upgrades.count > 0 ? bucketHref('upgrades', quarter) : undefined}
           />
           <StatCard
             title={`Downgrades (${metrics.downgrades.count})`}
@@ -120,7 +159,7 @@ export default async function ExistingBaseDashboardPage({
             iconBg="bg-amber-50"
             iconColor="text-amber-600"
             valueColor="text-amber-600"
-            href="/transactions?type=DOWNGRADE"
+            href={metrics.downgrades.count > 0 ? bucketHref('downgrades', quarter) : undefined}
           />
           <StatCard
             title={`Rate Revisions (${metrics.rateRevisions.count})`}
@@ -129,7 +168,9 @@ export default async function ExistingBaseDashboardPage({
             icon={Shield}
             iconBg="bg-indigo-50"
             iconColor="text-indigo-600"
-            href="/transactions?type=RATE_REVISION"
+            href={
+              metrics.rateRevisions.count > 0 ? bucketHref('rate-revisions', quarter) : undefined
+            }
           />
           <StatCard
             title={`Disconnections (${metrics.terminations.count})`}
@@ -139,7 +180,7 @@ export default async function ExistingBaseDashboardPage({
             iconBg="bg-red-50"
             iconColor="text-red-600"
             valueColor="text-red-600"
-            href="/transactions?type=DISCONNECTION"
+            href={metrics.terminations.count > 0 ? bucketHref('disconnections', quarter) : undefined}
           />
         </div>
       </section>

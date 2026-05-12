@@ -1,4 +1,4 @@
-import { apiGet, apiPost, type ApiOpts } from './api-client';
+import { apiDelete, apiGet, apiPost, type ApiOpts } from './api-client';
 
 export type MeetingType = 'ONLINE' | 'PHYSICAL';
 
@@ -70,4 +70,58 @@ export function markHeld(id: string, heldAt?: string) {
 
 export function submitMom(id: string, momContent: string) {
   return apiPost<{ meeting: MeetingRow }>(`/meetings/${id}/mom`, { momContent });
+}
+
+export type SendMomEmailInput = {
+  accountId: string;
+  scheduledAt: string;
+  meetingType: MeetingType;
+  location?: string;
+  agenda?: string;
+  clientParticipants?: string;
+  gazonParticipants?: string;
+  actionItems?: ActionItem[];
+  momContent: string;
+  to?: string;
+  cc?: string[];
+  subject?: string;
+  samDesignation?: string;
+  samPhone?: string;
+  testMode?: boolean;
+};
+
+export type CompleteMeetingInput = {
+  agenda?: string;
+  clientParticipants?: string;
+  gazonParticipants?: string;
+  actionItems?: ActionItem[];
+  momContent: string;
+  to?: string;
+  cc?: string[];
+  subject?: string;
+  samDesignation?: string;
+  samPhone?: string;
+  testMode?: boolean;
+};
+
+export type EmailDispatchStatus = 'SENT' | 'SKIPPED' | 'MISCONFIGURED' | 'FAILED';
+
+export function sendMomEmail(input: SendMomEmailInput) {
+  return apiPost<{ meeting: MeetingRow; emailStatus: EmailDispatchStatus }>(
+    '/meetings/send-mom-email',
+    input,
+  );
+}
+
+export function completeMeeting(id: string, input: CompleteMeetingInput) {
+  return apiPost<{ meeting: MeetingRow; emailStatus: EmailDispatchStatus }>(
+    `/meetings/${id}/send-mom-email`,
+    input,
+  );
+}
+
+export function deleteMeeting(id: string) {
+  return apiDelete<{ deleted: true; snapshot: Record<string, unknown> }>(
+    `/meetings/${id}`,
+  );
 }

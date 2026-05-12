@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowRight,
   Search,
@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   FileSignature,
   ClipboardCheck,
+  Info,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -84,10 +85,25 @@ export function CommercialChangeForm({
   disconnectionCategories?: DisconnectionCategory[];
 }) {
   const router = useRouter();
-  const [customerId, setCustomerId] = useState<string>('');
+  // Deep-link support — e.g. `?type=RATE_REVISION&customerId=<id>` from the
+  // Probable Churn Retain button. We read these on first render so the
+  // customer + action type drop into place without any extra effects.
+  // Unknown / unauthorised customer ids are silently ignored.
+  const searchParams = useSearchParams();
+  const [customerId, setCustomerId] = useState<string>(() => {
+    const id = searchParams.get('customerId') ?? '';
+    return accounts.some((a) => a.id === id) ? id : '';
+  });
   const [customerSearch, setCustomerSearch] = useState<string>('');
   const [searchOpen, setSearchOpen] = useState<boolean>(false);
-  const [actionType, setActionType] = useState<ActionType>('');
+  const [actionType, setActionType] = useState<ActionType>(() => {
+    const t = searchParams.get('type');
+    return (['UPGRADE', 'DOWNGRADE', 'RATE_REVISION', 'DISCONNECTION'] as const).includes(
+      t as never,
+    )
+      ? (t as ActionType)
+      : '';
+  });
   const [effectiveDate, setEffectiveDate] = useState<string>(todayIso());
   const [newBandwidthMbps, setNewBandwidthMbps] = useState<string>('');
   const [newArc, setNewArc] = useState<string>('');
@@ -235,9 +251,10 @@ export function CommercialChangeForm({
     return commercialsFilled ? 1 : 0;
   })();
 
-  // A customer that wasn't synced from CRM (no externalCrmId) can't have a
-  // service order created on the CRM side — the POST would 400 with
-  // 'Customer not found'. Block submission with a clear warning.
+  // A customer that wasn't synced from CRM (no externalCrmId) — typically
+  // imported via Excel — has no CRM service-order workflow. The backend
+  // applies the change to the account row immediately on commit. The form
+  // surfaces an info note in place of a block.
   const isCustomerCrmSynced = !!selectedAccount?.externalCrmId;
   const submitDisabled =
     !customerId ||
@@ -249,8 +266,7 @@ export function CommercialChangeForm({
     (!approvalFile && !poFile) ||
     submitting ||
     arcError !== null ||
-    bwError !== null ||
-    (selectedAccount !== null && !isCustomerCrmSynced);
+    bwError !== null;
 
   const selectedDisconnectionCategory = disconnectionCategories.find(
     (c) => c.id === disconnectionCategoryId,
@@ -397,14 +413,14 @@ export function CommercialChangeForm({
 
             {selectedAccount && !isCustomerCrmSynced && (
               <div className="px-6 py-4">
-                <Alert variant="destructive">
-                  <AlertDescription>
-                    This customer doesn&apos;t have a CRM external ID — likely imported manually
-                    or via Excel. The CRM bridge requires a synced customer; the service-order
-                    POST will 400. Re-sync this customer from CRM (or activate a plan in CRM
-                    so the customer.activated webhook fires) before raising a commercial change.
-                  </AlertDescription>
-                </Alert>
+                <div className="flex gap-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm text-sky-900">
+                  <Info className="h-4 w-4 shrink-0 mt-0.5 text-sky-600" />
+                  <div className="leading-relaxed">
+                    This customer was imported (no CRM external ID), so there&apos;s no CRM
+                    service-order to raise. The change will apply to the account immediately on
+                    save and show up on the Existing Base dashboard right away.
+                  </div>
+                </div>
               </div>
             )}
 

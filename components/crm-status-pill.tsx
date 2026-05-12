@@ -16,6 +16,7 @@ const TONE_BY_STATUS: Record<string, PillTone> = {
   DOCS_REJECTED: 'red',
   REJECTED: 'red',
   CANCELLED: 'gray',
+  FAILED: 'red',
 };
 
 const LABEL_BY_STATUS: Record<string, string> = {
@@ -29,6 +30,7 @@ const LABEL_BY_STATUS: Record<string, string> = {
   DOCS_REJECTED: 'Docs Rejected',
   REJECTED: 'Rejected',
   CANCELLED: 'Cancelled',
+  FAILED: 'CRM Call Failed',
 };
 
 export function CrmStatusPill({ status }: { status: string | null }) {

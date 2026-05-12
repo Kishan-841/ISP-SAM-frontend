@@ -4,6 +4,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Use `hoverable:hover:...` instead of plain `hover:...` for any interactive
+ * affordance (card border, button background tint, icon nudge). Touch
+ * devices fire hover-on-tap and leave the hover state stuck after a press,
+ * which makes mobile UI feel laggy and broken. This variant scopes hover
+ * to devices with a real cursor.
+ */
+@custom-variant hoverable (@media (hover: hover) and (pointer: fine));
+
 @theme {
   --color-brand-50:  #FFF7ED;
   --color-brand-100: #FFEDD5;
@@ -142,5 +151,60 @@ body {
   }
   html {
     @apply font-sans;
+  }
+}
+
+/*
+ * Motion tokens. Default CSS easings are too weak — they lack the punch that
+ * makes UI feel intentional. These curves are stronger variants used across
+ * dashboard cards, filter chips and any pressable surface.
+ */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/*
+ * Staggered card entry. Applied to a grid; each direct child fades + lifts
+ * into place with a small per-child delay. One-shot — runs once on mount.
+ * Kept short (250ms duration, 40ms stagger) so the dashboard feels alive
+ * but not slow.
+ */
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-stagger > * {
+  opacity: 0;
+  animation: card-enter 250ms var(--ease-out) forwards;
+}
+.card-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.card-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.card-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.card-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.card-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.card-stagger > *:nth-child(6) { animation-delay: 200ms; }
+.card-stagger > *:nth-child(7) { animation-delay: 240ms; }
+.card-stagger > *:nth-child(8) { animation-delay: 280ms; }
+
+/*
+ * Reduced motion: keep opacity for legibility, drop the lift. The skill
+ * is explicit — reduced motion means fewer/gentler animations, not zero.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .card-stagger > * {
+    animation: card-enter 200ms ease forwards;
+    transform: none !important;
+  }
+  @keyframes card-enter {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 }

@@ -18,6 +18,7 @@ import {
   ListChecks,
   Activity,
   History,
+  ShieldAlert,
 } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import type { AuthUser } from '../services/auth';
@@ -39,6 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Customers', href: '/customers', icon: Users },
   { label: 'Commercial Change', href: '/commercial-change', icon: ClipboardList },
   { label: 'Transactions', href: '/transactions', icon: ListChecks },
+  { label: 'Probable Churn', href: '/probable-churn', icon: ShieldAlert },
   { label: 'Meetings & MoM', href: '/meetings', icon: CalendarDays },
   { label: 'Team Performance', href: '/team-performance', icon: Activity, roles: ['ADMIN', 'SAM_HEAD'] },
   { label: 'Excel Import', href: '/excel-import', icon: FileDown },
