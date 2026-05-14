@@ -10,6 +10,7 @@ import {
   FileSignature,
   ClipboardCheck,
   Info,
+  FlaskConical,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import { EmailDraftModal } from './email-draft-modal';
 import { FormSection, FormField } from './form-section';
 import { FileDropZone } from './file-drop-zone';
 import { StepIndicator } from './step-indicator';
+import { env } from '../lib/env';
 import {
   commitCommercialChange,
   type CommitInput,
@@ -105,6 +107,10 @@ export function CommercialChangeForm({
       : '';
   });
   const [effectiveDate, setEffectiveDate] = useState<string>(todayIso());
+  const [mailReceivedDate, setMailReceivedDate] = useState<string>(todayIso());
+  // Test mode runtime toggle. Visible only when the feature flag (env.testMode)
+  // is set; default ON so devs can submit without docs straight away.
+  const [testModeOn, setTestModeOn] = useState<boolean>(env.testMode);
   const [newBandwidthMbps, setNewBandwidthMbps] = useState<string>('');
   const [newArc, setNewArc] = useState<string>('');
   const [reason, setReason] = useState<string>('');
@@ -208,8 +214,16 @@ export function CommercialChangeForm({
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    // Document gate: at least ONE of approval / PO must be attached.
-    if (!customerId || !actionType || !effectiveDate || (!approvalFile && !poFile)) return;
+    // Document gate: at least ONE of approval / PO must be attached. Bypass
+    // when the runtime test-mode toggle is on (and env.testMode enabled it).
+    if (
+      !customerId ||
+      !actionType ||
+      !effectiveDate ||
+      !mailReceivedDate ||
+      (!approvalFile && !poFile && !testModeOn)
+    )
+      return;
     if (!isTermination && !newArc) return;
     if (isTermination && (!disconnectionCategoryId || !disconnectionSubCategoryId)) return;
     setSubmitting(true);
@@ -220,8 +234,10 @@ export function CommercialChangeForm({
         changeType: actionType,
         newArc: isTermination ? 0 : Number(newArc),
         effectiveDate,
+        mailReceivedDate,
         approvalFile,
         poFile,
+        testMode: testModeOn,
       };
       if (newBandwidthMbps) payload.newBandwidthMbps = Number(newBandwidthMbps);
       if (reason.trim()) payload.reason = reason.trim();
@@ -248,6 +264,9 @@ export function CommercialChangeForm({
   const currentStep = (() => {
     if (approvalFile || poFile) return 2;
     const commercialsFilled = customerId && actionType && effectiveDate && (isTermination || newArc);
+    // In test mode the doc step is bypassed — once commercials are filled
+    // the form is already at the "ready to commit" step.
+    if (commercialsFilled && testModeOn) return 2;
     return commercialsFilled ? 1 : 0;
   })();
 
@@ -256,20 +275,47 @@ export function CommercialChangeForm({
   // applies the change to the account row immediately on commit. The form
   // surfaces an info note in place of a block.
   const isCustomerCrmSynced = !!selectedAccount?.externalCrmId;
+
+  // Lifecycle guards — keep the SAM and CRM sides in sync. Backend will 422
+  // these too, but blocking in the form gives operators an immediate signal
+  // instead of waiting for the submit round-trip.
+  const accountStatus = selectedAccount?.contractStatus;
+  const isAccountTerminated = accountStatus === 'TERMINATED';
+  const isAccountDisconnecting = accountStatus === 'DISCONNECTING';
+  const isAccountProbableChurn = accountStatus === 'PROBABLE_CHURN';
+  const lifecycleBlocked = isAccountTerminated || isAccountDisconnecting;
+  const disconnectionBlocked = isAccountProbableChurn && isTermination;
+
   const submitDisabled =
     !customerId ||
     !actionType ||
     !effectiveDate ||
+    !mailReceivedDate ||
     (!isTermination && !newArc) ||
     (isTermination && (!disconnectionCategoryId || !disconnectionSubCategoryId)) ||
-    // Documents — at least one of approval / PO must be attached.
-    (!approvalFile && !poFile) ||
+    // Documents — at least one of approval / PO must be attached (skipped
+    // when the runtime test-mode toggle is on).
+    (!approvalFile && !poFile && !testModeOn) ||
     submitting ||
     arcError !== null ||
-    bwError !== null;
+    bwError !== null ||
+    lifecycleBlocked ||
+    disconnectionBlocked;
 
   const selectedDisconnectionCategory = disconnectionCategories.find(
     (c) => c.id === disconnectionCategoryId,
+  );
+
+  // Lifecycle filter — customers in TERMINATED / DISCONNECTING state can't
+  // have any further commercial changes raised (backend rejects with 422).
+  // Hide them from the typeahead entirely so the operator can't even pick
+  // them. PROBABLE_CHURN stays visible because a rate-revision auto-retains.
+  const selectableAccounts = useMemo(
+    () =>
+      accounts.filter(
+        (a) => a.contractStatus !== 'TERMINATED' && a.contractStatus !== 'DISCONNECTING',
+      ),
+    [accounts],
   );
 
   // Typeahead filter: matches across name, company, customer code, circuit ID.
@@ -278,18 +324,18 @@ export function CommercialChangeForm({
   // the full list and cap visible matches at 25 so the dropdown stays scannable.
   const filteredAccounts = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
-    if (!q) return accounts.slice(0, 5);
-    return accounts
+    if (!q) return selectableAccounts.slice(0, 5);
+    return selectableAccounts
       .filter((a) =>
         [a.clientName, a.companyName, a.customerCode, a.circuitId, a.mobileNumber]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(q)),
       )
       .slice(0, 25);
-  }, [accounts, customerSearch]);
+  }, [selectableAccounts, customerSearch]);
 
   const showRecentHint =
-    customerSearch.trim() === '' && accounts.length > filteredAccounts.length;
+    customerSearch.trim() === '' && selectableAccounts.length > filteredAccounts.length;
 
   function customerLabel(a: Account): string {
     const left = a.companyName || a.clientName;
@@ -314,6 +360,44 @@ export function CommercialChangeForm({
         title="Initiate Commercial Change"
         subtitle="Upgrade · Downgrade · Rate Revision · Disconnection — client approval is mandatory."
       />
+
+      {env.testMode && (
+        <div
+          className={`flex items-center gap-3 rounded-md border px-4 py-3 transition-[background-color,border-color] duration-200 ease-[var(--ease-out)] ${
+            testModeOn
+              ? 'border-amber-300 bg-amber-50 text-amber-900'
+              : 'border-gray-200 bg-white text-gray-700'
+          }`}
+        >
+          <FlaskConical
+            className={`h-5 w-5 shrink-0 ${testModeOn ? 'text-amber-700' : 'text-gray-400'}`}
+          />
+          <div className="flex flex-col gap-0.5 leading-tight flex-1 min-w-0">
+            <span className="text-sm font-semibold uppercase tracking-wider">Test mode</span>
+            <span className="text-xs">
+              {testModeOn
+                ? 'On — document upload is bypassed. Commits stamp testMode:true in the audit log.'
+                : 'Off — document upload required. Toggle on to bypass for testing.'}
+            </span>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={testModeOn}
+            aria-label="Toggle test mode"
+            onClick={() => setTestModeOn((v) => !v)}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-[var(--ease-out)] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 ${
+              testModeOn ? 'bg-amber-600' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ease-[var(--ease-out)] ${
+                testModeOn ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+      )}
 
       {/* Step indicator */}
       <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
@@ -409,9 +493,73 @@ export function CommercialChangeForm({
                   className="h-10"
                 />
               </FormField>
+              <FormField
+                label="Mail Received Date"
+                required
+                hint="Date the customer's approval email landed in your inbox."
+              >
+                <Input
+                  type="date"
+                  value={mailReceivedDate}
+                  onChange={(e) => setMailReceivedDate(e.target.value)}
+                  max={todayIso()}
+                  className="h-10"
+                />
+              </FormField>
             </FormSection>
 
-            {selectedAccount && !isCustomerCrmSynced && (
+            {isAccountTerminated && (
+              <div className="px-6 py-4">
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    This customer has been <strong>disconnected</strong>. No further commercial
+                    changes can be raised — both SAM and CRM are closed on this account. Pick a
+                    different customer.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
+
+            {isAccountDisconnecting && (
+              <div className="px-6 py-4">
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    This customer is in the <strong>10-day disconnection notice</strong>. No
+                    further changes can be raised — the account will terminate automatically
+                    when the notice expires. Escalate to SAM_HEAD / ADMIN if the customer wants
+                    to stay.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
+
+            {disconnectionBlocked && (
+              <div className="px-6 py-4">
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    A disconnection is <strong>already in the 21-day retention window</strong> for
+                    this customer. Either retain via a rate revision or wait for the day-21
+                    prompt on the{' '}
+                    <a href="/probable-churn" className="underline">Probable Churn</a> queue.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
+
+            {isAccountProbableChurn && !isTermination && (
+              <div className="px-6 py-4">
+                <div className="flex gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+                  <Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+                  <div className="leading-relaxed">
+                    This customer is in the <strong>21-day retention window</strong>. Submitting
+                    this change will auto-cancel the pending disconnection (RETAIN) and the
+                    customer goes back to active.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedAccount && !isCustomerCrmSynced && !lifecycleBlocked && (
               <div className="px-6 py-4">
                 <div className="flex gap-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm text-sky-900">
                   <Info className="h-4 w-4 shrink-0 mt-0.5 text-sky-600" />
@@ -594,9 +742,15 @@ export function CommercialChangeForm({
                   />
                 </UploadSlot>
               </div>
-              {!approvalFile && !poFile && (
+              {!approvalFile && !poFile && !testModeOn && (
                 <p className="sm:col-span-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
                   Attach at least one of the two to proceed.
+                </p>
+              )}
+              {!approvalFile && !poFile && testModeOn && (
+                <p className="sm:col-span-2 text-xs text-amber-800 bg-amber-50 border border-amber-300 rounded-md px-3 py-2">
+                  <FlaskConical className="inline w-3.5 h-3.5 mr-1 -mt-0.5" />
+                  Test mode is on — submitting without any attachment is allowed.
                 </p>
               )}
             </FormSection>

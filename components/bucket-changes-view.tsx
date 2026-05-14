@@ -37,6 +37,21 @@ export function BucketChangesView({
       align: 'left',
     },
     {
+      key: 'mailReceivedDate',
+      header: 'Mail Received',
+      sortable: true,
+      cell: (r) =>
+        r.mailReceivedDate ? (
+          <span className="text-sm text-gray-700 whitespace-nowrap">
+            {formatDate(r.mailReceivedDate)}
+          </span>
+        ) : (
+          <span className="text-gray-400">—</span>
+        ),
+      className: 'px-5 py-4 whitespace-nowrap',
+      align: 'left',
+    },
+    {
       key: 'customer',
       header: 'Customer',
       sortable: true,
@@ -192,12 +207,24 @@ export function BucketChangesView({
       key: 'crmStatus',
       header: 'CRM Status',
       align: 'center',
-      cell: (r) =>
-        r.crmStatus ? (
-          <StatusPill tone={TYPE_TONE[r.changeType]}>{r.crmStatus.replace(/_/g, ' ')}</StatusPill>
+      cell: (r) => {
+        // Imported leads (no externalCrmId) never run through the CRM
+        // workflow — render a muted "Local-only" pill instead of "—".
+        if (!r.customer.externalCrmId) {
+          return (
+            <span className="text-[10px] uppercase tracking-wider text-gray-400">
+              Local-only
+            </span>
+          );
+        }
+        return r.crmStatus ? (
+          <StatusPill tone={TYPE_TONE[r.changeType]}>
+            {r.crmStatus.replace(/_/g, ' ')}
+          </StatusPill>
         ) : (
           <span className="text-gray-400 text-xs">—</span>
-        ),
+        );
+      },
       className: 'px-5 py-4 text-center whitespace-nowrap',
     },
   ];

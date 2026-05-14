@@ -30,6 +30,8 @@ const STATUS_TONE: Record<Account['contractStatus'], PillTone> = {
   PENDING: 'amber',
   EXPIRED: 'gray',
   TERMINATED: 'red',
+  PROBABLE_CHURN: 'amber',
+  DISCONNECTING: 'red',
 };
 
 const STATUS_LABEL: Record<Account['contractStatus'], string> = {
@@ -37,6 +39,8 @@ const STATUS_LABEL: Record<Account['contractStatus'], string> = {
   PENDING: 'Pending',
   EXPIRED: 'Expired',
   TERMINATED: 'Terminated',
+  PROBABLE_CHURN: 'Probable Churn',
+  DISCONNECTING: 'Disconnecting',
 };
 
 export function CustomersTable({

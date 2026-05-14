@@ -65,6 +65,7 @@ export type KittyType = 'BASE' | 'NEW';
 export type BucketChangeRow = {
   id: string;
   effectiveDate: string;
+  mailReceivedDate: string | null;
   customer: {
     id: string;
     clientName: string;
@@ -72,6 +73,8 @@ export type BucketChangeRow = {
     customerCode: string | null;
     circuitId: string | null;
     kittyType: KittyType;
+    /** null = Excel-imported. UI hides CRM-only cells. */
+    externalCrmId: string | null;
   };
   samOwner: { id: string; name: string; email: string } | null;
   changeType: Bucket;

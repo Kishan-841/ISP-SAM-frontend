@@ -34,6 +34,21 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       align: 'center',
     },
     {
+      key: 'mailReceivedDate',
+      header: 'Mail Received',
+      sortable: true,
+      cell: (c) =>
+        c.mailReceivedDate ? (
+          <span className="text-sm text-gray-700 whitespace-nowrap">
+            {formatDate(c.mailReceivedDate)}
+          </span>
+        ) : (
+          <span className="text-gray-400">—</span>
+        ),
+      className: 'px-5 py-4 text-center whitespace-nowrap',
+      align: 'center',
+    },
+    {
       key: 'customer',
       header: 'Customer',
       sortable: true,
@@ -47,6 +62,18 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       ),
       className: 'px-5 py-4 text-center',
       align: 'center',
+    },
+    {
+      key: 'kitty',
+      header: 'Base',
+      align: 'center',
+      cell: (c) =>
+        c.account.kittyType === 'NEW' ? (
+          <StatusPill tone="emerald">New</StatusPill>
+        ) : (
+          <StatusPill tone="purple">Existing</StatusPill>
+        ),
+      className: 'px-5 py-4 text-center whitespace-nowrap',
     },
     {
       key: 'type',
@@ -128,7 +155,7 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
     },
     {
       key: 'approval',
-      header: 'Approval',
+      header: 'Docs',
       align: 'center',
       cell: (c) =>
         c.approvalFileUrl ? (
@@ -151,6 +178,12 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       header: 'CRM Order',
       align: 'center',
       cell: (c) => {
+        // Imported leads (no externalCrmId) never have a CRM service order;
+        // showing the SAM ref under "CRM" would be misleading. Render a
+        // muted "Local-only" pill instead.
+        if (!c.account.externalCrmId) {
+          return <span className="text-[10px] uppercase tracking-wider text-gray-400">Local-only</span>;
+        }
         // Same SAM-XXXXXXXX reference we send to CRM as `notes` — handy for
         // cross-system support: ops can find this row in CRM by searching
         // their notes column for the SAM ref.
@@ -179,20 +212,28 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       key: 'crmStatus',
       header: 'CRM Status',
       align: 'center',
-      cell: (c) => <CrmStatusPill status={c.crmStatus} />,
+      cell: (c) =>
+        c.account.externalCrmId ? (
+          <CrmStatusPill status={c.crmStatus} />
+        ) : (
+          <span className="text-xs text-gray-400">—</span>
+        ),
       className: 'px-5 py-4 text-center whitespace-nowrap',
     },
     {
       key: 'actions',
       header: '',
       align: 'center',
-      cell: (c) => (
-        <CrmRowActions
-          changeId={c.id}
-          crmStatus={c.crmStatus}
-          hasCrmOrder={!!c.crmServiceOrderId}
-        />
-      ),
+      cell: (c) =>
+        c.account.externalCrmId ? (
+          <CrmRowActions
+            changeId={c.id}
+            crmStatus={c.crmStatus}
+            hasCrmOrder={!!c.crmServiceOrderId}
+          />
+        ) : (
+          <span className="text-xs text-gray-400">—</span>
+        ),
       className: 'px-5 py-4 text-center whitespace-nowrap',
     },
   ];

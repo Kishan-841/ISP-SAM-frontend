@@ -9,7 +9,14 @@ const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? '/api';
 // makes sense for local dev.
 const internalApiBase = process.env.BACKEND_URL ?? 'http://localhost:5500';
 
+// Test mode — bypasses the "at least one document" requirement on the
+// commercial-change form so the workflow can be exercised end-to-end
+// without uploading real files. MUST mirror SAM_TEST_MODE on the backend
+// (the doc gate is enforced both sides). Never set in production.
+const testMode = process.env.NEXT_PUBLIC_SAM_TEST_MODE === 'true';
+
 export const env = {
   apiBase,
   internalApiBase,
+  testMode,
 } as const;

@@ -11,6 +11,7 @@ export type CommercialChangeListItem = {
   oldArc: string;
   newArc: string;
   effectiveDate: string;
+  mailReceivedDate: string | null;
   clientApprovalAttached: boolean;
   approvalFileUrl: string | null;
   reason: string | null;
@@ -32,6 +33,8 @@ export type CommercialChangeListItem = {
     customerCode: string | null;
     circuitId: string | null;
     kittyType: 'BASE' | 'NEW';
+    /** null = Excel-imported (no CRM bridge). UI hides CRM-only cells. */
+    externalCrmId: string | null;
   };
 };
 
@@ -64,6 +67,7 @@ export type CommitInput = {
   newArc: number;
   newBandwidthMbps?: number;
   effectiveDate: string; // YYYY-MM-DD
+  mailReceivedDate?: string; // YYYY-MM-DD — date SAM received the customer's approval email
   reason?: string;
   notes?: string;
   // Disconnection-only.
@@ -73,6 +77,9 @@ export type CommitInput = {
   /** At least one of these is required (validated server-side). */
   approvalFile?: File | null;
   poFile?: File | null;
+  /** When true the doc requirement is skipped — backend ALSO requires the
+   *  SAM_TEST_MODE env flag to permit it. Stamps testMode:true in audit log. */
+  testMode?: boolean;
 };
 
 export type CommitResult = {
@@ -108,6 +115,8 @@ export async function commitCommercialChange(input: CommitInput): Promise<Commit
   form.append('changeType', input.changeType);
   form.append('newArc', String(input.newArc));
   form.append('effectiveDate', input.effectiveDate);
+  if (input.mailReceivedDate) form.append('mailReceivedDate', input.mailReceivedDate);
+  if (input.testMode) form.append('testMode', 'true');
   if (input.newBandwidthMbps != null) form.append('newBandwidthMbps', String(input.newBandwidthMbps));
   if (input.reason) form.append('reason', input.reason);
   if (input.notes) form.append('notes', input.notes);

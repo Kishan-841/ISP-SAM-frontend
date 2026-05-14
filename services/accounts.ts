@@ -14,7 +14,13 @@ export type Account = {
   kittyType: 'BASE' | 'NEW';
   /** Annual ₹ — Decimal serialised as a string. */
   currentArc: string;
-  contractStatus: 'ACTIVE' | 'EXPIRED' | 'TERMINATED' | 'PENDING';
+  contractStatus:
+    | 'ACTIVE'
+    | 'EXPIRED'
+    | 'TERMINATED'
+    | 'PENDING'
+    | 'PROBABLE_CHURN'
+    | 'DISCONNECTING';
   lastMomDate: string | null;
   lastMeetingDate: string | null;
   onboardingDate: string;
