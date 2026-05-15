@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   Bell,
   ClipboardList,
@@ -21,6 +20,7 @@ import {
 } from 'lucide-react';
 import {
   dismissNotification as dismissNotificationApi,
+  getNotifications,
   markAllNotificationsRead,
   markNotificationRead,
   type NotificationFeed,
@@ -28,6 +28,7 @@ import {
   type NotificationKind,
   type NotificationSeverity,
 } from '../services/notifications';
+import { LoadMoreFooter } from './load-more-footer';
 
 const KIND_VISUAL: Record<
   NotificationKind,
@@ -74,44 +75,83 @@ const SEVERITY_TONE: Record<
 };
 
 export function NotificationsList({ initial }: { initial: NotificationFeed }) {
-  const router = useRouter();
+  const [items, setItems] = useState<NotificationItem[]>(initial.notifications);
+  const [total, setTotal] = useState(initial.total);
+  const [unread, setUnread] = useState(initial.unread);
+  // Next page to fetch when "Load more" is clicked. The server returned `initial.page`
+  // (1 on first render); we ask for the page after that.
+  const [nextPage, setNextPage] = useState(initial.page + 1);
+  const pageSize = initial.pageSize;
+
   const [busyId, setBusyId] = useState<string | null>(null);
   const [busyAll, setBusyAll] = useState(false);
-  const [, startTransition] = useTransition();
-
-  const groups = groupByDate(initial.notifications);
-
-  const refresh = () => startTransition(() => router.refresh());
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function onMarkRead(id: string) {
+    const target = items.find((n) => n.id === id);
+    if (!target || target.readAt) return;
+    // Optimistic — flip readAt locally so the row visibly settles immediately.
+    const now = new Date().toISOString();
+    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, readAt: now } : n)));
+    setUnread((u) => Math.max(0, u - 1));
     setBusyId(id);
     try {
       await markNotificationRead(id);
-      refresh();
     } finally {
       setBusyId(null);
     }
   }
+
   async function onDismiss(id: string) {
+    const target = items.find((n) => n.id === id);
+    if (!target) return;
+    setItems((prev) => prev.filter((n) => n.id !== id));
+    setTotal((t) => Math.max(0, t - 1));
+    if (!target.readAt) setUnread((u) => Math.max(0, u - 1));
     setBusyId(id);
     try {
       await dismissNotificationApi(id);
-      refresh();
     } finally {
       setBusyId(null);
     }
   }
+
   async function onMarkAll() {
+    const now = new Date().toISOString();
+    setItems((prev) => prev.map((n) => (n.readAt ? n : { ...n, readAt: now })));
+    setUnread(0);
     setBusyAll(true);
     try {
       await markAllNotificationsRead();
-      refresh();
     } finally {
       setBusyAll(false);
     }
   }
 
-  if (initial.notifications.length === 0) {
+  async function onLoadMore() {
+    setLoadingMore(true);
+    setLoadError(null);
+    try {
+      const next = await getNotifications({}, nextPage, pageSize);
+      // Dedupe — extremely unlikely but cheap to guard against a row that
+      // shifted into the prior page between fetches.
+      setItems((prev) => {
+        const seen = new Set(prev.map((n) => n.id));
+        return [...prev, ...next.notifications.filter((n) => !seen.has(n.id))];
+      });
+      // Server is authoritative on totals.
+      setTotal(next.total);
+      setUnread(next.unread);
+      setNextPage((p) => p + 1);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Failed to load more');
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  if (items.length === 0) {
     return (
       <div className="bg-white rounded-xl ring-1 ring-gray-200 p-12 text-center">
         <div className="w-14 h-14 mx-auto rounded-2xl bg-gray-50 flex items-center justify-center mb-3">
@@ -126,13 +166,16 @@ export function NotificationsList({ initial }: { initial: NotificationFeed }) {
     );
   }
 
+  const groups = groupByDate(items);
+  const hasMore = items.length < total;
+
   return (
     <>
       {/* Bulk actions */}
-      {initial.unread > 0 && (
+      {unread > 0 && (
         <div className="flex items-center justify-between gap-2 px-1">
           <span className="text-xs text-gray-500">
-            <span className="font-semibold text-brand-600">{initial.unread}</span> unread
+            <span className="font-semibold text-brand-600">{unread}</span> unread
           </span>
           <button
             type="button"
@@ -170,6 +213,16 @@ export function NotificationsList({ initial }: { initial: NotificationFeed }) {
           </section>
         ))}
       </div>
+
+      {/* Load more / footer */}
+      <LoadMoreFooter
+        shown={items.length}
+        total={total}
+        hasMore={hasMore}
+        loading={loadingMore}
+        error={loadError}
+        onLoadMore={onLoadMore}
+      />
     </>
   );
 }
