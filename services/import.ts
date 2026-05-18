@@ -1,10 +1,35 @@
 import { env } from '../lib/env';
 
+export type ImportedAccountPreview = {
+  rowNumber: number;
+  accountId: string;
+  clientName: string;
+  companyName: string | null;
+  leadId: string | null;
+  externalCrmId: string | null;
+  email: string | null;
+  currentArc: number;
+  kittyType: 'BASE' | 'NEW';
+  contractStatus: 'ACTIVE' | 'PENDING' | 'EXPIRED' | 'TERMINATED' | 'DISCONNECTING';
+};
+
+export type ImportErrorKind = 'missing_field' | 'invalid_value' | 'duplicate' | 'other';
+
+export type ImportError = {
+  rowNumber: number;
+  reason: string;
+  kind: ImportErrorKind;
+  clientName?: string | null;
+  leadId?: string | null;
+};
+
 export type ImportSummary = {
   imported: number;
   updated: number;
   skipped: number;
-  errors: { rowNumber: number; reason: string }[];
+  createdAccounts: ImportedAccountPreview[];
+  updatedAccounts: ImportedAccountPreview[];
+  errors: ImportError[];
 };
 
 export async function importAccounts(file: File): Promise<ImportSummary> {

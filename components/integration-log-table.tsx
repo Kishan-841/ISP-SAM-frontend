@@ -7,6 +7,7 @@ import { ChevronDown, ChevronRight, Plug } from 'lucide-react';
 import { DataTable, type Column } from './data-table';
 import { StatusPill, type PillTone } from './status-pill';
 import { Button } from '@/components/ui/button';
+import { IntegrationPayloadView } from './integration-payload-view';
 import { formatDateTime } from '../lib/format-date';
 import type { IntegrationEventRow, IntegrationStatus } from '../services/integrations';
 
@@ -169,14 +170,10 @@ export function IntegrationLogTable({
 }
 
 function ExpandedEventRow({ event }: { event: IntegrationEventRow }) {
-  const payloadPretty = JSON.stringify(event.payload, null, 2);
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div className="md:col-span-2 flex flex-col gap-2">
-        <div className="text-xs uppercase tracking-wide text-gray-500">Payload</div>
-        <pre className="bg-gray-900 text-gray-100 text-xs rounded-md p-4 overflow-x-auto max-h-80 leading-relaxed">
-          {payloadPretty}
-        </pre>
+      <div className="md:col-span-2">
+        <IntegrationPayloadView eventType={event.eventType} payload={event.payload} />
       </div>
       <div className="flex flex-col gap-3 text-sm">
         {event.statusReason && (
@@ -184,35 +181,67 @@ function ExpandedEventRow({ event }: { event: IntegrationEventRow }) {
             <span className="text-red-700">{event.statusReason}</span>
           </Field>
         )}
-        <Field label="External Event ID">
-          <span className="font-mono text-xs break-all">{event.externalEventId}</span>
-        </Field>
-        <Field label="Occurred at">
-          {event.occurredAt ? formatDateTime(event.occurredAt) : '—'}
-        </Field>
-        <Field label="Signature">
-          <span className="font-mono text-[10px] break-all text-gray-600">
-            {event.signatureHeader ?? '—'}
-          </span>
-        </Field>
-        <Field label="Timestamp header">
-          <span className="font-mono text-xs">{event.timestampHeader ?? '—'}</span>
-        </Field>
-        <Field label="Remote IP">
-          <span className="font-mono text-xs">{event.remoteAddr ?? '—'}</span>
-        </Field>
         {event.account && (
           <Field label="Account">
             <Link
-              href={`/customers?kittyType=NEW`}
-              className="text-brand-600 hover:underline text-sm"
+              href={`/customers/${event.account.id}`}
+              className="text-brand-600 hover:underline text-sm font-medium"
             >
               {event.account.companyName || event.account.clientName}
-              {event.account.customerCode ? ` · ${event.account.customerCode}` : ''}
             </Link>
+            {event.account.customerCode && (
+              <span className="block font-mono text-[11px] text-gray-500 mt-0.5">
+                {event.account.customerCode}
+              </span>
+            )}
           </Field>
         )}
+        <Field label="Received at">{formatDateTime(event.receivedAt)}</Field>
+        <Field label="Sent by CRM at">
+          {event.occurredAt ? formatDateTime(event.occurredAt) : '—'}
+        </Field>
+        <ForensicsBlock event={event} />
       </div>
+    </div>
+  );
+}
+
+function ForensicsBlock({ event }: { event: IntegrationEventRow }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-t border-gray-100 pt-3 mt-1">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-gray-700"
+      >
+        {open ? (
+          <ChevronDown className="w-3 h-3" />
+        ) : (
+          <ChevronRight className="w-3 h-3" />
+        )}
+        {open ? 'Hide technical details' : 'Show technical details'}
+      </button>
+      {open && (
+        <div className="flex flex-col gap-3 mt-2">
+          <Field label="External Event ID">
+            <span className="font-mono text-[11px] break-all text-gray-700">
+              {event.externalEventId}
+            </span>
+          </Field>
+          <Field label="Remote IP">
+            <span className="font-mono text-xs">{event.remoteAddr ?? '—'}</span>
+          </Field>
+          <Field label="Timestamp header">
+            <span className="font-mono text-xs">{event.timestampHeader ?? '—'}</span>
+          </Field>
+          <Field label="HMAC signature">
+            <span className="font-mono text-[10px] break-all text-gray-500">
+              {event.signatureHeader ?? '—'}
+            </span>
+          </Field>
+        </div>
+      )}
     </div>
   );
 }

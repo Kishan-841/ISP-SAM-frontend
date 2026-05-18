@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { ClipboardList } from 'lucide-react';
 import { DataTable, type Column } from './data-table';
 import { StatusPill, type PillTone } from './status-pill';
 import { CrmStatusPill } from './crm-status-pill';
 import { CrmRowActions } from './crm-row-actions';
+import { TransactionDetailSheet } from './transaction-detail-sheet';
 import type { CommercialChangeListItem } from '../services/commercial-changes';
 import { formatRupeesCompact } from '../lib/format-rupees';
 
@@ -24,6 +26,8 @@ const TYPE_LABEL: Record<CommercialChangeListItem['changeType'], string> = {
 };
 
 export function TransactionsTable({ changes }: { changes: CommercialChangeListItem[] }) {
+  const [selected, setSelected] = useState<CommercialChangeListItem | null>(null);
+
   const columns: Column<CommercialChangeListItem>[] = [
     {
       key: 'effectiveDate',
@@ -140,11 +144,14 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
     {
       key: 'reason',
       header: 'Reason',
+      // Single-line preview only — the full text lives in the row-detail
+      // sheet (click anywhere on the row to open). Avoids the previous
+      // half-clamped two-line ellipsis that read as broken UI.
       cell: (c) =>
         c.reason ? (
           <span
-            className="text-sm text-gray-500 line-clamp-2 max-w-[200px]"
-            title={c.reason}
+            className="text-sm text-gray-500 truncate block max-w-[180px]"
+            title="Click row to see the full reason"
           >
             {c.reason}
           </span>
@@ -226,11 +233,15 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       align: 'center',
       cell: (c) =>
         c.account.externalCrmId ? (
-          <CrmRowActions
-            changeId={c.id}
-            crmStatus={c.crmStatus}
-            hasCrmOrder={!!c.crmServiceOrderId}
-          />
+          // Stop click bubbling so the action buttons don't also open the
+          // detail sheet under them.
+          <div onClick={(e) => e.stopPropagation()}>
+            <CrmRowActions
+              changeId={c.id}
+              crmStatus={c.crmStatus}
+              hasCrmOrder={!!c.crmServiceOrderId}
+            />
+          </div>
         ) : (
           <span className="text-xs text-gray-400">—</span>
         ),
@@ -239,19 +250,29 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
   ];
 
   return (
-    <DataTable<CommercialChangeListItem>
-      columns={columns}
-      rows={changes}
-      rowKey={(c) => c.id}
-      searchable
-      searchPlaceholder="Search by customer, code, reason"
-      searchKeys={['account.clientName', 'account.customerCode', 'reason']}
-      pagination
-      emptyTitle="No commercial changes yet"
-      emptySubtitle="Initiate one from Commercial Change."
-      emptyIcon={ClipboardList}
-      minWidth="min-w-[1400px]"
-    />
+    <>
+      <DataTable<CommercialChangeListItem>
+        columns={columns}
+        rows={changes}
+        rowKey={(c) => c.id}
+        searchable
+        searchPlaceholder="Search by customer, code, reason"
+        searchKeys={['account.clientName', 'account.customerCode', 'reason']}
+        pagination
+        onRowClick={(row) => setSelected(row)}
+        emptyTitle="No commercial changes yet"
+        emptySubtitle="Initiate one from Commercial Change."
+        emptyIcon={ClipboardList}
+        minWidth="min-w-[1400px]"
+      />
+      <TransactionDetailSheet
+        change={selected}
+        open={selected !== null}
+        onOpenChange={(o) => {
+          if (!o) setSelected(null);
+        }}
+      />
+    </>
   );
 }
 
