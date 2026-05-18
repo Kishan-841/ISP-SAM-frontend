@@ -24,6 +24,8 @@ export type ProbableChurnRow = {
     contractStatus: 'PROBABLE_CHURN' | 'DISCONNECTING';
     currentArc: number;
     kittyType: 'BASE' | 'NEW';
+    /** null = Excel-imported. UI hides the "sent to CRM on Proceed" hint. */
+    externalCrmId: string | null;
   };
   /** CRM hand-off — populated after PROCEED on a CRM-synced customer. */
   crmServiceOrderId: string | null;

@@ -181,8 +181,18 @@ function CrmHandoffCell({ row }: { row: ProbableChurnRow }) {
   const [refreshing, setRefreshing] = useState(false);
   const [, startTransition] = useTransition();
 
-  // Pre-PROCEED: nothing in CRM yet. After PROCEED on an Excel-imported
-  // customer, no CRM order either — show that explicitly.
+  // Imported leads (no externalCrmId) never trigger a CRM hand-off — show
+  // that up front instead of the misleading "sent to CRM on Proceed" hint.
+  const isLocalOnly = !row.account.externalCrmId;
+
+  if (isLocalOnly) {
+    return (
+      <span className="text-xs text-gray-500">Local-only — no CRM hand-off</span>
+    );
+  }
+
+  // CRM-synced + still in the 21-day window: nothing in CRM yet, will be
+  // raised on Proceed.
   if (row.account.contractStatus === 'PROBABLE_CHURN') {
     return (
       <span className="text-xs text-gray-400">Not yet — sent to CRM on Proceed</span>
@@ -201,8 +211,9 @@ function CrmHandoffCell({ row }: { row: ProbableChurnRow }) {
     );
   }
   if (!row.crmServiceOrderId) {
+    // DISCONNECTING but CRM order never landed (transport disabled etc).
     return (
-      <span className="text-xs text-gray-500">Local-only customer — no CRM order</span>
+      <span className="text-xs text-gray-500">No CRM order on file</span>
     );
   }
 

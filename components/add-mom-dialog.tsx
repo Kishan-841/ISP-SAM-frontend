@@ -34,10 +34,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 import {
   completeMeeting,
   sendMomEmail,
   type ActionItem,
+  type EmailDispatchStatus,
   type MeetingRow,
   type MeetingType,
 } from '../services/meetings';
@@ -260,7 +262,7 @@ export function AddMomDialog({
         testMode,
       };
 
-      const { emailStatus } = editing
+      const result = editing
         ? await completeMeeting(existingMeeting!.id, sharedPayload)
         : await sendMomEmail({
             accountId,
@@ -269,26 +271,36 @@ export function AddMomDialog({
             location: meetingType === 'PHYSICAL' ? location.trim() || undefined : undefined,
             ...sharedPayload,
           });
+      const { emailStatus, emailReason } = result;
+      const recipient = to.trim() || selectedAccount?.email || 'the customer';
 
       if (testMode) {
-        setSuccess(
-          'Test run complete — meeting saved, no email dispatched. Toggle off "Test mode" to send for real.',
-        );
+        const msg =
+          'Test run complete — meeting saved, no email dispatched. Toggle off "Test mode" to send for real.';
+        setSuccess(msg);
+        toast.info('Test run saved', {
+          description: 'No email was dispatched (test mode was on).',
+        });
       } else if (emailStatus === 'SENT') {
+        toast.success(`MoM email sent to ${recipient}`, {
+          description: emailReason ? undefined : 'Customer should receive it within a few seconds.',
+        });
         setOpen(false);
         reset();
       } else {
-        setError(
-          emailStatus === 'SKIPPED'
-            ? 'MoM saved. Email transport is currently disabled (ACCOUNTS_NOTIFICATIONS_ENABLED=false) — no email was sent.'
-            : emailStatus === 'MISCONFIGURED'
-              ? 'MoM saved, but the email could not be sent (recipient or sender misconfigured). Check audit log for details.'
-              : 'MoM saved, but the email transport returned a failure. Check audit log.',
-        );
+        const fallback = fallbackMessage(emailStatus);
+        const description = emailReason || fallback;
+        setError(`MoM saved, but the email did not go out. ${description}`);
+        toast.error('Email not sent', {
+          description,
+          duration: 8000,
+        });
       }
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send MoM email');
+      const msg = err instanceof Error ? err.message : 'Failed to send MoM email';
+      setError(msg);
+      toast.error('Failed to send MoM email', { description: msg, duration: 8000 });
     } finally {
       setSubmitting(false);
     }
@@ -935,6 +947,19 @@ function ActionItemsTable({
       </div>
     </div>
   );
+}
+
+function fallbackMessage(status: EmailDispatchStatus): string {
+  switch (status) {
+    case 'SKIPPED':
+      return 'Email transport is currently disabled — no email was sent.';
+    case 'MISCONFIGURED':
+      return 'Recipient or sender misconfigured. Check audit log for details.';
+    case 'FAILED':
+      return 'Email transport returned a failure. Check audit log for details.';
+    case 'SENT':
+      return '';
+  }
 }
 
 // ─── Body autocompose ─────────────────────────────────────────────────

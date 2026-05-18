@@ -106,18 +106,21 @@ export type CompleteMeetingInput = {
 
 export type EmailDispatchStatus = 'SENT' | 'SKIPPED' | 'MISCONFIGURED' | 'FAILED';
 
+export type EmailDispatchResult = {
+  meeting: MeetingRow;
+  emailStatus: EmailDispatchStatus;
+  /** Human-readable reason from the transport (e.g. "Netcore rejected: invalid api_key").
+   *  Present for non-SENT outcomes and as a SKIPPED note for testMode runs. */
+  emailReason?: string;
+  emailMessageId?: string;
+};
+
 export function sendMomEmail(input: SendMomEmailInput) {
-  return apiPost<{ meeting: MeetingRow; emailStatus: EmailDispatchStatus }>(
-    '/meetings/send-mom-email',
-    input,
-  );
+  return apiPost<EmailDispatchResult>('/meetings/send-mom-email', input);
 }
 
 export function completeMeeting(id: string, input: CompleteMeetingInput) {
-  return apiPost<{ meeting: MeetingRow; emailStatus: EmailDispatchStatus }>(
-    `/meetings/${id}/send-mom-email`,
-    input,
-  );
+  return apiPost<EmailDispatchResult>(`/meetings/${id}/send-mom-email`, input);
 }
 
 export function deleteMeeting(id: string) {

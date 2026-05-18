@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import './globals.css';
 import { Sidebar } from '../components/sidebar';
 import { TopBar } from '../components/top-bar';
+import { Toaster } from '../components/ui/sonner';
 import { getMe } from '../services/auth';
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         ) : (
           <main>{children}</main>
         )}
+        <Toaster richColors position="top-right" closeButton />
       </body>
     </html>
   );
