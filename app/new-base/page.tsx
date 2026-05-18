@@ -16,6 +16,8 @@ import { PageHeader, SectionHeading } from '../../components/page-header';
 import { StatCard } from '../../components/stat-card';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatusPill, type PillTone } from '../../components/status-pill';
+import { RevenueWaterfall } from '../../components/revenue-waterfall';
+import { WaterfallDetail } from '../../components/waterfall-detail';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { getNewBaseMetrics } from '../../services/dashboard';
 import { formatDate } from '../../lib/format-date';
@@ -45,10 +47,20 @@ export default async function NewBaseDashboardPage() {
   const currentArcRupees = metrics.currentArcLakh * LAKH;
   const upgradesArcRupees = metrics.upgrades.arcAddedLakh * LAKH;
   const downgradesArcRupees = metrics.downgrades.arcReducedLakh * LAKH;
-  const rateRevisionsArcRupees = metrics.rateRevisions.arcChangeLakh * LAKH;
   const terminationsArcRupees = metrics.terminations.arcLostLakh * LAKH;
   const probableChurnArcRupees = metrics.probableChurn.arcAtRiskLakh * LAKH;
   const netDeltaRupees = currentArcRupees - startArcRupees;
+  // Rate revisions are intentionally not in the waterfall — they preserve
+  // ARC by definition. Same treatment as existing-base.
+  const endArcRupees =
+    startArcRupees + upgradesArcRupees - downgradesArcRupees - terminationsArcRupees;
+  const waterfallInput = {
+    startArcRupees,
+    upgradesArcRupees,
+    downgradesArcRupees,
+    terminationsArcRupees,
+    endArcRupees,
+  };
 
   return (
     <div className="px-8 py-6 max-w-7xl flex flex-col gap-8">
@@ -149,9 +161,13 @@ export default async function NewBaseDashboardPage() {
             href={metrics.downgrades.count > 0 ? '/new-base/downgrades' : undefined}
           />
           <StatCard
-            title={`Rate Revisions (${metrics.rateRevisions.count})`}
-            value={formatRupeesCompact(-Math.abs(rateRevisionsArcRupees), { signed: true })}
-            subtitle="Bandwidth uplift at the same ARC"
+            title="Rate Revisions"
+            value={metrics.rateRevisions.count.toString()}
+            subtitle={
+              metrics.rateRevisions.count === 1
+                ? '1 customer — bandwidth uplift at the same ARC'
+                : `${metrics.rateRevisions.count} customers — bandwidth uplift at the same ARC`
+            }
             icon={Shield}
             iconBg="bg-indigo-50"
             iconColor="text-indigo-600"
@@ -168,6 +184,25 @@ export default async function NewBaseDashboardPage() {
             href={metrics.terminations.count > 0 ? '/new-base/disconnections' : undefined}
           />
         </div>
+      </section>
+
+      {/* Revenue waterfall — mirrors existing-base. */}
+      <section className="flex flex-col gap-3">
+        <SectionHeading>Revenue Waterfall (ARC)</SectionHeading>
+        <RevenueWaterfall
+          input={waterfallInput}
+          startLabel="Onboarding"
+          counts={{
+            upgrades: metrics.upgrades.count,
+            downgrades: metrics.downgrades.count,
+            terminations: metrics.terminations.count,
+          }}
+        />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <SectionHeading>Waterfall — Detail (ARC)</SectionHeading>
+        <WaterfallDetail input={waterfallInput} kittyType="NEW" />
       </section>
 
       {/* Onboarding efficiency — single MOM card kept from old layout */}

@@ -9,7 +9,6 @@ export type WaterfallDetailInput = {
   startArcRupees: number;
   upgradesArcRupees: number;
   downgradesArcRupees: number;
-  rateRevisionsArcRupees: number;
   terminationsArcRupees: number;
   endArcRupees: number;
 };
@@ -36,16 +35,25 @@ const SIGN_BG: Record<NonNullable<WaterfallRow['sign']>, string> = {
   '=': 'bg-gray-100 text-gray-700',
 };
 
-export function WaterfallDetail({ input }: { input: WaterfallDetailInput }) {
+export function WaterfallDetail({
+  input,
+  kittyType = 'BASE',
+}: {
+  input: WaterfallDetailInput;
+  /** Drives the start/end labels and the customer-list deep-links so the
+   *  same component can render an Existing-Base or New-Base detail table. */
+  kittyType?: 'BASE' | 'NEW';
+}) {
   const router = useRouter();
+  const isNew = kittyType === 'NEW';
 
   const rows: WaterfallRow[] = [
     {
-      label: 'Start of Period',
+      label: isNew ? 'At onboarding' : 'Start of Period',
       arc: input.startArcRupees,
       tone: 'neutral',
-      href: '/customers?kittyType=BASE',
-      hrefHint: 'See all April 1 Base customers',
+      href: `/customers?kittyType=${kittyType}`,
+      hrefHint: isNew ? 'See all New-Base customers' : 'See all April 1 Base customers',
     },
     {
       label: 'Upgrades',
@@ -64,14 +72,6 @@ export function WaterfallDetail({ input }: { input: WaterfallDetailInput }) {
       hrefHint: 'See downgrade transactions',
     },
     {
-      label: 'Rate Revisions (↓)',
-      arc: input.rateRevisionsArcRupees,
-      tone: 'negative',
-      sign: '−',
-      href: '/transactions?type=RATE_REVISION',
-      hrefHint: 'See rate revision transactions',
-    },
-    {
       label: 'Disconnections',
       arc: input.terminationsArcRupees,
       tone: 'negative',
@@ -80,12 +80,14 @@ export function WaterfallDetail({ input }: { input: WaterfallDetailInput }) {
       hrefHint: 'See termination transactions',
     },
     {
-      label: 'End of Period',
+      label: isNew ? 'Today' : 'End of Period',
       arc: input.endArcRupees,
       tone: 'final',
       sign: '=',
-      href: '/customers?kittyType=BASE&status=ACTIVE',
-      hrefHint: 'See current active Base customers',
+      href: `/customers?kittyType=${kittyType}&status=ACTIVE`,
+      hrefHint: isNew
+        ? 'See current active New-Base customers'
+        : 'See current active Base customers',
     },
   ];
 

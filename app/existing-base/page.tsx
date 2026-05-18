@@ -40,17 +40,15 @@ export default async function ExistingBaseDashboardPage({
   const cookieHeader = await getCookieHeader();
   const metrics = await getExistingBaseMetrics({ quarter }, { cookieHeader });
   // Convert metrics (lakh-denominated) into rupees for the chart + detail table.
+  // NOTE: rate revisions are intentionally absent from the waterfall — they
+  // preserve ARC by definition (bandwidth uplift at the same price), so the
+  // count is surfaced on its own stat card and the financial view stays clean.
   const startArcRupees = metrics.totalBaseArcLakh * LAKH;
   const upgradesArcRupees = metrics.upgrades.arcAddedLakh * LAKH;
   const downgradesArcRupees = metrics.downgrades.arcReducedLakh * LAKH;
-  const rateRevisionsArcRupees = metrics.rateRevisions.arcChangeLakh * LAKH;
   const terminationsArcRupees = metrics.terminations.arcLostLakh * LAKH;
   const endArcRupees =
-    startArcRupees +
-    upgradesArcRupees -
-    downgradesArcRupees -
-    rateRevisionsArcRupees -
-    terminationsArcRupees;
+    startArcRupees + upgradesArcRupees - downgradesArcRupees - terminationsArcRupees;
   const currentArcRupees = metrics.currentArcLakh * LAKH;
   const netDeltaRupees = currentArcRupees - startArcRupees;
   const probableChurnArcRupees = metrics.probableChurn.arcAtRiskLakh * LAKH;
@@ -58,7 +56,6 @@ export default async function ExistingBaseDashboardPage({
     startArcRupees,
     upgradesArcRupees,
     downgradesArcRupees,
-    rateRevisionsArcRupees,
     terminationsArcRupees,
     endArcRupees,
   };
@@ -162,9 +159,13 @@ export default async function ExistingBaseDashboardPage({
             href={metrics.downgrades.count > 0 ? bucketHref('downgrades', quarter) : undefined}
           />
           <StatCard
-            title={`Rate Revisions (${metrics.rateRevisions.count})`}
-            value={formatRupeesCompact(-Math.abs(rateRevisionsArcRupees), { signed: true })}
-            subtitle="Bandwidth uplift at the same ARC"
+            title="Rate Revisions"
+            value={metrics.rateRevisions.count.toString()}
+            subtitle={
+              metrics.rateRevisions.count === 1
+                ? '1 customer — bandwidth uplift at the same ARC'
+                : `${metrics.rateRevisions.count} customers — bandwidth uplift at the same ARC`
+            }
             icon={Shield}
             iconBg="bg-indigo-50"
             iconColor="text-indigo-600"
@@ -187,7 +188,14 @@ export default async function ExistingBaseDashboardPage({
 
       <section className="mb-8">
         <SectionHeading>Revenue Waterfall (ARC)</SectionHeading>
-        <RevenueWaterfall input={waterfallInput} />
+        <RevenueWaterfall
+          input={waterfallInput}
+          counts={{
+            upgrades: metrics.upgrades.count,
+            downgrades: metrics.downgrades.count,
+            terminations: metrics.terminations.count,
+          }}
+        />
       </section>
 
       <section className="mb-8">
