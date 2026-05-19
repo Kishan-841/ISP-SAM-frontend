@@ -74,6 +74,13 @@ export type CommitInput = {
   disconnectionCategoryId?: string;
   disconnectionSubCategoryId?: string;
   disconnectionReason?: string;
+  /** 'NORMAL' (default — 21-day retention flow) or 'QUICK' (skip retention,
+   *  needs CRM Admin approval, terminates in `quickRequestedDays` days). */
+  disconnectionMode?: 'NORMAL' | 'QUICK';
+  /** Required when disconnectionMode='QUICK'. 1..15 days. */
+  quickRequestedDays?: number;
+  /** Required when disconnectionMode='QUICK'. Min 10 chars — surfaces to CRM Admin. */
+  quickApprovalReason?: string;
   /** At least one of these is required (validated server-side). */
   approvalFile?: File | null;
   poFile?: File | null;
@@ -100,7 +107,10 @@ export type CommitResult = {
   crm:
     | { ok: true; orderId: string; orderNumber: string; status: string }
     | { ok: false; error: string; status?: number }
-    | { ok: 'disabled' };
+    | { ok: 'disabled' }
+    | { ok: 'local-only' }
+    | { ok: 'probable-churn' }
+    | { ok: 'pending-quick-approval' };
 };
 
 export async function commitCommercialChange(input: CommitInput): Promise<CommitResult> {
@@ -126,6 +136,11 @@ export async function commitCommercialChange(input: CommitInput): Promise<Commit
     form.append('disconnectionSubCategoryId', input.disconnectionSubCategoryId);
   if (input.disconnectionReason)
     form.append('disconnectionReason', input.disconnectionReason);
+  if (input.disconnectionMode) form.append('disconnectionMode', input.disconnectionMode);
+  if (input.quickRequestedDays != null)
+    form.append('quickRequestedDays', String(input.quickRequestedDays));
+  if (input.quickApprovalReason)
+    form.append('quickApprovalReason', input.quickApprovalReason);
 
   const res = await fetch(`${base}/commercial-changes`, {
     method: 'POST',

@@ -24,7 +24,8 @@ type CrmOutcome =
   | { ok: false; error: string; status?: number }
   | { ok: 'disabled' }
   | { ok: 'local-only' }
-  | { ok: 'probable-churn' };
+  | { ok: 'probable-churn' }
+  | { ok: 'pending-quick-approval' };
 
 /*
  * Post-commit confirmation modal. Originally exposed an email draft + copy /
@@ -119,6 +120,20 @@ export function EmailDraftModal({
               <p className="text-sm text-amber-800 leading-relaxed">
                 The customer is in the retention queue. SAM will be prompted on day 21 to either
                 retain (via a rate revision) or proceed with disconnection.
+              </p>
+            </div>
+          </div>
+        )}
+        {crm && crm.ok === 'pending-quick-approval' && (
+          <div className="flex gap-3 rounded-md border border-amber-200 bg-amber-50 p-4">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-semibold text-amber-900">
+                Quick disconnect — awaiting CRM Admin approval
+              </p>
+              <p className="text-sm text-amber-800 leading-relaxed">
+                The 21-day retention is skipped. The customer stays on hold until CRM Admin
+                approves or rejects. You&apos;ll be notified the moment a decision lands.
               </p>
             </div>
           </div>

@@ -117,6 +117,12 @@ export function CommercialChangeForm({
   const [reason, setReason] = useState<string>('');
   const [disconnectionCategoryId, setDisconnectionCategoryId] = useState<string>('');
   const [disconnectionSubCategoryId, setDisconnectionSubCategoryId] = useState<string>('');
+  // Quick-disconnect state. Hidden in UI unless the feature flag is on AND
+  // the user selected DISCONNECTION. NORMAL preserves the legacy 21-day flow.
+  const [disconnectionMode, setDisconnectionMode] =
+    useState<'NORMAL' | 'QUICK'>('NORMAL');
+  const [quickRequestedDays, setQuickRequestedDays] = useState<string>('7');
+  const [quickApprovalReason, setQuickApprovalReason] = useState<string>('');
   const [approvalFile, setApprovalFile] = useState<File | null>(null);
   const [poFile, setPoFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -200,6 +206,9 @@ export function CommercialChangeForm({
     setReason('');
     setDisconnectionCategoryId('');
     setDisconnectionSubCategoryId('');
+    setDisconnectionMode('NORMAL');
+    setQuickRequestedDays('7');
+    setQuickApprovalReason('');
     setApprovalFile(null);
     setPoFile(null);
     setError(null);
@@ -257,6 +266,13 @@ export function CommercialChangeForm({
         payload.disconnectionCategoryId = disconnectionCategoryId;
         payload.disconnectionSubCategoryId = disconnectionSubCategoryId;
         if (reason.trim()) payload.disconnectionReason = reason.trim();
+        if (env.quickDisconnectEnabled) {
+          payload.disconnectionMode = disconnectionMode;
+          if (disconnectionMode === 'QUICK') {
+            payload.quickRequestedDays = Number(quickRequestedDays);
+            payload.quickApprovalReason = quickApprovalReason.trim();
+          }
+        }
       }
 
       const res = await commitCommercialChange(payload);
@@ -298,6 +314,17 @@ export function CommercialChangeForm({
   const lifecycleBlocked = isAccountTerminated || isAccountDisconnecting;
   const disconnectionBlocked = isAccountProbableChurn && isTermination;
 
+  // Quick-disconnect gate. Only validated when the feature is on AND the
+  // user picked QUICK on a DISCONNECTION row.
+  const isQuickDisconnect =
+    env.quickDisconnectEnabled && isTermination && disconnectionMode === 'QUICK';
+  const quickDaysNumber = Number(quickRequestedDays);
+  const quickDaysInvalid =
+    isQuickDisconnect &&
+    (!Number.isInteger(quickDaysNumber) || quickDaysNumber < 1 || quickDaysNumber > 15);
+  const quickReasonTooShort =
+    isQuickDisconnect && quickApprovalReason.trim().length < 10;
+
   const submitDisabled =
     !customerId ||
     !actionType ||
@@ -305,6 +332,8 @@ export function CommercialChangeForm({
     !mailReceivedDate ||
     (!isTermination && !newArc) ||
     (isTermination && (!disconnectionCategoryId || !disconnectionSubCategoryId)) ||
+    quickDaysInvalid ||
+    quickReasonTooShort ||
     // Documents — at least one of approval / PO must be attached (skipped
     // when the runtime test-mode toggle is on).
     (!approvalFile && !poFile && !testModeOn) ||
@@ -426,6 +455,13 @@ export function CommercialChangeForm({
           customerNoticeDateIso={result.commercialChange.effectiveDate}
           accountId={result.commercialChange.accountId}
           onRaiseAnother={dismissTimelineAndReset}
+          mode={result.crm.ok === 'pending-quick-approval' ? 'QUICK' : 'NORMAL'}
+          quickRequestedDays={
+            result.crm.ok === 'pending-quick-approval' ? Number(quickRequestedDays) : undefined
+          }
+          quickApprovalReason={
+            result.crm.ok === 'pending-quick-approval' ? quickApprovalReason.trim() : undefined
+          }
         />
       ) : (
       <form onSubmit={onSubmit}>
@@ -602,10 +638,107 @@ export function CommercialChangeForm({
               </div>
             )}
 
+            {isTermination && env.quickDisconnectEnabled && (
+              <FormSection
+                title="Disconnection type"
+                description="Normal goes through the standard 21-day retention window. Quick skips retention — needs CRM Admin approval and a justification."
+              >
+                <FormField label="Type" required fullWidth>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <label
+                      className={`flex-1 flex items-start gap-3 rounded-md border px-4 py-3 cursor-pointer transition-colors ${
+                        disconnectionMode === 'NORMAL'
+                          ? 'border-brand-300 bg-orange-50/40 ring-1 ring-brand-200'
+                          : 'border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="disconnectionMode"
+                        value="NORMAL"
+                        checked={disconnectionMode === 'NORMAL'}
+                        onChange={() => setDisconnectionMode('NORMAL')}
+                        className="mt-1 w-4 h-4 accent-brand-600"
+                      />
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-gray-900">Normal — 31 days</span>
+                        <span className="text-xs text-gray-600">
+                          21-day retention window opens, then a 10-day CRM notice. SAM can retain
+                          any time before day 21.
+                        </span>
+                      </div>
+                    </label>
+                    <label
+                      className={`flex-1 flex items-start gap-3 rounded-md border px-4 py-3 cursor-pointer transition-colors ${
+                        disconnectionMode === 'QUICK'
+                          ? 'border-amber-300 bg-amber-50/40 ring-1 ring-amber-200'
+                          : 'border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="disconnectionMode"
+                        value="QUICK"
+                        checked={disconnectionMode === 'QUICK'}
+                        onChange={() => setDisconnectionMode('QUICK')}
+                        className="mt-1 w-4 h-4 accent-amber-600"
+                      />
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-gray-900">
+                          Quick — up to 15 days
+                        </span>
+                        <span className="text-xs text-gray-600">
+                          Skip retention. Needs CRM Admin approval. Termination happens on the day
+                          you pick after approval lands.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </FormField>
+                {disconnectionMode === 'QUICK' && (
+                  <>
+                    <FormField
+                      label="Termination after approval"
+                      required
+                      hint="Days from when CRM Admin approves to when the customer is actually terminated. 1–15."
+                    >
+                      <Input
+                        type="number"
+                        min={1}
+                        max={15}
+                        step={1}
+                        value={quickRequestedDays}
+                        onChange={(e) => setQuickRequestedDays(e.target.value)}
+                        className="h-10 w-32"
+                      />
+                    </FormField>
+                    <FormField
+                      label="Why does this need to skip retention?"
+                      required
+                      fullWidth
+                      hint="Shown to CRM Admin verbatim on the approval queue. Minimum 10 characters."
+                    >
+                      <Textarea
+                        value={quickApprovalReason}
+                        onChange={(e) => setQuickApprovalReason(e.target.value)}
+                        placeholder="e.g. Customer already shut down operations on 12 May; payment failed twice; account-level fraud flagged."
+                        rows={3}
+                      />
+                      {quickReasonTooShort && quickApprovalReason.length > 0 && (
+                        <p className="text-xs text-amber-700 mt-1">
+                          {10 - quickApprovalReason.trim().length} more characters required.
+                        </p>
+                      )}
+                    </FormField>
+                  </>
+                )}
+              </FormSection>
+            )}
+
             {isTermination ? (
               <FormSection
                 title="Disconnection details"
-                description="The CRM auto-sets the disconnection date to today + 30 days (notice period). Pick a reason from the predefined list — the operator team uses these to track churn drivers."
+                description="Pick a reason from the predefined list — the operator team uses these to track churn drivers."
               >
                 <FormField label="Reason category" required>
                   <Select
