@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Zap } from 'lucide-react';
 import { DataTable, type Column } from './data-table';
 import { StatusPill, type PillTone } from './status-pill';
 import { CrmStatusPill } from './crm-status-pill';
@@ -219,12 +219,27 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       key: 'crmStatus',
       header: 'CRM Status',
       align: 'center',
-      cell: (c) =>
-        c.account.externalCrmId ? (
+      cell: (c) => {
+        // Quick-disconnect requests don't have a CRM order yet — they're
+        // waiting on CRM Admin to approve. Show a distinct badge so users
+        // can spot them at a glance instead of seeing a misleading "—".
+        if (c.disconnectionMode === 'QUICK' && !c.quickApprovalDecision) {
+          return (
+            <StatusPill tone="amber">
+              <Zap className="w-3 h-3 inline mr-1 -mt-0.5" />
+              Quick · Awaiting CRM
+            </StatusPill>
+          );
+        }
+        if (c.disconnectionMode === 'QUICK' && c.quickApprovalDecision === 'REJECTED') {
+          return <StatusPill tone="red">Quick · Rejected</StatusPill>;
+        }
+        return c.account.externalCrmId ? (
           <CrmStatusPill status={c.crmStatus} />
         ) : (
           <span className="text-xs text-gray-400">—</span>
-        ),
+        );
+      },
       className: 'px-5 py-4 text-center whitespace-nowrap',
     },
     {

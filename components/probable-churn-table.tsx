@@ -25,11 +25,15 @@ function retainHref(accountId: string): string {
 const STATUS_TONE: Record<ProbableChurnRow['account']['contractStatus'], PillTone> = {
   PROBABLE_CHURN: 'amber',
   DISCONNECTING: 'red',
+  // PENDING_QUICK_APPROVAL rows are rendered in their own table on the parent
+  // page; this fallback only matters if they ever leak into ProbableChurnTable.
+  PENDING_QUICK_APPROVAL: 'amber',
 };
 
 const STATUS_LABEL: Record<ProbableChurnRow['account']['contractStatus'], string> = {
   PROBABLE_CHURN: 'Probable Churn',
   DISCONNECTING: 'Disconnecting',
+  PENDING_QUICK_APPROVAL: 'Awaiting CRM Approval',
 };
 
 export function ProbableChurnTable({

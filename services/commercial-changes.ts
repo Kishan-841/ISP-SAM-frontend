@@ -27,6 +27,12 @@ export type CommercialChangeListItem = {
   disconnectionCategoryId: string | null;
   disconnectionSubCategoryId: string | null;
   disconnectionReason: string | null;
+  /** 'NORMAL' or 'QUICK' (NULL on non-disconnection rows / legacy rows). */
+  disconnectionMode: 'NORMAL' | 'QUICK' | null;
+  /** When mode='QUICK': 1..15 days to termination after CRM approval. */
+  quickRequestedDays: number | null;
+  quickApprovalReason: string | null;
+  quickApprovalDecision: 'APPROVED' | 'REJECTED' | null;
   account: {
     id: string;
     clientName: string;

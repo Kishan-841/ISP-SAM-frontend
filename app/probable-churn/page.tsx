@@ -3,6 +3,7 @@ import { ShieldAlert, Wallet, Clock3, ListChecks, Sparkles, BarChart3 } from 'lu
 import { PageHeader, SectionHeading } from '../../components/page-header';
 import { StatCard } from '../../components/stat-card';
 import { ProbableChurnTable } from '../../components/probable-churn-table';
+import { QuickPendingTable } from '../../components/quick-pending-table';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { getProbableChurn } from '../../services/probable-churn';
 import { formatRupeesCompact } from '../../lib/format-rupees';
@@ -50,9 +51,18 @@ export default async function ProbableChurnPage({
   };
 
   const filteredRows = kitty ? data.rows.filter((r) => r.account.kittyType === kitty) : data.rows;
+  // Split quick-approval-pending rows out so they get their own section above
+  // the 21-day retention queue — they're a different mental model (awaiting
+  // CRM admin sign-off, not awaiting day-21 prompt).
+  const quickPendingRows = filteredRows.filter(
+    (r) => r.account.contractStatus === 'PENDING_QUICK_APPROVAL',
+  );
+  const retentionRows = filteredRows.filter(
+    (r) => r.account.contractStatus !== 'PENDING_QUICK_APPROVAL',
+  );
   const filteredAtRiskArc = filteredRows.reduce((s, r) => s + r.account.currentArc, 0);
-  const pendingPrompt = filteredRows.filter((r) => r.retentionDecision === null).length;
-  const inDisconnecting = filteredRows.filter((r) => r.retentionDecision === 'PROCEED').length;
+  const pendingPrompt = retentionRows.filter((r) => r.retentionDecision === null).length;
+  const inDisconnecting = retentionRows.filter((r) => r.retentionDecision === 'PROCEED').length;
 
   const scopeLabel =
     kitty === 'NEW' ? 'New Base customers' : kitty === 'BASE' ? 'Existing Base customers' : null;
@@ -131,15 +141,28 @@ export default async function ProbableChurnPage({
         />
       </div>
 
+      {quickPendingRows.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <SectionHeading>
+            Awaiting CRM Admin Approval ({quickPendingRows.length})
+          </SectionHeading>
+          <p className="text-xs text-gray-500 -mt-1">
+            Quick disconnect requests — 21-day retention skipped. CRM Admin must approve before
+            the customer is moved to DISCONNECTING.
+          </p>
+          <QuickPendingTable rows={quickPendingRows} />
+        </section>
+      )}
+
       <section className="flex flex-col gap-3">
         <SectionHeading>Retention Queue</SectionHeading>
-        {filteredRows.length === 0 ? (
+        {retentionRows.length === 0 ? (
           <div className="rounded-lg border border-gray-100 bg-white p-12 text-center">
             <ShieldAlert className="mx-auto h-8 w-8 text-gray-300" />
             <p className="mt-3 text-sm font-medium text-gray-700">
               {kitty
-                ? `No ${kitty === 'BASE' ? 'Existing Base' : 'New Base'} customers at risk right now`
-                : 'No customers at risk right now'}
+                ? `No ${kitty === 'BASE' ? 'Existing Base' : 'New Base'} customers in the retention queue`
+                : 'No customers in the retention queue right now'}
             </p>
             <p className="mt-1 text-xs text-gray-500">
               Disconnection requests appear here for the 21-day retention window. Raise one from{' '}
@@ -150,7 +173,7 @@ export default async function ProbableChurnPage({
             </p>
           </div>
         ) : (
-          <ProbableChurnTable rows={filteredRows} kittyFilter={kitty} />
+          <ProbableChurnTable rows={retentionRows} kittyFilter={kitty} />
         )}
       </section>
     </div>
