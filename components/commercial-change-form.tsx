@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PageHeader } from './page-header';
 import { EmailDraftModal } from './email-draft-modal';
+import { DisconnectionTimeline } from './disconnection-timeline';
 import { FormSection, FormField } from './form-section';
 import { FileDropZone } from './file-drop-zone';
 import { StepIndicator } from './step-indicator';
@@ -207,9 +208,20 @@ export function CommercialChangeForm({
   function onModalOpenChange(open: boolean) {
     setModalOpen(open);
     if (!open) {
-      setResult(null);
-      resetForm();
+      // For disconnection commits, keep `result` populated so the inline
+      // timeline panel stays visible after the email-draft modal dismisses.
+      // The timeline's "Raise another change" button is what clears it.
+      const isDisconnection = result?.commercialChange.changeType === 'DISCONNECTION';
+      if (!isDisconnection) {
+        setResult(null);
+        resetForm();
+      }
     }
+  }
+
+  function dismissTimelineAndReset() {
+    setResult(null);
+    resetForm();
   }
 
   async function onSubmit(e: FormEvent) {
@@ -406,6 +418,16 @@ export function CommercialChangeForm({
         </CardContent>
       </Card>
 
+      {result?.commercialChange.changeType === 'DISCONNECTION' ? (
+        <DisconnectionTimeline
+          customerName={
+            selectedAccount?.companyName || selectedAccount?.clientName || 'this customer'
+          }
+          customerNoticeDateIso={result.commercialChange.effectiveDate}
+          accountId={result.commercialChange.accountId}
+          onRaiseAnother={dismissTimelineAndReset}
+        />
+      ) : (
       <form onSubmit={onSubmit}>
         <Card>
           <CardContent className="px-6 pt-6 pb-0 divide-y divide-gray-100">
@@ -485,7 +507,15 @@ export function CommercialChangeForm({
                   </SelectContent>
                 </Select>
               </FormField>
-              <FormField label="Effective Date" required>
+              <FormField
+                label={isTermination ? 'Customer notice date' : 'Effective Date'}
+                required
+                hint={
+                  isTermination
+                    ? 'The day the customer notified you they want to disconnect. This starts the 21-day retention window — service stays live until you proceed.'
+                    : undefined
+                }
+              >
                 <Input
                   type="date"
                   value={effectiveDate}
@@ -795,6 +825,7 @@ export function CommercialChangeForm({
           </div>
         </Card>
       </form>
+      )}
 
       <EmailDraftModal
         open={modalOpen}
