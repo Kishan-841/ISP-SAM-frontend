@@ -18,6 +18,11 @@ import { getCookieHeader } from '../../lib/get-cookie-header';
 import { getExistingBaseMetrics, type FyQuarter } from '../../services/dashboard';
 import { formatRupeesCompact } from '../../lib/format-rupees';
 
+// Quarter filter pushes ?quarter=Qx via router.push — the page must re-run
+// for each value. Next 16 sometimes treats async `searchParams` pages as
+// cache-eligible; this opt-out guarantees a fresh server render per request.
+export const dynamic = 'force-dynamic';
+
 const LAKH = 100_000;
 
 const QUARTERS: ReadonlySet<string> = new Set(['Q1', 'Q2', 'Q3', 'Q4']);

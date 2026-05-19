@@ -23,6 +23,10 @@ import { getNewBaseMetrics } from '../../services/dashboard';
 import { formatDate } from '../../lib/format-date';
 import { formatRupeesCompact } from '../../lib/format-rupees';
 
+// Match existing-base — guarantee a fresh server render so the data
+// updates immediately on navigation back to the page.
+export const dynamic = 'force-dynamic';
+
 const LAKH = 100_000;
 
 const STATUS_TONE: Record<string, PillTone> = {
