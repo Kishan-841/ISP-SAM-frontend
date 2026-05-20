@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { ChevronDown, ChevronRight, Zap } from 'lucide-react';
 import { StatusPill } from './status-pill';
 import { formatRupeesCompact } from '../lib/format-rupees';
@@ -36,9 +36,8 @@ export function QuickPendingTable({ rows }: { rows: ProbableChurnRow[] }) {
             const isOpen = !!expanded[r.commercialChangeId];
             const customer = r.customer.companyName ?? r.customer.clientName;
             return (
-              <>
+              <Fragment key={r.commercialChangeId}>
                 <tr
-                  key={r.commercialChangeId}
                   className="hover:bg-amber-50/40 cursor-pointer"
                   onClick={() =>
                     setExpanded((p) => ({
@@ -96,7 +95,7 @@ export function QuickPendingTable({ rows }: { rows: ProbableChurnRow[] }) {
                   </td>
                 </tr>
                 {isOpen && (
-                  <tr key={`${r.commercialChangeId}-detail`} className="bg-amber-50/30">
+                  <tr className="bg-amber-50/30">
                     <td />
                     <td colSpan={7} className="px-4 py-4">
                       <div className="flex flex-col gap-3">
@@ -122,7 +121,7 @@ export function QuickPendingTable({ rows }: { rows: ProbableChurnRow[] }) {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </tbody>
