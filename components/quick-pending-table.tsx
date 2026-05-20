@@ -90,7 +90,7 @@ export function QuickPendingTable({ rows }: { rows: ProbableChurnRow[] }) {
                   <td className="px-4 py-3 text-center">
                     <StatusPill tone="amber">
                       <Zap className="w-3 h-3 inline mr-1 -mt-0.5" />
-                      Awaiting CRM
+                      Pending Admin Approval
                     </StatusPill>
                   </td>
                 </tr>

@@ -220,19 +220,22 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       header: 'CRM Status',
       align: 'center',
       cell: (c) => {
-        // Quick-disconnect requests don't have a CRM order yet — they're
-        // waiting on CRM Admin to approve. Show a distinct badge so users
-        // can spot them at a glance instead of seeing a misleading "—".
+        // Quick-disconnect status reflects the 5-stage workflow:
+        //   PENDING_ADMIN_APPROVAL → PENDING_DOCS_REVIEW → PENDING_NOC
+        //   → PENDING_ACCOUNTS → COMPLETED (or REJECTED at any stage).
+        // Before admin decision: show the Quick-specific "Pending Admin
+        // Approval" badge. After approval/rejection: defer to the standard
+        // CRM workflow pill which knows how to render each downstream stage.
         if (c.disconnectionMode === 'QUICK' && !c.quickApprovalDecision) {
           return (
             <StatusPill tone="amber">
               <Zap className="w-3 h-3 inline mr-1 -mt-0.5" />
-              Quick · Awaiting CRM
+              Pending Admin Approval
             </StatusPill>
           );
         }
         if (c.disconnectionMode === 'QUICK' && c.quickApprovalDecision === 'REJECTED') {
-          return <StatusPill tone="red">Quick · Rejected</StatusPill>;
+          return <StatusPill tone="red">Quick · Rejected by Admin</StatusPill>;
         }
         return c.account.externalCrmId ? (
           <CrmStatusPill status={c.crmStatus} />

@@ -144,11 +144,11 @@ export default async function ProbableChurnPage({
       {quickPendingRows.length > 0 && (
         <section className="flex flex-col gap-3">
           <SectionHeading>
-            Awaiting CRM Admin Approval ({quickPendingRows.length})
+            Pending Admin Approval ({quickPendingRows.length})
           </SectionHeading>
           <p className="text-xs text-gray-500 -mt-1">
-            Quick disconnect requests — 21-day retention skipped. CRM Admin must approve before
-            the customer is moved to DISCONNECTING.
+            Quick disconnect requests — 21-day retention skipped. Once CRM Admin approves, the
+            request enters the standard docs review → NOC → accounts → completed workflow.
           </p>
           <QuickPendingTable rows={quickPendingRows} />
         </section>
