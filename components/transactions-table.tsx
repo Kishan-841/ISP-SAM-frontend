@@ -82,7 +82,20 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
     {
       key: 'type',
       header: 'Type',
-      cell: (c) => <StatusPill tone={TYPE_TONE[c.changeType]}>{TYPE_LABEL[c.changeType]}</StatusPill>,
+      cell: (c) => (
+        <div className="inline-flex items-center gap-1.5">
+          <StatusPill tone={TYPE_TONE[c.changeType]}>{TYPE_LABEL[c.changeType]}</StatusPill>
+          {c.disconnectionMode === 'QUICK' && (
+            <span
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-amber-50 text-amber-700 ring-1 ring-amber-200"
+              title="Quick termination — bypasses the 21-day retention window"
+            >
+              <Zap className="w-2.5 h-2.5" />
+              Quick
+            </span>
+          )}
+        </div>
+      ),
       align: 'center',
       className: 'px-5 py-4 text-center whitespace-nowrap',
     },

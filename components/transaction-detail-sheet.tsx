@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, ExternalLink, FileText } from 'lucide-react';
+import { ArrowRight, ExternalLink, FileText, Zap } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -64,6 +64,12 @@ function SheetBodyContent({ change }: { change: CommercialChangeListItem }) {
           <StatusPill tone={TYPE_TONE[change.changeType]}>
             {TYPE_LABEL[change.changeType]}
           </StatusPill>
+          {change.disconnectionMode === 'QUICK' && (
+            <StatusPill tone="amber">
+              <Zap className="w-3 h-3 inline mr-1 -mt-0.5" />
+              Quick termination
+            </StatusPill>
+          )}
           <StatusPill tone={change.account.kittyType === 'NEW' ? 'emerald' : 'purple'}>
             {change.account.kittyType === 'NEW' ? 'New Base' : 'Existing Base'}
           </StatusPill>
