@@ -62,6 +62,12 @@ const FLAGGED_NAV_ITEMS: Array<NavItem & { enabled: boolean }> = [
     icon: UserPlus,
     enabled: env.leadDispatchEnabled,
   },
+  {
+    label: 'My Leads',
+    href: '/my-leads',
+    icon: ListChecks,
+    enabled: env.leadDispatchEnabled,
+  },
 ];
 
 function isActive(pathname: string, href: string): boolean {
