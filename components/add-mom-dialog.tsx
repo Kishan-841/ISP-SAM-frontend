@@ -289,18 +289,28 @@ export function AddMomDialog({
         reset();
       } else {
         const fallback = fallbackMessage(emailStatus);
-        const description = emailReason || fallback;
-        setError(`MoM saved, but the email did not go out. ${description}`);
-        toast.error('Email not sent', {
-          description,
-          duration: 8000,
+        const rawReason = emailReason || fallback;
+        const friendly = friendlyEmailError(emailReason);
+        const inlineMessage = friendly
+          ? `MoM saved, but the email did not go out. ${friendly.headline} ${friendly.hint}`
+          : `MoM saved, but the email did not go out. ${rawReason}`;
+        setError(inlineMessage);
+        toast.error(friendly?.headline ?? 'Email not sent', {
+          description: friendly?.hint ?? rawReason,
+          duration: 10000,
         });
+        // Dump the raw provider error to the console so devs / support can
+        // copy-paste it without re-running the request.
+        // eslint-disable-next-line no-console
+        console.warn('[MoM email send failed]', { emailStatus, emailReason, recipient });
       }
       router.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to send MoM email';
       setError(msg);
-      toast.error('Failed to send MoM email', { description: msg, duration: 8000 });
+      toast.error('Failed to send MoM email', { description: msg, duration: 10000 });
+      // eslint-disable-next-line no-console
+      console.error('[MoM email send threw]', err);
     } finally {
       setSubmitting(false);
     }
@@ -960,6 +970,64 @@ function fallbackMessage(status: EmailDispatchStatus): string {
     case 'SENT':
       return '';
   }
+}
+
+/**
+ * Translate the raw provider error string from the audit log into a one-line
+ * headline + a one-line actionable hint. Picks the first pattern that matches.
+ * Returns null when nothing matches — caller falls back to the raw text.
+ *
+ * Patterns are matched substring-insensitive against the WHOLE reason string
+ * so they catch both the orchestrator's prefix (e.g. "Netcore rejected: …")
+ * and the provider's own wording.
+ */
+function friendlyEmailError(
+  reason: string | undefined,
+): { headline: string; hint: string } | null {
+  if (!reason) return null;
+  const r = reason.toLowerCase();
+
+  if (r.includes('whitelist your ip') || r.includes('please whitelist')) {
+    return {
+      headline: 'Netcore rejected: this server’s IP isn’t allowlisted.',
+      hint:
+        'Ask your admin to add the backend’s public IP to the Netcore API-key allowlist. ' +
+        'See backend audit log for the exact reason.',
+    };
+  }
+  if (r.includes('invalid api_key') || r.includes('invalid api key')) {
+    return {
+      headline: 'Netcore rejected: API key is invalid.',
+      hint:
+        'The NETCORE_API_KEY in the backend env doesn’t match any active key on Netcore. ' +
+        'Admin needs to re-copy from the Netcore dashboard.',
+    };
+  }
+  if (r.includes('domain') && (r.includes('not verified') || r.includes('unverified'))) {
+    return {
+      headline: 'Sender domain not verified on Netcore.',
+      hint: 'The sender address’ domain has to be DKIM/SPF-verified in Netcore.',
+    };
+  }
+  if (r.includes('no customer email')) {
+    return {
+      headline: 'This customer has no email address on record.',
+      hint: 'Edit the customer to add an email, then resend.',
+    };
+  }
+  if (r.includes('not configured') || r.includes('transport not configured')) {
+    return {
+      headline: 'Email transport is disabled on the server.',
+      hint: 'Admin needs to flip EMAIL_TRANSPORT to netcore/resend/smtp and restart the backend.',
+    };
+  }
+  if (r.includes('network error') || r.includes('econnrefused') || r.includes('etimedout')) {
+    return {
+      headline: 'Couldn’t reach the email provider.',
+      hint: 'Likely a network / firewall issue. Try again in a minute; if it persists, contact admin.',
+    };
+  }
+  return null;
 }
 
 // ─── Body autocompose ─────────────────────────────────────────────────
