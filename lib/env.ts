@@ -22,9 +22,16 @@ const testMode = process.env.NEXT_PUBLIC_SAM_TEST_MODE === 'true';
 const quickDisconnectEnabled =
   process.env.NEXT_PUBLIC_QUICK_DISCONNECT_ENABLED === 'true';
 
+// Lead-from-SAM — when true, the sidebar shows "Create Lead" and the
+// /create-lead route is reachable. MUST mirror LEAD_DISPATCH_ENABLED on
+// the backend (the backend also gates POST /leads with that flag).
+const leadDispatchEnabled =
+  process.env.NEXT_PUBLIC_LEAD_DISPATCH_ENABLED === 'true';
+
 export const env = {
   apiBase,
   internalApiBase,
   testMode,
   quickDisconnectEnabled,
+  leadDispatchEnabled,
 } as const;

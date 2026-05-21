@@ -19,10 +19,12 @@ import {
   Activity,
   History,
   ShieldAlert,
+  UserPlus,
 } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import type { AuthUser } from '../services/auth';
 import { logout } from '../services/auth';
+import { env } from '../lib/env';
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -33,6 +35,9 @@ type NavItem = {
   roles?: AuthUser['role'][];  // when set, only these roles see the item
 };
 
+// Static base list — additional items (e.g. feature-flagged ones) are
+// appended in the component so they react to env changes without a
+// module-level eval.
 const NAV_ITEMS: NavItem[] = [
   { label: 'Home', href: '/', icon: Home },
   { label: 'Existing Base', href: '/existing-base', icon: BarChart3 },
@@ -49,6 +54,16 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Integration Log', href: '/integrations', icon: Plug, roles: ['ADMIN'] },
 ];
 
+// Feature-flagged items — appended only when the corresponding env flag is on.
+const FLAGGED_NAV_ITEMS: Array<NavItem & { enabled: boolean }> = [
+  {
+    label: 'Create Lead',
+    href: '/create-lead',
+    icon: UserPlus,
+    enabled: env.leadDispatchEnabled,
+  },
+];
+
 function isActive(pathname: string, href: string): boolean {
   if (href === '/') return pathname === '/';
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -57,7 +72,11 @@ function isActive(pathname: string, href: string): boolean {
 export function Sidebar({ user }: { user: AuthUser }) {
   const pathname = usePathname() ?? '/';
   const router = useRouter();
-  const visibleNavItems = NAV_ITEMS.filter(
+  const allItems = [
+    ...NAV_ITEMS,
+    ...FLAGGED_NAV_ITEMS.filter((item) => item.enabled).map(({ enabled: _e, ...rest }) => rest),
+  ];
+  const visibleNavItems = allItems.filter(
     (item) => !item.roles || item.roles.includes(user.role),
   );
 
