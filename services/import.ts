@@ -11,9 +11,20 @@ export type ImportedAccountPreview = {
   currentArc: number;
   kittyType: 'BASE' | 'NEW';
   contractStatus: 'ACTIVE' | 'PENDING' | 'EXPIRED' | 'TERMINATED' | 'DISCONNECTING';
+  circuitId: string | null;
+  customerCode: string | null;
+  address: string | null;
+  /** SAM display name resolved from the spreadsheet's sam email/name column,
+   *  or null if the row was imported unassigned. */
+  samOwnerName: string | null;
 };
 
-export type ImportErrorKind = 'missing_field' | 'invalid_value' | 'duplicate' | 'other';
+export type ImportErrorKind =
+  | 'missing_field'
+  | 'invalid_value'
+  | 'duplicate'
+  | 'warning'
+  | 'other';
 
 export type ImportError = {
   rowNumber: number;

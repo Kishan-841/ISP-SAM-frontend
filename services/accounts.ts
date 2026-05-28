@@ -37,6 +37,22 @@ export type Account = {
   circuitId?: string | null;
   bandwidthMbps?: number | null;
   startOfPeriodArc?: string | null;
+  /** Free-form installation/service address. Populated by Excel import. */
+  address?: string | null;
+  /** GSTIN — 15-char Indian tax ID. Populated by Excel import. */
+  gstNumber?: string | null;
+  /** Primary IT/operations contact at the customer. */
+  contactPersonName?: string | null;
+  /** Business segmentation (e.g. "IT", "Developers"). */
+  industryType?: string | null;
+  /** Geographic / network zone (e.g. "Mundhwa"). */
+  circle?: string | null;
+  /** Internal Account Manager — distinct from `samOwner`. */
+  accountManager?: string | null;
+  /** Internal slug / username for the customer connection. */
+  userName?: string | null;
+  /** Comma-separated list of assigned IPs (free text). */
+  ipDetails?: string | null;
   /** Current owner — null when the customer is unassigned (CRM-synced, awaiting triage). */
   samOwnerId?: string | null;
   samOwner?: AccountOwner | null;

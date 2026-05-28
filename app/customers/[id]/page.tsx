@@ -2,10 +2,16 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   ArrowLeft,
+  Briefcase,
   Building2,
+  Globe,
   Hash,
+  IdCard,
   Mail,
+  MapPin,
+  Network,
   Phone,
+  UserCog,
   Wifi,
   Wallet,
   UserCircle2,
@@ -170,6 +176,74 @@ function CustomerHeaderCard({
           </Field>
         )}
       </div>
+
+      {account.address && (
+        <div className="px-6 pb-2 -mt-2">
+          <Field icon={MapPin} label="Address">
+            <span className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
+              {account.address}
+            </span>
+          </Field>
+        </div>
+      )}
+
+      {(account.gstNumber ||
+        account.contactPersonName ||
+        account.industryType ||
+        account.circle ||
+        account.accountManager ||
+        account.userName ||
+        account.ipDetails) && (
+        <div className="px-6 pb-6 pt-2 border-t border-gray-100">
+          <div className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
+            Business details
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {account.gstNumber && (
+              <Field icon={IdCard} label="GST">
+                <span className="font-mono text-sm text-gray-900">{account.gstNumber}</span>
+              </Field>
+            )}
+            {account.industryType && (
+              <Field icon={Briefcase} label="Industry">
+                <span className="text-sm text-gray-900">{account.industryType}</span>
+              </Field>
+            )}
+            {account.circle && (
+              <Field icon={Globe} label="Circle">
+                <span className="text-sm text-gray-900">{account.circle}</span>
+              </Field>
+            )}
+            {account.accountManager && (
+              <Field icon={UserCog} label="Account Manager">
+                <span className="text-sm text-gray-900">{account.accountManager}</span>
+              </Field>
+            )}
+            {account.userName && (
+              <Field icon={Hash} label="User Name">
+                <span className="font-mono text-sm text-gray-900">{account.userName}</span>
+              </Field>
+            )}
+            {account.contactPersonName && (
+              <Field icon={UserCircle2} label="Contact Person">
+                <span className="text-sm text-gray-900 whitespace-pre-wrap">
+                  {account.contactPersonName}
+                </span>
+              </Field>
+            )}
+            {account.ipDetails && (
+              <Field icon={Network} label="IP Details">
+                <span
+                  className="font-mono text-xs text-gray-700 break-all"
+                  title={account.ipDetails}
+                >
+                  {account.ipDetails}
+                </span>
+              </Field>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

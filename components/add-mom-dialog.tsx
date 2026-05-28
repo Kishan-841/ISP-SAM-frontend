@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CalendarPlus,
+  Clipboard,
   Eye,
   Plus,
   RefreshCw,
@@ -37,6 +38,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import {
   completeMeeting,
+  previewMomEmail,
   sendMomEmail,
   type ActionItem,
   type EmailDispatchStatus,
@@ -127,6 +129,7 @@ export function AddMomDialog({
 
   const [previewKey, setPreviewKey] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [copying, setCopying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -234,6 +237,67 @@ export function AddMomDialog({
     }
     setError(null);
     setStep(2);
+  }
+
+  async function copyForOutlook() {
+    if (!accountId) return setError('Pick a customer first.');
+    if (!subject.trim()) return setError('Subject is required.');
+    if (!body.trim()) return setError('Email body is required.');
+
+    setCopying(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const ccList = cc
+        .split(/[,;]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      const preview = await previewMomEmail({
+        accountId,
+        scheduledAt: new Date(`${date}T${time}:00`).toISOString(),
+        meetingType,
+        location: meetingType === 'PHYSICAL' ? location.trim() || undefined : undefined,
+        clientParticipants: cleanClient.length ? JSON.stringify(cleanClient) : undefined,
+        gazonParticipants: cleanGazon.length ? JSON.stringify(cleanGazon) : undefined,
+        actionItems: cleanItems.length ? cleanItems : undefined,
+        momContent: body.trim(),
+        subject: subject.trim(),
+        samDesignation: designation.trim() || undefined,
+        samPhone: phone.trim() || undefined,
+      });
+
+      // Write both HTML and plain text so Outlook picks up the styled version
+      // while non-HTML clients still get something readable.
+      if (typeof window === 'undefined' || !navigator.clipboard?.write) {
+        throw new Error('Clipboard API not available in this browser.');
+      }
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([preview.html], { type: 'text/html' }),
+          'text/plain': new Blob([preview.text], { type: 'text/plain' }),
+        }),
+      ]);
+
+      const recipient = to.trim() || selectedAccount?.email || '';
+      const ccLine = ccList.length > 0 ? ` (CC: ${ccList.join(', ')})` : '';
+      const next = recipient
+        ? `Open Outlook → New Email → paste in body (Ctrl+V). To: ${recipient}${ccLine}. Subject: "${preview.subject}".`
+        : 'Open Outlook → New Email → paste in body (Ctrl+V). Add the customer email in the To field.';
+      setSuccess(`Email copied to clipboard. ${next}`);
+      toast.success('Email copied to clipboard', {
+        description: next,
+        duration: 10000,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to copy email';
+      setError(msg);
+      toast.error('Copy failed', { description: msg, duration: 10000 });
+      // eslint-disable-next-line no-console
+      console.error('[MoM copy for Outlook]', err);
+    } finally {
+      setCopying(false);
+    }
   }
 
   async function submit() {
@@ -708,14 +772,26 @@ export function AddMomDialog({
                   type="button"
                   variant="outline"
                   onClick={() => setOpen(false)}
-                  disabled={submitting}
+                  disabled={submitting || copying}
                 >
                   Cancel
                 </Button>
                 <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    void copyForOutlook();
+                  }}
+                  disabled={!accountId || !subject || !body || submitting || copying}
+                  title="Copy the styled email to clipboard so you can paste it into Outlook and send from your own account."
+                >
+                  <Clipboard className="w-4 h-4 mr-2" />
+                  {copying ? 'Copying…' : 'Copy for Outlook'}
+                </Button>
+                <Button
                   type="submit"
                   disabled={
-                    (!testMode && !to) || !subject || !body || submitting
+                    (!testMode && !to) || !subject || !body || submitting || copying
                   }
                 >
                   <Send className="w-4 h-4 mr-2" />

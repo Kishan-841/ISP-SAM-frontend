@@ -74,7 +74,7 @@ export default function ExcelImportPage() {
             <CardContent className="px-6 pt-6 pb-0 divide-y divide-gray-100">
               <FormSection
                 title="Upload"
-                description="Required columns: Customer Name, Onboarding Date, and ARC (or MRR — auto-converted to annual). Common columns (Company, Mobile, Email, Lead ID, Plan, Status, Bandwidth) are auto-detected when present. Anything else is preserved as metadata."
+                description="Required columns: Customer Name, Onboarding Date, and ARC (or MRR — auto-converted to annual). Common columns (Company, Mobile, Email, Lead ID, Plan, Status, Bandwidth, Circuit ID, Customer Code, Address, SAM) are auto-detected when present — headers are matched loosely (case, spaces, and underscores don't matter). SAM column can be the SAM's email (preferred) or full name. Anything else is preserved as metadata."
               >
                 <div className="sm:col-span-2 flex flex-col gap-3">
                   <p className="text-sm text-gray-500">
@@ -94,6 +94,14 @@ export default function ExcelImportPage() {
                       <AlertDescription>{error}</AlertDescription>
                     </Alert>
                   )}
+                </div>
+              </FormSection>
+              <FormSection
+                title="Recognized columns"
+                description="Headers match loosely (case, spaces and underscores ignored). Use ANY of the spellings on the right and it'll be picked up."
+              >
+                <div className="sm:col-span-2">
+                  <RecognizedColumnsTable />
                 </div>
               </FormSection>
             </CardContent>
@@ -242,6 +250,82 @@ function ResultPanel({
   );
 }
 
+// ─── Recognized columns reference ─────────────────────────────────────
+
+const RECOGNIZED_COLUMNS: Array<{
+  field: string;
+  required?: boolean;
+  spellings: string[];
+  hint?: string;
+}> = [
+  { field: 'Customer Name', required: true, spellings: ['Customer Name', 'Client', 'Name', 'Subscriber'] },
+  { field: 'Onboarding Date', required: true, spellings: ['Onboarding Date', 'Start Date', 'Billing Start Date', 'Activation Date', 'Installation Date'], hint: 'ISO (2025-03-15), DD/MM/YYYY, and DD-MMM-YY/YYYY (31-Aug-20) all work.' },
+  { field: 'ARC (₹/year)', required: true, spellings: ['ARC', 'Current ARC', 'Annual Revenue'], hint: 'Monthly MRR headers (Plan Price, Tariff, etc.) are auto-multiplied ×12.' },
+  { field: 'Company', spellings: ['Company', 'Company Name', 'Organization'] },
+  { field: 'Mobile', spellings: ['Mobile', 'Phone', 'Contact', 'Contact Number'] },
+  { field: 'Email', spellings: ['Email', 'Email Address', 'Email ID', 'Customer Email'], hint: 'Parenthesised qualifiers like "Email ID(IT)" are stripped automatically.' },
+  { field: 'Contract Status', spellings: ['Status', 'Contract Status', 'Connection Status'], hint: 'Accepts Active, Live, Pending, Expired, Terminated, Disconnected, etc.' },
+  { field: 'Lead ID', spellings: ['Lead ID', 'Lead'] },
+  { field: 'CRM Customer ID', spellings: ['CRM ID', 'Customer ID', 'Subscriber ID', 'Connection ID'] },
+  { field: 'Current Plan', spellings: ['Plan', 'Current Plan', 'Package'] },
+  { field: 'Bandwidth (Mbps)', spellings: ['Bandwidth', 'Mbps', 'Speed', 'BW', 'Current BW'] },
+  { field: 'Circuit ID', spellings: ['Circuit ID', 'Circuit', 'Circuit No', 'Circuit Number'] },
+  { field: 'Customer Code', spellings: ['Customer Code', 'Cust Code', 'Account Code', 'Code'] },
+  { field: 'Address', spellings: ['Address', 'Installation Address', 'Service Address', 'Site Address', 'Billing Address', 'Location'] },
+  { field: 'SAM (assignment)', spellings: ['SAM', 'SAM Email', 'SAM Name', 'Assigned SAM', 'Assigned To', 'Owner', 'Owner Email'], hint: 'Email > exact full name > first-name (e.g. "Mangesh" → "Mangesh Fulbandhe" if only one such user). Ambiguous first names are reported.' },
+  { field: 'GST No', spellings: ['GST', 'GST No', 'GST Number', 'GSTIN', 'Tax ID'] },
+  { field: 'Contact Person', spellings: ['Contact Person', 'Contact Person Name', 'Contact Name', 'Primary Contact', 'SPOC'] },
+  { field: 'Industry Type', spellings: ['Industry', 'Industry Type', 'Sector', 'Vertical', 'Business Type'] },
+  { field: 'Circle / Zone', spellings: ['Circle', 'Zone', 'Region', 'Area'] },
+  { field: 'Account Manager', spellings: ['Account Manager', 'AM', 'AM Name', 'Internal AM'], hint: 'Distinct from the SAM column — this is the internal Account Manager role.' },
+  { field: 'User Name (internal slug)', spellings: ['User Name', 'Login Name', 'Internal Code', 'Internal Slug'] },
+  { field: 'IP Details', spellings: ['IP Details', 'IP', 'IP Address', 'IP Addresses', 'Assigned IPs'], hint: 'Comma-separated free text. Kept verbatim.' },
+];
+
+function RecognizedColumnsTable() {
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-56">Field</TableHead>
+            <TableHead>Header spellings accepted</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {RECOGNIZED_COLUMNS.map((c) => (
+            <TableRow key={c.field}>
+              <TableCell className="font-medium text-gray-900 align-top">
+                <div className="flex items-center gap-1.5">
+                  <span>{c.field}</span>
+                  {c.required && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-100 text-red-700">
+                      Required
+                    </span>
+                  )}
+                </div>
+                {c.hint && <p className="text-[11px] text-gray-500 mt-1 font-normal">{c.hint}</p>}
+              </TableCell>
+              <TableCell className="text-gray-700 text-sm">
+                <div className="flex flex-wrap gap-1.5">
+                  {c.spellings.map((s) => (
+                    <span
+                      key={s}
+                      className="inline-block px-2 py-0.5 rounded text-[12px] bg-gray-100 text-gray-700 font-mono"
+                    >
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
 // ─── Headline banner ──────────────────────────────────────────────────
 
 function HeadlineBanner({
@@ -359,7 +443,7 @@ function PreviewSection({
           <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
           <p className="text-xs text-gray-500">{subtitle}</p>
         </div>
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="border border-gray-200 rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -370,6 +454,10 @@ function PreviewSection({
                 <TableHead className="text-right">ARC</TableHead>
                 <TableHead>Kitty</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>SAM</TableHead>
+                <TableHead>Circuit ID</TableHead>
+                <TableHead>Customer Code</TableHead>
+                <TableHead>Address</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -394,6 +482,23 @@ function PreviewSection({
                       {r.contractStatus}
                     </StatusPill>
                   </TableCell>
+                  <TableCell className="text-gray-700">
+                    {r.samOwnerName ?? (
+                      <span className="text-amber-700 text-xs italic">Unassigned</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-gray-600">
+                    {r.circuitId ?? '—'}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-gray-600">
+                    {r.customerCode ?? '—'}
+                  </TableCell>
+                  <TableCell
+                    className="text-gray-700 text-xs max-w-[260px] truncate"
+                    title={r.address ?? ''}
+                  >
+                    {r.address ?? '—'}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -410,6 +515,7 @@ const ERROR_KIND_META: Record<ImportErrorKind, { label: string; tone: PillTone }
   missing_field: { label: 'Missing field', tone: 'amber' },
   invalid_value: { label: 'Invalid value', tone: 'amber' },
   duplicate:     { label: 'Duplicate',     tone: 'red' },
+  warning:       { label: 'Notice',        tone: 'amber' },
   other:         { label: 'DB error',      tone: 'red' },
 };
 

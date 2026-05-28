@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   ChevronDown,
   ChevronRight,
+  Eye,
   Users as UsersIcon,
   Fingerprint,
   Mail,
@@ -23,6 +24,7 @@ import { StatusPill, type PillTone } from './status-pill';
 import type { Account, OwnerFilter } from '../services/accounts';
 import type { AuthUser } from '../services/auth';
 import { formatRupeesCompact } from '../lib/format-rupees';
+import { derivePlanName } from '../lib/derive-plan';
 import { AssignCustomerModal } from './assign-customer-modal';
 
 const STATUS_TONE: Record<Account['contractStatus'], PillTone> = {
@@ -104,7 +106,7 @@ export function CustomersTable({
     {
       key: 'currentPlan',
       header: 'Plan',
-      cell: (a) => a.currentPlan ?? '—',
+      cell: (a) => derivePlanName(a),
       className: 'px-5 py-4 text-sm text-gray-500',
     },
     {
@@ -149,6 +151,23 @@ export function CustomersTable({
       cell: (a) => (
         <StatusPill tone={STATUS_TONE[a.contractStatus]}>{STATUS_LABEL[a.contractStatus]}</StatusPill>
       ),
+    },
+    {
+      key: 'view',
+      header: '',
+      align: 'center' as const,
+      cell: (a: Account) => (
+        <Link
+          href={`/customers/${a.id}/details`}
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-gray-200 text-gray-700 hover:border-brand-300 hover:bg-orange-50 hover:text-brand-700 transition-all"
+          aria-label={`View full details for ${a.clientName}`}
+        >
+          <Eye className="w-3.5 h-3.5" />
+          View
+        </Link>
+      ),
+      className: 'px-5 py-4',
     },
     ...(canAssign
       ? [

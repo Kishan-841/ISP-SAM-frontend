@@ -119,6 +119,31 @@ export function sendMomEmail(input: SendMomEmailInput) {
   return apiPost<EmailDispatchResult>('/meetings/send-mom-email', input);
 }
 
+export type PreviewMomEmailInput = {
+  accountId: string;
+  scheduledAt: string;
+  heldAt?: string;
+  meetingType: MeetingType;
+  location?: string;
+  clientParticipants?: string;
+  gazonParticipants?: string;
+  actionItems?: ActionItem[];
+  momContent: string;
+  subject?: string;
+  samDesignation?: string;
+  samPhone?: string;
+};
+
+export type MomEmailPreview = {
+  subject: string;
+  html: string;
+  text: string;
+};
+
+export function previewMomEmail(input: PreviewMomEmailInput) {
+  return apiPost<MomEmailPreview>('/meetings/preview-mom-email', input);
+}
+
 export function completeMeeting(id: string, input: CompleteMeetingInput) {
   return apiPost<EmailDispatchResult>(`/meetings/${id}/send-mom-email`, input);
 }
