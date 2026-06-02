@@ -1,10 +1,14 @@
 import {
   ArrowRightLeft,
+  Globe,
+  LogIn,
+  LogOut,
   Mail,
   Pencil,
   Plus,
   Send,
   ShieldAlert,
+  ShieldX,
   UserMinus,
   UserPlus,
   CheckCircle2,
@@ -54,6 +58,69 @@ const ACTION_META: Record<
     icon: UserMinus,
     bg: 'bg-amber-50',
     color: 'text-amber-600',
+  },
+  UPDATE_FIELD: {
+    label: 'Field updated',
+    icon: Pencil,
+    bg: 'bg-indigo-50',
+    color: 'text-indigo-600',
+    describe: (e) => {
+      const p = e.payload as { field?: string; from?: unknown; to?: unknown };
+      if (!p?.field) return null;
+      const fmt = (v: unknown) =>
+        v === null || v === undefined
+          ? '—'
+          : typeof v === 'string'
+            ? v
+            : JSON.stringify(v);
+      return (
+        <span>
+          <span className="font-medium">{p.field}</span>
+          <span className="text-gray-400"> · </span>
+          <span className="line-through text-gray-400">{fmt(p.from)}</span>
+          <span className="text-gray-400 mx-1">→</span>
+          <span className="text-gray-900">{fmt(p.to)}</span>
+        </span>
+      );
+    },
+  },
+  LOGIN: {
+    label: 'Signed in',
+    icon: LogIn,
+    bg: 'bg-emerald-50',
+    color: 'text-emerald-600',
+    describe: (e) => {
+      const p = e.payload as { email?: string; role?: string };
+      if (!p?.email) return null;
+      return (
+        <span>
+          {p.email}
+          {p.role && <span className="text-gray-400 ml-2 text-xs uppercase">{p.role}</span>}
+        </span>
+      );
+    },
+  },
+  LOGOUT: {
+    label: 'Signed out',
+    icon: LogOut,
+    bg: 'bg-gray-100',
+    color: 'text-gray-600',
+  },
+  LOGIN_FAILED: {
+    label: 'Login attempt failed',
+    icon: ShieldX,
+    bg: 'bg-red-50',
+    color: 'text-red-600',
+    describe: (e) => {
+      const p = e.payload as { emailAttempted?: string; reason?: string };
+      if (!p?.emailAttempted) return null;
+      return (
+        <span>
+          tried <span className="font-mono">{p.emailAttempted}</span>
+          {p.reason && <span className="text-gray-400 ml-2 text-xs">{p.reason}</span>}
+        </span>
+      );
+    },
   },
   NOTIFY_ACCOUNTS_TEAM: {
     label: 'Accounts team notified',
@@ -150,9 +217,18 @@ export function AuditTimeline({
                   <div className="mt-0.5">
                     by{' '}
                     <span className="font-medium text-gray-700">
-                      {e.performer?.name ?? 'Unknown user'}
+                      {e.performer?.name ?? (e.performedBy ? 'Unknown user' : 'System / anonymous')}
                     </span>
                   </div>
+                  {e.ipAddress && (
+                    <div
+                      className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-mono text-gray-400"
+                      title={e.userAgent ?? undefined}
+                    >
+                      <Globe className="w-3 h-3" />
+                      {e.ipAddress}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

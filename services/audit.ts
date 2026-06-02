@@ -5,8 +5,10 @@ export type AuditEntry = {
   entityType: string;
   entityId: string;
   action: string;
-  performedBy: string;
+  performedBy: string | null;
   performer: { id: string; name: string; email: string; role: string } | null;
+  ipAddress: string | null;
+  userAgent: string | null;
   payload: unknown;
   timestamp: string;
 };

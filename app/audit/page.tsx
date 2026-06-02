@@ -3,7 +3,7 @@ import { getMe } from '../../services/auth';
 import { getAuditLogs } from '../../services/audit';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { PageHeader } from '../../components/page-header';
-import { AuditTimelineLoader } from '../../components/audit-timeline-loader';
+import { AuditTableLoader } from '../../components/audit-table-loader';
 
 const ENTITY_TYPES: ReadonlySet<string> = new Set([
   'Account',
@@ -16,6 +16,10 @@ const ACTIONS: ReadonlySet<string> = new Set([
   'COMMIT',
   'ASSIGN',
   'UNASSIGN',
+  'UPDATE_FIELD',
+  'LOGIN',
+  'LOGOUT',
+  'LOGIN_FAILED',
   'NOTIFY_ACCOUNTS_TEAM',
 ]);
 
@@ -41,7 +45,7 @@ export default async function AuditLogPage({
   );
 
   return (
-    <div className="px-8 py-6 max-w-5xl flex flex-col gap-6">
+    <div className="px-8 py-6 max-w-7xl flex flex-col gap-6">
       <PageHeader
         title="Audit Log"
         subtitle={`${data.total} ${data.total === 1 ? 'event' : 'events'} recorded · who did what, when`}
@@ -65,6 +69,10 @@ export default async function AuditLogPage({
           label="Action"
           options={[
             { value: '', label: 'All' },
+            { value: 'LOGIN', label: 'Login' },
+            { value: 'LOGIN_FAILED', label: 'Failed login' },
+            { value: 'LOGOUT', label: 'Logout' },
+            { value: 'UPDATE_FIELD', label: 'Field edits' },
             { value: 'COMMIT', label: 'Commit' },
             { value: 'ASSIGN', label: 'Assign' },
             { value: 'UNASSIGN', label: 'Unassign' },
@@ -76,7 +84,7 @@ export default async function AuditLogPage({
       </div>
 
       {/* `key` resets the accumulated Load More state when filters change. */}
-      <AuditTimelineLoader
+      <AuditTableLoader
         key={`${entityType ?? ''}|${action ?? ''}`}
         initial={data}
         filters={{ entityType, action }}

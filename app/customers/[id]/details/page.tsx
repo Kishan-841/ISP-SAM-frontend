@@ -26,10 +26,14 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '../../../../components/page-header';
 import { StatusPill, type PillTone } from '../../../../components/status-pill';
+import { EditSectionButton } from '../../../../components/edit-section-button';
+import type { EditSection } from '../../../../components/edit-customer-section-dialog';
 import { getCookieHeader } from '../../../../lib/get-cookie-header';
 import { getCustomerJourney } from '../../../../services/customer-journey';
+import { getMe } from '../../../../services/auth';
 import { derivePlanName } from '../../../../lib/derive-plan';
 import { formatRupees, formatRupeesCompact } from '../../../../lib/format-rupees';
+import type { Account } from '../../../../services/accounts';
 
 const STATUS_TONE: Record<string, PillTone> = {
   ACTIVE: 'emerald',
@@ -60,18 +64,27 @@ export default async function CustomerDetailsPage({
   const { id } = await params;
   const cookieHeader = await getCookieHeader();
   let data;
+  let me;
   try {
-    data = await getCustomerJourney(id, { cookieHeader });
+    [data, me] = await Promise.all([
+      getCustomerJourney(id, { cookieHeader }),
+      getMe({ cookieHeader }).catch(() => null),
+    ]);
   } catch {
     notFound();
   }
   if (!data) notFound();
   const account = data.account;
+  const isAdmin = me?.user?.role === 'ADMIN';
 
   const customerName = account.companyName || account.clientName;
   const isNewBase = account.kittyType === 'NEW';
   const plan = derivePlanName(account);
   const usingFallback = !account.currentPlan?.trim();
+
+  // Admin gets an Edit pill in the header of every editable section.
+  const editAction = (section: EditSection): React.ReactNode | undefined =>
+    isAdmin ? <EditSectionButton account={account as Account} section={section} /> : undefined;
 
   return (
     <div className="max-w-6xl mx-auto p-8 flex flex-col gap-5">
@@ -88,7 +101,7 @@ export default async function CustomerDetailsPage({
       </div>
 
       {/* Identity */}
-      <Section title="Identity" icon={Fingerprint}>
+      <Section title="Identity" icon={Fingerprint} actions={editAction('identity')}>
         <Field
           icon={Building2}
           label="Customer name"
@@ -118,7 +131,7 @@ export default async function CustomerDetailsPage({
       </Section>
 
       {/* Service / Plan */}
-      <Section title="Service" icon={Sparkles}>
+      <Section title="Service" icon={Sparkles} actions={editAction('service')}>
         <Field
           icon={Sparkles}
           label="Plan"
@@ -160,7 +173,7 @@ export default async function CustomerDetailsPage({
       </Section>
 
       {/* Contact */}
-      <Section title="Contact" icon={Phone}>
+      <Section title="Contact" icon={Phone} actions={editAction('contact')}>
         <Field
           icon={Mail}
           label="Email"
@@ -178,7 +191,7 @@ export default async function CustomerDetailsPage({
       </Section>
 
       {/* Ownership */}
-      <Section title="Ownership" icon={Users}>
+      <Section title="Ownership" icon={Users} actions={editAction('ownership')}>
         <Field
           icon={UserCircle2}
           label="Owning SAM"
@@ -194,7 +207,7 @@ export default async function CustomerDetailsPage({
       </Section>
 
       {/* Business / Compliance */}
-      <Section title="Business details" icon={Briefcase}>
+      <Section title="Business details" icon={Briefcase} actions={editAction('business')}>
         <Field icon={IdCard} label="GST number" value={account.gstNumber} mono accent="brand" />
         <Field icon={Briefcase} label="Industry type" value={account.industryType} />
         <Field icon={Globe} label="Circle / zone" value={account.circle} />
@@ -284,10 +297,12 @@ export default async function CustomerDetailsPage({
 function Section({
   title,
   icon: Icon,
+  actions,
   children,
 }: {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
+  actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -295,6 +310,7 @@ function Section({
       <div className="px-6 py-3 border-b border-gray-100 flex items-center gap-2">
         <Icon className="w-4 h-4 text-brand-600" />
         <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+        {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
       </div>
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
         {children}

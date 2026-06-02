@@ -75,6 +75,60 @@ export function getAccount(id: string, opts: ApiOpts = {}) {
   return apiGet<{ account: Account }>(`/accounts/${id}`, opts);
 }
 
+/**
+ * Admin-only partial update of any editable field on a customer. Every
+ * changed field is audit-logged on the backend with before/after + IP.
+ *  - `undefined` keys are ignored
+ *  - `null` clears the field (where nullable)
+ */
+export type AccountUpdatePatch = {
+  clientName?: string;
+  companyName?: string | null;
+  mobileNumber?: string | null;
+  email?: string | null;
+  currentArc?: number;
+  contractStatus?: Account['contractStatus'];
+  currentPlan?: string | null;
+  bandwidthMbps?: number | null;
+  customerCode?: string | null;
+  circuitId?: string | null;
+  address?: string | null;
+  gstNumber?: string | null;
+  contactPersonName?: string | null;
+  industryType?: string | null;
+  circle?: string | null;
+  accountManager?: string | null;
+  userName?: string | null;
+  ipDetails?: string | null;
+  leadId?: string | null;
+  externalCrmId?: string | null;
+  onboardingDate?: string;
+};
+
+export async function updateAccount(
+  id: string,
+  patch: AccountUpdatePatch,
+): Promise<{ account: Account; changedFields: string[] }> {
+  const base = typeof window === 'undefined' ? env.internalApiBase : env.apiBase;
+  const res = await fetch(`${base}/accounts/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const body = (await res.json()) as { error?: string };
+      detail = body.error ?? '';
+    } catch {
+      detail = await res.text();
+    }
+    throw new Error(detail || `Update failed (${res.status})`);
+  }
+  return (await res.json()) as { account: Account; changedFields: string[] };
+}
+
 /** Browser-side: assign (or unassign with samUserId=null) a customer. */
 export async function assignAccount(
   id: string,
