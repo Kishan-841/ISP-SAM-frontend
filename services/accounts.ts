@@ -20,7 +20,8 @@ export type Account = {
     | 'TERMINATED'
     | 'PENDING'
     | 'PROBABLE_CHURN'
-    | 'DISCONNECTING';
+    | 'DISCONNECTING'
+    | 'PENDING_QUICK_APPROVAL';
   lastMomDate: string | null;
   lastMeetingDate: string | null;
   onboardingDate: string;

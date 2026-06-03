@@ -160,6 +160,119 @@ export async function commitCommercialChange(input: CommitInput): Promise<Commit
   return (await res.json()) as CommitResult;
 }
 
+/**
+ * Admin-only backfill for a disconnection that already happened (the
+ * imported customer was wrongly marked Active; we now know they
+ * disconnected on, say, 14-Apr). No CRM round-trip, no documents,
+ * no approval queue — purely local bookkeeping so the waterfall on
+ * /existing-base counts the termination in the correct month.
+ */
+export type BackfillDisconnectionInput = {
+  accountId: string;
+  /** Last billing date (ISO YYYY-MM-DD). */
+  effectiveDate: string;
+  reason: string;
+};
+
+export type BackfillDisconnectionResult = {
+  commercialChange: {
+    id: string;
+    accountId: string;
+    effectiveDate: string;
+    oldArc: number;
+  };
+  account: {
+    id: string;
+    clientName: string;
+    contractStatus: string;
+  };
+};
+
+export async function backfillDisconnection(
+  input: BackfillDisconnectionInput,
+): Promise<BackfillDisconnectionResult> {
+  const base = typeof window === 'undefined' ? env.internalApiBase : env.apiBase;
+  const res = await fetch(`${base}/commercial-changes/backfill-disconnection`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const body = (await res.json()) as { error?: string };
+      detail = body.error ?? '';
+    } catch {
+      detail = await res.text();
+    }
+    throw new Error(detail || `Backfill failed (${res.status})`);
+  }
+  return (await res.json()) as BackfillDisconnectionResult;
+}
+
+/**
+ * Pending QUICK-disconnect requests for BASE-kitty customers that need
+ * a SAM-admin decision. NEW-kitty rows route to the CRM admin queue
+ * and aren't returned here.
+ */
+export type PendingQuickApproval = {
+  id: string;
+  accountId: string;
+  oldArc: number;
+  quickRequestedDays: number | null;
+  quickApprovalReason: string | null;
+  disconnectionReason: string | null;
+  effectiveDate: string;
+  requestedAt: string;
+  account: {
+    id: string;
+    clientName: string;
+    companyName: string | null;
+    customerCode: string | null;
+    circuitId: string | null;
+    kittyType: 'BASE' | 'NEW';
+    currentArc: number;
+    contractStatus: string;
+    samOwner: { id: string; name: string; email: string } | null;
+  };
+};
+
+export function getPendingQuickApprovals(opts: ApiOpts = {}) {
+  return apiGet<{ items: PendingQuickApproval[]; total: number }>(
+    '/commercial-changes/quick-approvals',
+    opts,
+  );
+}
+
+export async function samQuickDecision(
+  commercialChangeId: string,
+  decision: 'APPROVE' | 'REJECT',
+  note?: string,
+): Promise<{ change: { id: string; quickApprovalDecision: string } }> {
+  const base = typeof window === 'undefined' ? env.internalApiBase : env.apiBase;
+  const res = await fetch(
+    `${base}/commercial-changes/${commercialChangeId}/sam-quick-decision`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision, note }),
+      cache: 'no-store',
+    },
+  );
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const body = (await res.json()) as { error?: string };
+      detail = body.error ?? '';
+    } catch {
+      detail = await res.text();
+    }
+    throw new Error(detail || `Decision failed (${res.status})`);
+  }
+  return (await res.json()) as { change: { id: string; quickApprovalDecision: string } };
+}
+
 export async function refreshCrmStatus(id: string): Promise<{ change: CommercialChangeListItem }> {
   const base = typeof window === 'undefined' ? env.internalApiBase : env.apiBase;
   const res = await fetch(`${base}/commercial-changes/${id}/refresh-status`, {

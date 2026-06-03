@@ -321,7 +321,10 @@ export function CommercialChangeForm({
   const quickDaysNumber = Number(quickRequestedDays);
   const quickDaysInvalid =
     isQuickDisconnect &&
-    (!Number.isInteger(quickDaysNumber) || quickDaysNumber < 1 || quickDaysNumber > 15);
+    (quickRequestedDays === '' ||
+      !Number.isInteger(quickDaysNumber) ||
+      quickDaysNumber < 0 ||
+      quickDaysNumber > 15);
   const quickReasonTooShort =
     isQuickDisconnect && quickApprovalReason.trim().length < 10;
 
@@ -700,11 +703,11 @@ export function CommercialChangeForm({
                     <FormField
                       label="Termination after approval"
                       required
-                      hint="Days from when CRM Admin approves to when the customer is actually terminated. 1–15."
+                      hint="Days from approval to actual termination. 0–15. 0 = terminate immediately on approval."
                     >
                       <Input
                         type="number"
-                        min={1}
+                        min={0}
                         max={15}
                         step={1}
                         value={quickRequestedDays}

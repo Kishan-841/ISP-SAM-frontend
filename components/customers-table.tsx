@@ -25,6 +25,11 @@ import type { Account, OwnerFilter } from '../services/accounts';
 import type { AuthUser } from '../services/auth';
 import { formatRupeesCompact } from '../lib/format-rupees';
 import { derivePlanName } from '../lib/derive-plan';
+import {
+  STATUS_FILTERS,
+  STATUS_FILTER_LABEL,
+  type StatusFilter,
+} from '../lib/status-filter';
 import { AssignCustomerModal } from './assign-customer-modal';
 
 const STATUS_TONE: Record<Account['contractStatus'], PillTone> = {
@@ -34,6 +39,7 @@ const STATUS_TONE: Record<Account['contractStatus'], PillTone> = {
   TERMINATED: 'red',
   PROBABLE_CHURN: 'amber',
   DISCONNECTING: 'red',
+  PENDING_QUICK_APPROVAL: 'amber',
 };
 
 const STATUS_LABEL: Record<Account['contractStatus'], string> = {
@@ -43,6 +49,7 @@ const STATUS_LABEL: Record<Account['contractStatus'], string> = {
   TERMINATED: 'Terminated',
   PROBABLE_CHURN: 'Probable Churn',
   DISCONNECTING: 'Disconnecting',
+  PENDING_QUICK_APPROVAL: 'Pending Approval',
 };
 
 export function CustomersTable({
@@ -50,11 +57,17 @@ export function CustomersTable({
   currentUser,
   activeOwnerFilter = 'all',
   unassignedCount = 0,
+  activeStatusFilter = 'all',
+  statusCounts,
 }: {
   accounts: Account[];
   currentUser?: AuthUser;
   activeOwnerFilter?: OwnerFilter;
   unassignedCount?: number;
+  activeStatusFilter?: StatusFilter;
+  /** Counts per status across the un-status-filtered set (so chip badges
+   *  reflect what's available, not what the current filter shows). */
+  statusCounts?: Record<StatusFilter, number>;
 }) {
   const router = useRouter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -210,6 +223,7 @@ export function CustomersTable({
           isHead={currentUser?.role === 'SAM_HEAD'}
         />
       )}
+      <StatusFilterBar active={activeStatusFilter} counts={statusCounts} />
       <DataTable<Account>
         title="Customers"
         totalCount={accounts.length}
@@ -297,6 +311,71 @@ function OwnerFilterBar({
                 }`}
               >
                 {c.badge}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Contract-status filter row. Sits below the owner filter, drives the
+ * `?status=` URL param. Badge counts reflect the post-kitty/owner set
+ * so the user sees what's available *within their current scope*.
+ */
+function StatusFilterBar({
+  active,
+  counts,
+}: {
+  active: StatusFilter;
+  counts?: Record<StatusFilter, number>;
+}) {
+  const router = useRouter();
+  const setFilter = (next: StatusFilter) => {
+    const url = new URL(window.location.href);
+    if (next === 'all') url.searchParams.delete('status');
+    else url.searchParams.set('status', next);
+    router.push(`${url.pathname}?${url.searchParams.toString()}`);
+  };
+
+  const chipTone: Record<StatusFilter, string> = {
+    all: 'bg-amber-100 text-amber-700',
+    ACTIVE: 'bg-emerald-100 text-emerald-700',
+    PENDING: 'bg-amber-100 text-amber-700',
+    AT_RISK: 'bg-orange-100 text-orange-700',
+    TERMINATED: 'bg-red-100 text-red-700',
+    EXPIRED: 'bg-gray-100 text-gray-700',
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mr-1">
+        Status
+      </span>
+      {STATUS_FILTERS.map((key) => {
+        const isActive = active === key;
+        const badge = counts?.[key] ?? 0;
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setFilter(key)}
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              isActive
+                ? 'bg-brand-600 text-white'
+                : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            {STATUS_FILTER_LABEL[key]}
+            {badge > 0 && (
+              <span
+                className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-[10px] font-semibold ${
+                  isActive ? 'bg-white text-brand-600' : chipTone[key]
+                }`}
+              >
+                {badge}
               </span>
             )}
           </button>

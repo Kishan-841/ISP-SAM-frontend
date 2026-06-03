@@ -249,11 +249,22 @@ function QuickDisconnectPendingPanel({
               <span className="text-xs text-gray-500">pending</span>
             </div>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Once approved, the customer is terminated {quickRequestedDays}{' '}
-              {quickRequestedDays === 1 ? 'day' : 'days'} later — earliest{' '}
-              <span className="font-medium text-gray-900">{formatLong(earliestTermination)}</span>{' '}
-              if the admin approves today. If rejected, the account returns to ACTIVE and you can
-              resubmit as a normal disconnection.
+              {quickRequestedDays === 0 ? (
+                <>
+                  Once approved, the customer is{' '}
+                  <span className="font-medium text-gray-900">terminated immediately</span> — on
+                  the same day the admin approves.
+                </>
+              ) : (
+                <>
+                  Once approved, the customer is terminated {quickRequestedDays}{' '}
+                  {quickRequestedDays === 1 ? 'day' : 'days'} later — earliest{' '}
+                  <span className="font-medium text-gray-900">{formatLong(earliestTermination)}</span>{' '}
+                  if the admin approves today.
+                </>
+              )}{' '}
+              If rejected, the account returns to ACTIVE and you can resubmit as a normal
+              disconnection.
             </p>
           </div>
         </li>
@@ -265,7 +276,9 @@ function QuickDisconnectPendingPanel({
             <div className="flex items-baseline gap-2 flex-wrap">
               <span className="text-sm font-semibold text-gray-700">Customer terminated</span>
               <span className="text-xs text-gray-500">
-                {quickRequestedDays} day{quickRequestedDays === 1 ? '' : 's'} after approval
+                {quickRequestedDays === 0
+                  ? 'on the day of approval'
+                  : `${quickRequestedDays} day${quickRequestedDays === 1 ? '' : 's'} after approval`}
               </span>
             </div>
             <p className="text-sm text-gray-600 leading-relaxed">

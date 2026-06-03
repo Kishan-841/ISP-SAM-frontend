@@ -28,6 +28,7 @@ import { PageHeader } from '../../../../components/page-header';
 import { StatusPill, type PillTone } from '../../../../components/status-pill';
 import { EditSectionButton } from '../../../../components/edit-section-button';
 import type { EditSection } from '../../../../components/edit-customer-section-dialog';
+import { BackfillDisconnectionButton } from '../../../../components/backfill-disconnection-button';
 import { getCookieHeader } from '../../../../lib/get-cookie-header';
 import { getCustomerJourney } from '../../../../services/customer-journey';
 import { getMe } from '../../../../services/auth';
@@ -90,7 +91,7 @@ export default async function CustomerDetailsPage({
     <div className="max-w-6xl mx-auto p-8 flex flex-col gap-5">
       <PageHeader title={customerName} subtitle="Customer details" />
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <Link
           href={`/customers/${account.id}`}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-brand-600"
@@ -98,6 +99,13 @@ export default async function CustomerDetailsPage({
           <ArrowLeft className="w-4 h-4" />
           Back to journey
         </Link>
+        {/* Admin-only: backfill a historical disconnection. Hidden once the
+            account is already TERMINATED to prevent double-counting. */}
+        {isAdmin && account.contractStatus !== 'TERMINATED' && (
+          <div className="ml-auto">
+            <BackfillDisconnectionButton account={account as Account} />
+          </div>
+        )}
       </div>
 
       {/* Identity */}
