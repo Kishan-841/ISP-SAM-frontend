@@ -173,8 +173,9 @@ export function BucketChangesView({
         return (
           <div className="flex items-center justify-center gap-3">
             {r.approvalFileUrl && (
+              // Auth-gated proxy — backend role-checks + audits + 302s to Cloudinary.
               <a
-                href={r.approvalFileUrl}
+                href={`/api/commercial-changes/${r.id}/file/approval`}
                 target="_blank"
                 rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
@@ -187,7 +188,7 @@ export function BucketChangesView({
             )}
             {r.poFileUrl && (
               <a
-                href={r.poFileUrl}
+                href={`/api/commercial-changes/${r.id}/file/po`}
                 target="_blank"
                 rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}

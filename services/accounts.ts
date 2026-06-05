@@ -62,14 +62,24 @@ export type Account = {
 export type OwnerFilter = 'mine' | 'unassigned' | 'team' | 'all';
 
 export function getAccounts(
-  filters: { kittyType?: 'BASE' | 'NEW'; owner?: OwnerFilter } = {},
+  filters: {
+    kittyType?: 'BASE' | 'NEW';
+    owner?: OwnerFilter;
+    cursor?: string;
+    limit?: number;
+  } = {},
   opts: ApiOpts = {},
 ) {
   const params = new URLSearchParams();
   if (filters.kittyType) params.set('kittyType', filters.kittyType);
   if (filters.owner) params.set('owner', filters.owner);
+  if (filters.cursor) params.set('cursor', filters.cursor);
+  if (filters.limit) params.set('limit', String(filters.limit));
   const qs = params.toString();
-  return apiGet<{ accounts: Account[] }>(`/accounts${qs ? `?${qs}` : ''}`, opts);
+  return apiGet<{ accounts: Account[]; nextCursor: string | null }>(
+    `/accounts${qs ? `?${qs}` : ''}`,
+    opts,
+  );
 }
 
 export function getAccount(id: string, opts: ApiOpts = {}) {

@@ -177,12 +177,13 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       header: 'Docs',
       align: 'center',
       cell: (c) =>
-        // approvalFileUrl is a full Cloudinary HTTPS URL — link to it directly.
-        // (Earlier code prefixed `/api/` which sent the browser through the
-        // Next rewrite and produced "Cannot GET /https:/res.cloudinary.com/…".)
+        // Use the auth-gated file-proxy endpoint instead of the raw
+        // Cloudinary URL. /api/* rewrites to the backend, which verifies
+        // access (role-scoped to the parent change), writes a FILE_DOWNLOAD
+        // audit row, then 302s to the Cloudinary URL.
         c.approvalFileUrl ? (
           <a
-            href={c.approvalFileUrl}
+            href={`/api/commercial-changes/${c.id}/file/approval`}
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}

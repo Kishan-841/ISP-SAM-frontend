@@ -14,6 +14,7 @@ export type CommercialChangeListItem = {
   mailReceivedDate: string | null;
   clientApprovalAttached: boolean;
   approvalFileUrl: string | null;
+  poFileUrl: string | null;
   reason: string | null;
   oldBandwidthMbps: number | null;
   newBandwidthMbps: number | null;
