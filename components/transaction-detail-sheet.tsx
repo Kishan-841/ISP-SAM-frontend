@@ -174,8 +174,12 @@ function SheetBodyContent({ change }: { change: CommercialChangeListItem }) {
         {/* Documents */}
         <Section title="Documents">
           {change.approvalFileUrl ? (
-            <Link
-              href={`/api/${change.approvalFileUrl}`}
+            // approvalFileUrl is already an absolute Cloudinary URL — link
+            // directly. (Earlier code prefixed `/api/` which sent the browser
+            // through the Next rewrite and produced
+            // "Cannot GET /https:/res.cloudinary.com/…".)
+            <a
+              href={change.approvalFileUrl}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 text-sm text-brand-600 hover:underline"
@@ -183,7 +187,7 @@ function SheetBodyContent({ change }: { change: CommercialChangeListItem }) {
               <FileText className="w-4 h-4" />
               Customer approval document
               <ExternalLink className="w-3 h-3" />
-            </Link>
+            </a>
           ) : (
             <p className="text-sm text-gray-400">No approval document attached.</p>
           )}

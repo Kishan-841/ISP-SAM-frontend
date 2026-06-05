@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { ClipboardList, Zap } from 'lucide-react';
 import { DataTable, type Column } from './data-table';
 import { StatusPill, type PillTone } from './status-pill';
@@ -178,16 +177,19 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       header: 'Docs',
       align: 'center',
       cell: (c) =>
+        // approvalFileUrl is a full Cloudinary HTTPS URL — link to it directly.
+        // (Earlier code prefixed `/api/` which sent the browser through the
+        // Next rewrite and produced "Cannot GET /https:/res.cloudinary.com/…".)
         c.approvalFileUrl ? (
-          <Link
-            href={`/api/${c.approvalFileUrl}`}
+          <a
+            href={c.approvalFileUrl}
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="text-sm text-brand-600 hover:underline"
           >
             View
-          </Link>
+          </a>
         ) : (
           '—'
         ),
