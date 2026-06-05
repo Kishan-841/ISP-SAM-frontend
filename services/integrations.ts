@@ -43,3 +43,32 @@ export function getIntegrationEvents(
   const qs = params.toString() ? `?${params.toString()}` : '';
   return apiGet<IntegrationEventsResponse>(`/integrations/events${qs}`, opts);
 }
+
+export type OutboundCrmFailure = {
+  id: string;
+  accountId: string;
+  changeType: 'UPGRADE' | 'DOWNGRADE' | 'RATE_REVISION' | 'DISCONNECTION';
+  oldArc: number;
+  newArc: number;
+  effectiveDate: string;
+  crmStatus: string | null;
+  crmStatusUpdatedAt: string | null;
+  createdAt: string;
+  account: {
+    id: string;
+    clientName: string;
+    companyName: string | null;
+    customerCode: string | null;
+    kittyType: 'BASE' | 'NEW';
+    samOwner: { id: string; name: string; email: string } | null;
+  };
+};
+
+export type OutboundCrmFailuresResponse = {
+  failures: OutboundCrmFailure[];
+  total: number;
+};
+
+export function getOutboundCrmFailures(opts: ApiOpts = {}) {
+  return apiGet<OutboundCrmFailuresResponse>('/integrations/outbound-failures', opts);
+}
