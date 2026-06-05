@@ -166,24 +166,22 @@ export function CommercialChangeForm({
     let arc: string | null = null;
     let bw: string | null = null;
 
+    // ARC is the sole differentiator between UPGRADE / DOWNGRADE / RATE_REVISION.
+    // Bandwidth direction is informational only — operators sometimes drop
+    // bandwidth as part of a price increase (e.g. moving from over-provisioned
+    // 200 Mbps to a cleaner 100 Mbps tier at higher ARC), and vice versa.
     if (actionType === 'UPGRADE') {
       if (newArcNum !== null && newArcNum <= currentArc) {
         arc = `Upgrade requires New ARC greater than current ₹${currentArc.toLocaleString('en-IN')}.`;
-      }
-      if (newBwNum !== null && currentBw !== null && newBwNum <= currentBw) {
-        bw = `Upgrade requires New Bandwidth greater than current ${currentBw} Mbps.`;
       }
     } else if (actionType === 'DOWNGRADE') {
       if (newArcNum !== null && newArcNum >= currentArc) {
         arc = `Downgrade requires New ARC less than current ₹${currentArc.toLocaleString('en-IN')}.`;
       }
-      if (newBwNum !== null && currentBw !== null && newBwNum > currentBw) {
-        bw = `Downgrade can't increase bandwidth — use Upgrade or Rate Revision instead.`;
-      }
     } else if (actionType === 'RATE_REVISION') {
       // Rate revision: bandwidth uplift at SAME ARC. Customer pays the same
       // money but gets more speed — typically a renewal sweetener or a
-      // competitor-match move.
+      // competitor-match move. ARC equality is the defining trait.
       if (newArcNum !== null && newArcNum !== currentArc) {
         arc = `Rate Revision keeps ARC the same as current ₹${currentArc.toLocaleString('en-IN')} — only bandwidth changes.`;
       }
