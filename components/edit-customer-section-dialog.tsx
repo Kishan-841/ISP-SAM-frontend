@@ -92,6 +92,9 @@ export function EditCustomerSectionDialog({
     account.bandwidthMbps != null ? String(account.bandwidthMbps) : '',
   );
   const [currentArc, setCurrentArc] = useState(String(account.currentArc ?? ''));
+  const [startOfPeriodArc, setStartOfPeriodArc] = useState(
+    account.startOfPeriodArc != null ? String(account.startOfPeriodArc) : '',
+  );
 
   const [email, setEmail] = useState(account.email ?? '');
   const [mobileNumber, setMobileNumber] = useState(account.mobileNumber ?? '');
@@ -151,6 +154,19 @@ export function EditCustomerSectionDialog({
           return;
         }
         if (n !== Number(account.currentArc)) patch.currentArc = n;
+      }
+      if (startOfPeriodArc.trim() !== '') {
+        const n = Number(startOfPeriodArc.replace(/[, ]/g, ''));
+        if (!Number.isFinite(n) || n < 0) {
+          setError('Start-of-period ARC must be a non-negative number');
+          setSubmitting(false);
+          return;
+        }
+        const prev = account.startOfPeriodArc != null ? Number(account.startOfPeriodArc) : null;
+        if (n !== prev) patch.startOfPeriodArc = n;
+      } else if (account.startOfPeriodArc != null) {
+        // User cleared the field — null it out.
+        patch.startOfPeriodArc = null;
       }
     } else if (section === 'contact') {
       if (email.trim() !== orEmpty(account.email)) patch.email = email.trim() || null;
@@ -315,9 +331,20 @@ export function EditCustomerSectionDialog({
                     className="font-mono"
                   />
                 </FormField>
+                <FormField label="Start-of-period ARC (₹ / year)">
+                  <Input
+                    inputMode="numeric"
+                    value={startOfPeriodArc}
+                    onChange={(e) => setStartOfPeriodArc(e.target.value)}
+                    placeholder="April 1 snapshot — leave blank to clear"
+                    className="font-mono"
+                  />
+                </FormField>
                 <p className="md:col-span-2 text-[11px] text-gray-500">
                   Editing ARC here bypasses the normal commercial-change flow — use
-                  sparingly. Both values are audit-logged.
+                  sparingly. The start-of-period ARC anchors the Existing-Base
+                  waterfall, so changing it shifts every Base dashboard number for
+                  this customer. All values are audit-logged.
                 </p>
               </>
             )}

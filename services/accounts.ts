@@ -98,6 +98,7 @@ export type AccountUpdatePatch = {
   mobileNumber?: string | null;
   email?: string | null;
   currentArc?: number;
+  startOfPeriodArc?: number | null;
   contractStatus?: Account['contractStatus'];
   currentPlan?: string | null;
   bandwidthMbps?: number | null;
