@@ -30,7 +30,7 @@ export default async function IntegrationsPage({
   ]);
 
   return (
-    <div className="px-8 py-6 flex flex-col gap-4">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-4">
       <PageHeader
         title="Integration Log"
         subtitle="Every webhook received from upstream systems (CRM, billing, etc.)"

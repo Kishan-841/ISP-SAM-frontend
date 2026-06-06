@@ -25,12 +25,12 @@ export function QuarterFilter({ active }: { active?: ActiveQuarter }) {
   //  - 160ms duration; tab/filter is "tens of times/day" so we reduce, not remove.
   //  - Hover gated by `hoverable:` so touch doesn't strand a stale hover state.
   const chipBase =
-    'min-w-[64px] px-3 py-1 text-xs font-medium rounded text-center ' +
+    'shrink-0 min-w-[52px] sm:min-w-[64px] px-2 sm:px-3 py-1 text-xs font-medium rounded text-center ' +
     'transition-[background-color,transform] duration-150 ease-[var(--ease-out)] ' +
     'active:scale-[0.96] will-change-transform';
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center gap-1 bg-white rounded-md p-1 border border-gray-200">
+    <div className="flex items-center gap-2 flex-nowrap overflow-x-auto -mx-1 px-1 max-w-full">
+      <div className="flex items-center gap-1 bg-white rounded-md p-1 border border-gray-200 flex-nowrap">
         {QUARTERS.map((q) => {
           const isActive = q === 'All' ? !active : q === active;
           return (
@@ -54,7 +54,7 @@ export function QuarterFilter({ active }: { active?: ActiveQuarter }) {
         type="button"
         aria-label="Refresh"
         onClick={() => router.refresh()}
-        className="w-8 h-8 grid place-items-center rounded-md border border-gray-200 bg-white text-gray-600 transition-[background-color,transform] duration-150 ease-[var(--ease-out)] hoverable:hover:bg-gray-50 active:scale-[0.94]"
+        className="shrink-0 w-8 h-8 grid place-items-center rounded-md border border-gray-200 bg-white text-gray-600 transition-[background-color,transform] duration-150 ease-[var(--ease-out)] hoverable:hover:bg-gray-50 active:scale-[0.94]"
       >
         <RefreshCw className={`w-4 h-4 ${pending ? 'animate-spin' : ''}`} />
       </button>

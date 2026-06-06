@@ -18,7 +18,7 @@ export default async function MeetingsPage() {
   const subtitle = total === 0 ? 'No meetings yet' : `${total} total`;
 
   return (
-    <div className="px-8 py-6 max-w-7xl flex flex-col gap-6">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl flex flex-col gap-6">
       <PageHeader
         title="Meetings & MoM"
         subtitle={subtitle}

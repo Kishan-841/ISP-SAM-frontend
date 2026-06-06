@@ -72,9 +72,9 @@ export default async function SamDetailPage({
   const scopeLabel = data.quarter ?? 'FYTD';
 
   return (
-    <div className="px-8 py-6 max-w-7xl flex flex-col gap-6">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl flex flex-col gap-6">
       {/* Back link + period filter */}
-      <div className="flex items-center justify-between gap-4 -mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 -mb-2">
         <Link
           href="/team-performance"
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-brand-600 w-fit"
@@ -152,7 +152,7 @@ function SamHero({ data }: { data: SamDetail }) {
     { label: 'Onboarding', value: s.components.onboarding.weighted, color: 'bg-indigo-500', weight: 15 },
   ];
   return (
-    <section className="rounded-xl border border-gray-100 bg-white p-6 flex flex-col md:flex-row items-stretch gap-6">
+    <section className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 flex flex-col md:flex-row items-stretch gap-4 sm:gap-6">
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-100 to-amber-100 grid place-items-center text-brand-700 font-bold text-lg shrink-0">
           {initials}
@@ -165,7 +165,7 @@ function SamHero({ data }: { data: SamDetail }) {
           </p>
         </div>
       </div>
-      <div className="md:w-[42ch] flex flex-col gap-3">
+      <div className="w-full md:w-[42ch] flex flex-col gap-3">
         <div className="flex items-baseline justify-between gap-2">
           <span className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Reliability Score</span>
           <div className="flex items-baseline gap-2">

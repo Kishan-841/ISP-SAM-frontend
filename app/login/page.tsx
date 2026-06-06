@@ -110,14 +110,14 @@ export default function LoginPage() {
       </aside>
 
       {/* ─── Right: form panel ──────────────────────────────────────── */}
-      <section className="relative flex items-center justify-center p-6 sm:p-12">
+      <section className="relative flex items-center justify-center px-4 py-8 sm:p-12">
         {/* Soft hair-line on the left edge (visible on lg+) */}
         <div
           aria-hidden
           className="hidden lg:block absolute left-0 top-12 bottom-12 w-px bg-gradient-to-b from-transparent via-stone-200 to-transparent"
         />
 
-        <div className="w-full max-w-sm card-stagger flex flex-col gap-6">
+        <div className="w-full max-w-md card-stagger flex flex-col gap-6">
           {/* Mobile-only brand mark */}
           <div className="lg:hidden flex flex-col gap-1">
             <div className="flex items-center gap-2">

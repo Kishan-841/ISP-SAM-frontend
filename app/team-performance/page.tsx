@@ -27,7 +27,7 @@ export default async function TeamPerformancePage() {
   const { team, sams } = data;
 
   return (
-    <div className="px-8 py-6 max-w-7xl flex flex-col gap-6">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl flex flex-col gap-6">
       <PageHeader
         title="Team Performance"
         subtitle={

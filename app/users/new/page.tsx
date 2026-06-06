@@ -101,7 +101,7 @@ export default function NewUserPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-8 py-6 flex flex-col gap-6">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-6">
       <PageHeader
         title="New user"
         subtitle="Create a SAM, SAM Head or Admin account."
@@ -109,7 +109,7 @@ export default function NewUserPage() {
 
       <form onSubmit={onSubmit}>
         <Card>
-          <CardContent className="px-6 pt-6 pb-0 divide-y divide-gray-100">
+          <CardContent className="px-4 sm:px-6 pt-6 pb-0 divide-y divide-gray-100">
             <FormSection
               title="Identity"
               description="Display name and login email. The email becomes the user's unique identifier."
@@ -206,7 +206,7 @@ export default function NewUserPage() {
             )}
           </CardContent>
 
-          <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/30 rounded-b-xl">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 px-4 sm:px-6 py-4 border-t border-gray-100 bg-gray-50/30 rounded-b-xl">
             <Button
               type="button"
               variant="outline"

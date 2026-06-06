@@ -36,7 +36,7 @@ export default async function MeetingViewPage({
   const samName = meeting.account.samOwner?.name ?? meeting.createdByUser?.name ?? 'Owning SAM';
 
   return (
-    <div className="px-8 py-6 max-w-6xl flex flex-col gap-6">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-6xl flex flex-col gap-6">
       <div>
         <Link
           href="/meetings"

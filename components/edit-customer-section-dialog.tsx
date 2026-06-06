@@ -213,8 +213,8 @@ export function EditCustomerSectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-[90vh] flex flex-col">
-        <DialogHeader className="px-6 py-4 border-b border-gray-100 bg-gradient-to-b from-orange-50/70 to-white flex-shrink-0">
+      <DialogContent className="w-[95vw] sm:w-auto sm:max-w-2xl p-0 gap-0 overflow-hidden max-h-[90vh] flex flex-col">
+        <DialogHeader className="px-4 sm:px-6 py-4 border-b border-gray-100 bg-gradient-to-b from-orange-50/70 to-white flex-shrink-0">
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-lg bg-brand-600 text-white flex items-center justify-center flex-shrink-0">
               <meta.icon className="w-4 h-4" />
@@ -234,9 +234,9 @@ export function EditCustomerSectionDialog({
         <form
           id="edit-section-form"
           onSubmit={submit}
-          className="overflow-y-auto px-6 py-5 flex-1"
+          className="overflow-y-auto px-4 sm:px-6 py-5 flex-1"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
             {section === 'identity' && (
               <>
                 <FormField label="Customer / company name" required>
@@ -340,7 +340,7 @@ export function EditCustomerSectionDialog({
                     className="font-mono"
                   />
                 </FormField>
-                <p className="md:col-span-2 text-[11px] text-gray-500">
+                <p className="sm:col-span-2 text-[11px] text-gray-500">
                   Editing ARC here bypasses the normal commercial-change flow — use
                   sparingly. The start-of-period ARC anchors the Existing-Base
                   waterfall, so changing it shifts every Base dashboard number for
@@ -391,7 +391,7 @@ export function EditCustomerSectionDialog({
                     placeholder="The internal AM — distinct from the SAM owner"
                   />
                 </FormField>
-                <p className="md:col-span-2 text-[11px] text-gray-500">
+                <p className="sm:col-span-2 text-[11px] text-gray-500">
                   To reassign the SAM owner, use the Assign button on the customers
                   list — that flow includes the proper audit + notification.
                 </p>
@@ -437,7 +437,7 @@ export function EditCustomerSectionDialog({
           )}
         </form>
 
-        <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/60 flex items-center justify-end gap-2 flex-shrink-0">
+        <div className="px-4 sm:px-6 py-3 border-t border-gray-100 bg-gray-50/60 flex items-center justify-end gap-2 flex-shrink-0">
           <Button
             type="button"
             variant="outline"
@@ -469,7 +469,7 @@ function FormField({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`flex flex-col gap-1.5 ${fullWidth ? 'md:col-span-2' : ''}`}>
+    <div className={`flex flex-col gap-1.5 ${fullWidth ? 'sm:col-span-2' : ''}`.trim()}>
       <Label className="text-[11px] uppercase tracking-wider font-semibold text-gray-500">
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}

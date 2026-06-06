@@ -183,7 +183,7 @@ export function RevenueWaterfall({
         <svg
           viewBox={`0 0 ${totalW} ${totalH}`}
           preserveAspectRatio="xMidYMid meet"
-          className="w-full h-auto"
+          className="w-full h-auto min-w-[560px]"
           role="img"
           aria-label="ARC movement waterfall"
         >

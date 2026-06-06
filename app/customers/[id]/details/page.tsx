@@ -88,7 +88,7 @@ export default async function CustomerDetailsPage({
     isAdmin ? <EditSectionButton account={account as Account} section={section} /> : undefined;
 
   return (
-    <div className="max-w-6xl mx-auto p-8 flex flex-col gap-5">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-5">
       <PageHeader title={customerName} subtitle="Customer details" />
 
       <div className="flex items-center gap-3 flex-wrap">
@@ -315,12 +315,12 @@ function Section({
 }) {
   return (
     <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
-      <div className="px-6 py-3 border-b border-gray-100 flex items-center gap-2">
+      <div className="px-4 sm:px-6 py-3 border-b border-gray-100 flex items-center gap-2">
         <Icon className="w-4 h-4 text-brand-600" />
         <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
         {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
       </div>
-      <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
+      <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
         {children}
       </div>
     </div>

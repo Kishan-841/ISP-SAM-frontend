@@ -93,7 +93,7 @@ export default async function TransactionsPage({
   const subtitle = validType ? META[validType].subtitle : 'Audit trail of every commercial change';
 
   return (
-    <div className="px-8 py-6 max-w-7xl flex flex-col gap-4">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl flex flex-col gap-4">
       <PageHeader title={title} subtitle={subtitle} />
 
       {/* Type filter chips */}

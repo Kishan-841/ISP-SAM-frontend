@@ -39,7 +39,7 @@ export default async function HomePage() {
   );
 
   return (
-    <div className="px-8 py-6 max-w-6xl flex flex-col gap-6">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-6xl flex flex-col gap-6">
       <PageHeader
         title={`${greeting()}, ${user.name.split(/\s+/)[0]}`}
         subtitle={ROLE_GREETING[user.role] ?? 'Welcome back'}

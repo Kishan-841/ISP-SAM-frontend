@@ -25,7 +25,7 @@ export default async function MyLeadsPage() {
     : `Leads you created · ${data.rows.length} ${data.rows.length === 1 ? 'lead' : 'leads'}`;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col gap-5">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-5">
       <PageHeader
         title={isHeadOrAdmin ? 'SAM-Created Leads' : 'My Leads'}
         subtitle={scopeSubtitle}

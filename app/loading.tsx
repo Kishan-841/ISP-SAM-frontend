@@ -5,7 +5,7 @@
  */
 export default function Loading() {
   return (
-    <div className="px-8 py-6 flex flex-col gap-8 animate-pulse">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-8 animate-pulse">
       {/* Page header */}
       <div className="flex flex-col gap-2">
         <div className="h-7 w-64 bg-gray-200 rounded" />

@@ -68,7 +68,7 @@ export default async function NewBaseDashboardPage() {
   };
 
   return (
-    <div className="px-8 py-6 max-w-7xl flex flex-col gap-8">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl flex flex-col gap-6 sm:gap-8">
       <PageHeader
         title="New Base Dashboard"
         subtitle="Growth & velocity (post-April 1 customers)"
@@ -320,7 +320,8 @@ export default async function NewBaseDashboardPage() {
                 ) and they'll appear here.
               </div>
             ) : (
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[720px]">
                 <thead className="bg-gray-50/60 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-700">
                   <tr className="divide-x divide-gray-100">
                     <th className="px-5 py-3 text-left font-semibold">Customer</th>
@@ -362,6 +363,7 @@ export default async function NewBaseDashboardPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </CardContent>
         </Card>

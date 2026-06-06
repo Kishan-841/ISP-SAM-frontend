@@ -72,7 +72,7 @@ export default async function CustomersPage({
   else if (filterOwner === 'team') subtitle = 'My team’s customers';
 
   return (
-    <div className="px-8 py-6 max-w-7xl flex flex-col gap-4">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl flex flex-col gap-4">
       <PageHeader title="Customers" subtitle={subtitle} />
       <CustomersTable
         accounts={filtered}

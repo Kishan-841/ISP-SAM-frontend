@@ -62,7 +62,7 @@ export default function ExcelImportPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-8 flex flex-col gap-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-6">
       <PageHeader
         title="Excel Import"
         subtitle="Upload a .xlsx or .csv file of existing customers"
@@ -284,7 +284,7 @@ const RECOGNIZED_COLUMNS: Array<{
 
 function RecognizedColumnsTable() {
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
+    <div className="border border-gray-200 rounded-lg overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
@@ -541,7 +541,7 @@ function ErrorSection({
             These rows couldn't be saved. Fix them in your file and re-upload to bring them in.
           </p>
         </div>
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="border border-gray-200 rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

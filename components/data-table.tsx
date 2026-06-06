@@ -172,16 +172,16 @@ export function DataTable<T>({
             )}
             {headerExtra}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {searchable && (
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <Input
                   type="search"
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   placeholder={searchPlaceholder}
-                  className="pl-9 h-9 w-64 bg-gray-50 border-gray-200 focus-visible:bg-white"
+                  className="pl-9 h-9 w-full sm:w-64 bg-gray-50 border-gray-200 focus-visible:bg-white"
                 />
               </div>
             )}

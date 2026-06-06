@@ -63,7 +63,7 @@ export default async function CustomerJourneyPage({
   const isNewBase = account.kittyType === 'NEW';
 
   return (
-    <div className="px-8 py-6 max-w-5xl flex flex-col gap-6">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-5xl flex flex-col gap-6">
       {/* Back link */}
       <Link
         href="/customers"
@@ -127,7 +127,7 @@ function CustomerHeaderCard({
         }`}
       />
 
-      <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         {account.customerCode && (
           <Field icon={Hash} label="Customer code">
             <span className="font-mono text-sm text-brand-600">{account.customerCode}</span>
@@ -178,7 +178,7 @@ function CustomerHeaderCard({
       </div>
 
       {account.address && (
-        <div className="px-6 pb-2 -mt-2">
+        <div className="px-4 sm:px-6 pb-2 -mt-2">
           <Field icon={MapPin} label="Address">
             <span className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
               {account.address}
@@ -194,11 +194,11 @@ function CustomerHeaderCard({
         account.accountManager ||
         account.userName ||
         account.ipDetails) && (
-        <div className="px-6 pb-6 pt-2 border-t border-gray-100">
+        <div className="px-4 sm:px-6 pb-6 pt-2 border-t border-gray-100">
           <div className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
             Business details
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {account.gstNumber && (
               <Field icon={IdCard} label="GST">
                 <span className="font-mono text-sm text-gray-900">{account.gstNumber}</span>

@@ -12,7 +12,7 @@ export default async function UsersPage() {
   ]);
 
   return (
-    <div className="px-8 py-6">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
       <PageHeader title="Users" subtitle="Team members" />
       <UsersTable users={users} currentUser={me} />
     </div>
