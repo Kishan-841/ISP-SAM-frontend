@@ -26,8 +26,10 @@ export function StatCard({
   href,
 }: {
   title: string;
-  value: string;
-  subtitle?: string;
+  /** Plain string for simple values, or a ReactNode for interactive widgets
+   *  like <ExpandableArc> that intercept clicks before the card link fires. */
+  value: React.ReactNode;
+  subtitle?: React.ReactNode;
   icon: IconType;
   iconBg: string;
   iconColor: string;

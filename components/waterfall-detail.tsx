@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
 import { DataTable, type Column } from './data-table';
-import { formatRupees, formatRupeesCompact } from '../lib/format-rupees';
+import { ExpandableArc } from './expandable-arc';
 
 export type WaterfallDetailInput = {
   startArcRupees: number;
@@ -116,16 +116,14 @@ export function WaterfallDetail({
       header: 'ARC',
       align: 'right',
       cell: (row) => (
-        <span
-          className={`tabular-nums ${
+        <ExpandableArc
+          value={row.arc}
+          className={
             row.tone === 'final'
               ? 'text-gray-900 font-bold text-base'
               : `font-medium ${TONE_CLASS[row.tone]}`
-          }`}
-          title={formatRupees(row.arc)}
-        >
-          {formatRupeesCompact(row.arc)}
-        </span>
+          }
+        />
       ),
     },
     {

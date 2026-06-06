@@ -14,6 +14,7 @@ import { StatCard } from '../../components/stat-card';
 import { QuarterFilter } from '../../components/quarter-filter';
 import { RevenueWaterfall } from '../../components/revenue-waterfall';
 import { WaterfallDetail } from '../../components/waterfall-detail';
+import { ExpandableArc } from '../../components/expandable-arc';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { getExistingBaseMetrics, type FyQuarter } from '../../services/dashboard';
 import { formatRupeesCompact } from '../../lib/format-rupees';
@@ -88,7 +89,7 @@ export default async function ExistingBaseDashboardPage({
           />
           <StatCard
             title="Total Base ARC (start of period)"
-            value={formatRupeesCompact(startArcRupees)}
+            value={<ExpandableArc value={startArcRupees} />}
             subtitle="Annual recurring contribution"
             icon={BarChart3}
             iconBg="bg-purple-50"
@@ -106,8 +107,12 @@ export default async function ExistingBaseDashboardPage({
           />
           <StatCard
             title="Current ARC"
-            value={formatRupeesCompact(currentArcRupees)}
-            subtitle={`Δ ${formatRupeesCompact(netDeltaRupees, { signed: true })} since April 1`}
+            value={<ExpandableArc value={currentArcRupees} />}
+            subtitle={
+              <>
+                Δ <ExpandableArc value={netDeltaRupees} signed className="text-xs" /> since April 1
+              </>
+            }
             icon={BarChart3}
             iconBg="bg-orange-50"
             iconColor="text-brand-600"
@@ -145,7 +150,7 @@ export default async function ExistingBaseDashboardPage({
         <div className="card-stagger grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title={`Upgrades (${metrics.upgrades.count})`}
-            value={formatRupeesCompact(Math.abs(upgradesArcRupees), { signed: true })}
+            value={<ExpandableArc value={Math.abs(upgradesArcRupees)} signed />}
             subtitle="ARC added"
             icon={TrendingUp}
             iconBg="bg-emerald-50"
@@ -155,7 +160,7 @@ export default async function ExistingBaseDashboardPage({
           />
           <StatCard
             title={`Downgrades (${metrics.downgrades.count})`}
-            value={formatRupeesCompact(-Math.abs(downgradesArcRupees), { signed: true })}
+            value={<ExpandableArc value={-Math.abs(downgradesArcRupees)} signed />}
             subtitle="ARC reduced"
             icon={TrendingDown}
             iconBg="bg-amber-50"
@@ -180,7 +185,7 @@ export default async function ExistingBaseDashboardPage({
           />
           <StatCard
             title={`Disconnections (${metrics.terminations.count})`}
-            value={formatRupeesCompact(-Math.abs(terminationsArcRupees), { signed: true })}
+            value={<ExpandableArc value={-Math.abs(terminationsArcRupees)} signed />}
             subtitle="ARC lost"
             icon={UserX}
             iconBg="bg-red-50"
