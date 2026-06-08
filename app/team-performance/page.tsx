@@ -105,11 +105,7 @@ export default async function TeamPerformancePage() {
               <ChurnPill
                 actualPercent={team.netChurnPercent}
                 allowablePercent={team.allowableChurnPercent}
-                status={
-                  team.netChurnPercent <= team.allowableChurnPercent
-                    ? 'under_budget'
-                    : 'over_budget'
-                }
+                noBook={team.startOfPeriodArc === 0}
                 size="md"
               />
               <div className="min-w-0">
@@ -227,7 +223,7 @@ function SamTableRow({ sam }: { sam: import('../../services/team-performance').S
         <ChurnPill
           actualPercent={sam.netChurnPercent}
           allowablePercent={sam.allowableChurnPercent}
-          status={sam.churnStatus}
+          noBook={sam.startOfPeriodArc === 0}
         />
       </td>
       <td className="px-5 py-4 text-center">

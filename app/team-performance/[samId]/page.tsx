@@ -106,7 +106,12 @@ export default async function SamDetailPage({
 
       <ChangeBucketRow changes={data.changes} />
 
-      <ChurnVsAllowed churn={data.churn} />
+      <ChurnVsAllowed
+        churn={data.churn}
+        // startArc = currentArc − arcDelta; if it's zero the SAM had no
+        // book at the start of period and net-churn doesn't apply.
+        noBook={data.kpis.arcManaged.value - data.kpis.arcManaged.arcDelta === 0}
+      />
 
       <ActivityTimeline items={data.activityTimeline} />
 
@@ -612,7 +617,13 @@ function RiskPulse({
  * in start-of-period ARC) is the source of truth in
  * team-performance.service.ts; do NOT recompute it here.
  */
-function ChurnVsAllowed({ churn }: { churn: SamDetail['churn'] }) {
+function ChurnVsAllowed({
+  churn,
+  noBook,
+}: {
+  churn: SamDetail['churn'];
+  noBook: boolean;
+}) {
   const over = churn.churnStatus === 'over_budget';
   return (
     <section className="rounded-xl border border-gray-100 bg-white flex flex-col">
@@ -625,34 +636,43 @@ function ChurnVsAllowed({ churn }: { churn: SamDetail['churn'] }) {
         <ChurnPill
           actualPercent={churn.netChurnPercent}
           allowablePercent={churn.allowableChurnPercent}
-          status={churn.churnStatus}
+          noBook={noBook}
           size="md"
         />
         <div className="text-xs text-gray-500 sm:ml-2 min-w-0 flex-1">
-          Net churn = disconnections + downgrades − upgrades = {formatRupees(churn.netChurnArc)}.
-          {over
-            ? ' Over the allowable ceiling — incentive is at risk until losses drop back inside the budget.'
-            : ' Within the allowable ceiling — on track for incentive.'}
+          {noBook
+            ? 'No start-of-period ARC — this SAM has no book yet, so net churn doesn’t apply.'
+            : (
+              <>
+                Net churn = disconnections + downgrades − upgrades ={' '}
+                {formatRupees(churn.netChurnArc)}.
+                {over
+                  ? ' Over the allowable ceiling — incentive is at risk until losses drop back inside the budget.'
+                  : ' Within the allowable ceiling — on track for incentive.'}
+              </>
+            )}
         </div>
-        <div className="sm:ml-auto grid grid-cols-2 sm:flex sm:items-center gap-4 text-sm tabular-nums shrink-0">
-          <div className="flex flex-col">
-            <span className="text-xs text-gray-500">Allowable</span>
-            <span className="font-semibold text-gray-900">
-              {churn.allowableChurnPercent.toFixed(2)}%
-            </span>
+        {!noBook && (
+          <div className="sm:ml-auto grid grid-cols-2 sm:flex sm:items-center gap-4 text-sm tabular-nums shrink-0">
+            <div className="flex flex-col">
+              <span className="text-xs text-gray-500">Allowable</span>
+              <span className="font-semibold text-gray-900">
+                {churn.allowableChurnPercent.toFixed(2)}%
+              </span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs text-gray-500">Headroom</span>
+              <span
+                className={`font-semibold ${
+                  churn.churnHeadroomPercent < 0 ? 'text-red-600' : 'text-emerald-600'
+                }`}
+              >
+                {churn.churnHeadroomPercent >= 0 ? '+' : ''}
+                {churn.churnHeadroomPercent.toFixed(2)}%
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-xs text-gray-500">Headroom</span>
-            <span
-              className={`font-semibold ${
-                churn.churnHeadroomPercent < 0 ? 'text-red-600' : 'text-emerald-600'
-              }`}
-            >
-              {churn.churnHeadroomPercent >= 0 ? '+' : ''}
-              {churn.churnHeadroomPercent.toFixed(2)}%
-            </span>
-          </div>
-        </div>
+        )}
       </div>
     </section>
   );
