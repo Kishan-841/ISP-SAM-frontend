@@ -56,17 +56,18 @@ export default async function NewBaseDashboardPage() {
   const downgradesArcRupees = metrics.downgrades.arcReducedLakh * LAKH;
   const terminationsArcRupees = metrics.terminations.arcLostLakh * LAKH;
   const probableChurnArcRupees = metrics.probableChurn.arcAtRiskLakh * LAKH;
+  const pendingArcRupees = metrics.pending.netArcLakh * LAKH;
   const netDeltaRupees = currentArcRupees - startArcRupees;
-  // Rate revisions are intentionally not in the waterfall — they preserve
-  // ARC by definition. Same treatment as existing-base.
-  const endArcRupees =
-    startArcRupees + upgradesArcRupees - downgradesArcRupees - terminationsArcRupees;
+  // Waterfall ends at live Current ARC (mirrors existing-base); pending CRM
+  // adjustment is rendered as its own row so the chain reconciles.
   const waterfallInput = {
     startArcRupees,
     upgradesArcRupees,
     downgradesArcRupees,
     terminationsArcRupees,
-    endArcRupees,
+    endArcRupees: currentArcRupees,
+    pendingArcRupees,
+    pendingCount: metrics.pending.count,
   };
 
   return (

@@ -10,6 +10,13 @@ export type ExistingBaseMetrics = {
   downgrades: { count: number; arcReducedLakh: number };
   rateRevisions: { count: number; arcChangeLakh: number };
   terminations: { count: number; arcLostLakh: number };
+  /**
+   * CRM-in-flight reconciliation. `netArcLakh` is the adjustment needed to
+   * make the waterfall sum match the live Current ARC card. Non-zero when
+   * upgrades/downgrades have been committed but CRM hasn't yet marked them
+   * COMPLETED — see CLAUDE.md convention #3.
+   */
+  pending: { count: number; netArcLakh: number };
   probableChurn: { count: number; arcAtRiskLakh: number };
 };
 
@@ -25,6 +32,8 @@ export type NewBaseMetrics = {
   downgrades:    { count: number; arcReducedLakh: number };
   rateRevisions: { count: number; arcChangeLakh: number };
   terminations:  { count: number; arcLostLakh: number };
+  /** See ExistingBaseMetrics.pending. */
+  pending:       { count: number; netArcLakh: number };
   probableChurn: { count: number; arcAtRiskLakh: number };
   addedThisMonth:   { count: number; arcLakh: number };
   addedThisQuarter: { count: number; arcLakh: number };

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Clock } from 'lucide-react';
 import { DataTable, type Column } from './data-table';
 import { ExpandableArc } from './expandable-arc';
 
@@ -11,13 +11,22 @@ export type WaterfallDetailInput = {
   downgradesArcRupees: number;
   terminationsArcRupees: number;
   endArcRupees: number;
+  /**
+   * Net ARC adjustment of changes committed-but-not-applied (CRM still
+   * working through them). When non-zero, a "Pending CRM settlement" row
+   * is inserted between Disconnections and End-of-Period so the waterfall
+   * sum lines up with the live Current ARC card. Omit / zero = no row.
+   */
+  pendingArcRupees?: number;
+  /** Count of commercial changes still in CRM workflow — used for tooltip copy. */
+  pendingCount?: number;
 };
 
 type WaterfallRow = {
   label: string;
   arc: number;
-  tone: 'neutral' | 'positive' | 'negative' | 'final';
-  sign?: '+' | '−' | '=';
+  tone: 'neutral' | 'positive' | 'negative' | 'final' | 'pending';
+  sign?: '+' | '−' | '=' | '⏳';
   href: string;
   hrefHint: string;
 };
@@ -27,12 +36,14 @@ const TONE_CLASS: Record<WaterfallRow['tone'], string> = {
   positive: 'text-emerald-600',
   negative: 'text-red-600',
   final: 'text-gray-900 font-semibold',
+  pending: 'text-amber-700',
 };
 
 const SIGN_BG: Record<NonNullable<WaterfallRow['sign']>, string> = {
   '+': 'bg-emerald-50 text-emerald-700',
   '−': 'bg-red-50 text-red-700',
   '=': 'bg-gray-100 text-gray-700',
+  '⏳': 'bg-amber-50 text-amber-700',
 };
 
 export function WaterfallDetail({
@@ -46,6 +57,13 @@ export function WaterfallDetail({
 }) {
   const router = useRouter();
   const isNew = kittyType === 'NEW';
+
+  // Display pending row only when the rounded adjustment is materially
+  // non-zero. Floats can leave ±₹500 noise from the backend's roundLakh,
+  // so threshold at ₹1K to avoid a "Pending: ₹0" row appearing for no
+  // visible reason.
+  const showPending =
+    input.pendingArcRupees != null && Math.abs(input.pendingArcRupees) >= 1_000;
 
   const rows: WaterfallRow[] = [
     {
@@ -79,6 +97,25 @@ export function WaterfallDetail({
       href: '/transactions?type=DISCONNECTION',
       hrefHint: 'See termination transactions',
     },
+    ...(showPending
+      ? [
+          {
+            // Adjustment that brings the bucket sum back in line with the
+            // live currentArc. Drill-through goes to /transactions filtered
+            // to in-flight rows (no accountAppliedAt yet).
+            label:
+              input.pendingCount && input.pendingCount > 0
+                ? `Pending CRM settlement (${input.pendingCount})`
+                : 'Pending CRM settlement',
+            arc: input.pendingArcRupees!,
+            tone: 'pending' as const,
+            sign: '⏳' as const,
+            href: '/transactions?status=in-flight',
+            hrefHint:
+              'Commercial changes committed but not yet COMPLETED in CRM — their ARC isn’t on accounts yet',
+          },
+        ]
+      : []),
     {
       label: isNew ? 'Today' : 'End of Period',
       arc: input.endArcRupees,
@@ -103,7 +140,7 @@ export function WaterfallDetail({
             }`}
             aria-hidden="true"
           >
-            {row.sign ?? '·'}
+            {row.sign === '⏳' ? <Clock className="w-3 h-3" /> : row.sign ?? '·'}
           </span>
           <span className={`${TONE_CLASS[row.tone]} ${row.tone === 'final' ? 'text-sm' : ''}`}>
             {row.label}

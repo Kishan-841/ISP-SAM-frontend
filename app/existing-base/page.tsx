@@ -55,17 +55,22 @@ export default async function ExistingBaseDashboardPage({
   const upgradesArcRupees = metrics.upgrades.arcAddedLakh * LAKH;
   const downgradesArcRupees = metrics.downgrades.arcReducedLakh * LAKH;
   const terminationsArcRupees = metrics.terminations.arcLostLakh * LAKH;
-  const endArcRupees =
-    startArcRupees + upgradesArcRupees - downgradesArcRupees - terminationsArcRupees;
   const currentArcRupees = metrics.currentArcLakh * LAKH;
   const netDeltaRupees = currentArcRupees - startArcRupees;
   const probableChurnArcRupees = metrics.probableChurn.arcAtRiskLakh * LAKH;
+  const pendingArcRupees = metrics.pending.netArcLakh * LAKH;
+  // Waterfall now ends at the LIVE Current ARC (matches the headline card)
+  // and surfaces the pending CRM adjustment as its own row. The previous
+  // computed endArc (start + buckets) implicitly assumed every committed
+  // change had also been applied, which doesn't hold during CRM workflow.
   const waterfallInput = {
     startArcRupees,
     upgradesArcRupees,
     downgradesArcRupees,
     terminationsArcRupees,
-    endArcRupees,
+    endArcRupees: currentArcRupees,
+    pendingArcRupees,
+    pendingCount: metrics.pending.count,
   };
 
   return (
