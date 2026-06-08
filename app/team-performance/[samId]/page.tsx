@@ -30,7 +30,8 @@ import { PageHeader } from '../../../components/page-header';
 import { QuarterFilter } from '../../../components/quarter-filter';
 import { CustomersTable } from '../../../components/customers-table';
 import { TransactionsTable } from '../../../components/transactions-table';
-import { formatRupeesCompact } from '../../../lib/format-rupees';
+import { ChurnPill } from '../../../components/churn-pill';
+import { formatRupees, formatRupeesCompact } from '../../../lib/format-rupees';
 
 const QUARTERS: ReadonlySet<string> = new Set(['Q1', 'Q2', 'Q3', 'Q4']);
 
@@ -104,6 +105,8 @@ export default async function SamDetailPage({
       </div>
 
       <ChangeBucketRow changes={data.changes} />
+
+      <ChurnVsAllowed churn={data.churn} />
 
       <ActivityTimeline items={data.activityTimeline} />
 
@@ -599,6 +602,58 @@ function RiskPulse({
           );
         })}
       </ul>
+    </section>
+  );
+}
+
+/*
+ * Allowable-churn / incentive panel. Pulls the backend's `churn` block
+ * directly — the math (disconnections + downgrades − upgrades, denominated
+ * in start-of-period ARC) is the source of truth in
+ * team-performance.service.ts; do NOT recompute it here.
+ */
+function ChurnVsAllowed({ churn }: { churn: SamDetail['churn'] }) {
+  const over = churn.churnStatus === 'over_budget';
+  return (
+    <section className="rounded-xl border border-gray-100 bg-white flex flex-col">
+      <header className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+        <ShieldCheck className="w-4 h-4 text-brand-600" />
+        <h3 className="text-sm font-semibold text-gray-900">Allowable churn</h3>
+        <span className="text-xs text-gray-400">— incentive eligibility</span>
+      </header>
+      <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+        <ChurnPill
+          actualPercent={churn.netChurnPercent}
+          allowablePercent={churn.allowableChurnPercent}
+          status={churn.churnStatus}
+          size="md"
+        />
+        <div className="text-xs text-gray-500 sm:ml-2 min-w-0 flex-1">
+          Net churn = disconnections + downgrades − upgrades = {formatRupees(churn.netChurnArc)}.
+          {over
+            ? ' Over the allowable ceiling — incentive is at risk until losses drop back inside the budget.'
+            : ' Within the allowable ceiling — on track for incentive.'}
+        </div>
+        <div className="sm:ml-auto grid grid-cols-2 sm:flex sm:items-center gap-4 text-sm tabular-nums shrink-0">
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-500">Allowable</span>
+            <span className="font-semibold text-gray-900">
+              {churn.allowableChurnPercent.toFixed(2)}%
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-500">Headroom</span>
+            <span
+              className={`font-semibold ${
+                churn.churnHeadroomPercent < 0 ? 'text-red-600' : 'text-emerald-600'
+              }`}
+            >
+              {churn.churnHeadroomPercent >= 0 ? '+' : ''}
+              {churn.churnHeadroomPercent.toFixed(2)}%
+            </span>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

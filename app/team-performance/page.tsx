@@ -14,6 +14,7 @@ import { getTeamPerformance } from '../../services/team-performance';
 import { PageHeader, SectionHeading } from '../../components/page-header';
 import { StatCard } from '../../components/stat-card';
 import { ArcPerSamChart, ChangesPerSamChart } from '../../components/team-charts';
+import { ChurnPill } from '../../components/churn-pill';
 import { formatRupeesCompact } from '../../lib/format-rupees';
 
 export default async function TeamPerformancePage() {
@@ -95,6 +96,58 @@ export default async function TeamPerformancePage() {
         </div>
       </section>
 
+      {/* Team-level churn vs allowable — the incentive headline. */}
+      {sams.length > 0 && (
+        <section>
+          <SectionHeading>Allowable churn</SectionHeading>
+          <div className="bg-white rounded-xl ring-1 ring-gray-200 px-5 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <ChurnPill
+                actualPercent={team.netChurnPercent}
+                allowablePercent={team.allowableChurnPercent}
+                status={
+                  team.netChurnPercent <= team.allowableChurnPercent
+                    ? 'under_budget'
+                    : 'over_budget'
+                }
+                size="md"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900">
+                  Net churn vs allowable (ARC-weighted across the team)
+                </p>
+                <p className="text-xs text-gray-500">
+                  Net churn = disconnections + downgrades − upgrades, denominated in start-of-period ARC.
+                </p>
+              </div>
+            </div>
+            <div className="sm:ml-auto flex items-center gap-4 text-sm tabular-nums">
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-500">Headroom</span>
+                <span
+                  className={`font-semibold ${
+                    team.churnHeadroomPercent < 0 ? 'text-red-600' : 'text-emerald-600'
+                  }`}
+                >
+                  {team.churnHeadroomPercent >= 0 ? '+' : ''}
+                  {team.churnHeadroomPercent.toFixed(2)}%
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-500">SAMs over budget</span>
+                <span
+                  className={`font-semibold ${
+                    team.samsOverBudget > 0 ? 'text-red-600' : 'text-gray-900'
+                  }`}
+                >
+                  {team.samsOverBudget} / {team.samCount}
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Charts */}
       {sams.length > 0 && (
         <section>
@@ -120,13 +173,14 @@ export default async function TeamPerformancePage() {
         ) : (
           <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[1000px]">
+              <table className="w-full text-sm min-w-[1100px]">
                 <thead className="bg-gray-50/60 border-b border-gray-100">
                   <tr>
                     <Th>SAM</Th>
                     <Th align="center">Score</Th>
                     <Th align="right">Customers</Th>
                     <Th align="right">ARC</Th>
+                    <Th align="center">Churn vs allowed</Th>
                     <Th align="center">Changes</Th>
                     <Th align="center">Meetings</Th>
                     <Th align="center">MOM SLA</Th>
@@ -168,6 +222,13 @@ function SamTableRow({ sam }: { sam: import('../../services/team-performance').S
       </td>
       <td className="px-5 py-4 text-right tabular-nums font-medium text-gray-900">
         {formatRupeesCompact(sam.totalArc)}
+      </td>
+      <td className="px-5 py-4 text-center">
+        <ChurnPill
+          actualPercent={sam.netChurnPercent}
+          allowablePercent={sam.allowableChurnPercent}
+          status={sam.churnStatus}
+        />
       </td>
       <td className="px-5 py-4 text-center">
         <ChangesCell sam={sam} />

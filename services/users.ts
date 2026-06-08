@@ -4,6 +4,8 @@ import type { AuthUser } from './auth';
 export type UserRecord = AuthUser & {
   createdAt: string;
   samHead?: { id: string; name: string } | null;
+  /** Per-SAM allowable churn budget (6.00–8.00). Null only on legacy rows. */
+  allowableChurnPercent?: number | null;
 };
 
 export function getUsers(opts: ApiOpts = {}) {
@@ -27,6 +29,8 @@ export type UpdateUserInput = {
   samHeadId?: string | null;
   /** Admin password reset. */
   password?: string;
+  /** 6.00–8.00. Validated server-side; out-of-range returns 400. */
+  allowableChurnPercent?: number;
 };
 
 export function updateUser(id: string, input: UpdateUserInput) {

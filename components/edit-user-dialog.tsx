@@ -41,6 +41,9 @@ export function EditUserDialog({
   const [samHeadId, setSamHeadId] = useState<string | null>(user.samHead?.id ?? null);
   const [password, setPassword] = useState('');
   const [resetPassword, setResetPassword] = useState(false);
+  const initialChurn =
+    user.allowableChurnPercent == null ? 7 : Number(user.allowableChurnPercent);
+  const [allowableChurn, setAllowableChurn] = useState<number>(initialChurn);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,6 +61,13 @@ export function EditUserDialog({
       patch.samHeadId = null;
     }
     if (resetPassword && password.trim().length >= 6) patch.password = password;
+    // Allowable churn — only send when changed and inside the 6.00–8.00 window.
+    // The slider clamps so we shouldn't see out-of-range here; this is just
+    // defence-in-depth against direct keyboard input.
+    const churnRounded = Math.round(allowableChurn * 100) / 100;
+    if (Math.abs(churnRounded - initialChurn) > 0.001) {
+      patch.allowableChurnPercent = churnRounded;
+    }
     return patch;
   }
 
@@ -69,6 +79,10 @@ export function EditUserDialog({
     }
     if (resetPassword && password.trim().length < 6) {
       setError('New password must be at least 6 characters.');
+      return;
+    }
+    if (allowableChurn < 6 || allowableChurn > 8) {
+      setError('Allowable churn must be between 6.00% and 8.00%.');
       return;
     }
     const patch = buildPatch();
@@ -160,6 +174,41 @@ export function EditUserDialog({
                   )}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {role === 'SAM' && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-allowable-churn">
+                Allowable churn (% of start-of-period ARC){' '}
+                <span className="text-gray-400 font-normal text-xs">— between 6.00 and 8.00</span>
+              </Label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="edit-allowable-churn"
+                  type="range"
+                  min={6}
+                  max={8}
+                  step={0.05}
+                  value={allowableChurn}
+                  onChange={(e) => setAllowableChurn(Number(e.target.value))}
+                  className="flex-1 accent-orange-600"
+                />
+                <Input
+                  type="number"
+                  min={6}
+                  max={8}
+                  step={0.05}
+                  value={allowableChurn}
+                  onChange={(e) => setAllowableChurn(Number(e.target.value))}
+                  className="w-20 text-right tabular-nums"
+                />
+                <span className="text-sm text-gray-500">%</span>
+              </div>
+              <p className="text-xs text-gray-500">
+                Net churn (disconnections + downgrades − upgrades) below this % keeps
+                the SAM eligible for their incentive.
+              </p>
             </div>
           )}
 

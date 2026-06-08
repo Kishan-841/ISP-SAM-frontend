@@ -72,6 +72,13 @@ export type SamDetail = {
     staleMoms: number;
     day21Prompts: number;
   };
+  churn: {
+    netChurnArc: number;
+    netChurnPercent: number;
+    allowableChurnPercent: number;
+    churnHeadroomPercent: number;
+    churnStatus: 'under_budget' | 'over_budget';
+  };
 };
 
 export function getSamDetail(

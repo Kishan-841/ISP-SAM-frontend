@@ -6,6 +6,8 @@ export type CommercialChangeType =
   | 'RATE_REVISION'
   | 'DISCONNECTION';
 
+export type ChurnStatus = 'under_budget' | 'over_budget';
+
 export type SamRow = {
   userId: string;
   name: string;
@@ -24,6 +26,14 @@ export type SamRow = {
   activationPending: number;
   customersWithoutMeeting: number;
   reliabilityScore: number;
+  /** Net ARC churn = disconnections + downgrades − upgrades (positive = loss). */
+  netChurnArc: number;
+  netChurnPercent: number;
+  /** Per-SAM allowable churn ceiling (range 6.00–8.00). */
+  allowableChurnPercent: number;
+  /** allowableChurnPercent − netChurnPercent. Positive = under budget = incentive-eligible. */
+  churnHeadroomPercent: number;
+  churnStatus: ChurnStatus;
 };
 
 export type TeamPerformance = {
@@ -41,6 +51,12 @@ export type TeamPerformance = {
     meetingsHeld: number;
     activationPending: number;
     customersWithoutMeeting30d: number;
+    netChurnArc: number;
+    netChurnPercent: number;
+    /** ARC-weighted allowable churn across the team. */
+    allowableChurnPercent: number;
+    churnHeadroomPercent: number;
+    samsOverBudget: number;
   };
   sams: SamRow[];
 };
