@@ -4,6 +4,7 @@ import {
   BarChart3,
   TrendingUp,
   TrendingDown,
+  Minus,
   Shield,
   UserX,
   ShieldAlert,
@@ -115,9 +116,23 @@ export default async function ExistingBaseDashboardPage({
                 <span className="text-gray-500">since April 1</span>
               </DeltaTrend>
             }
-            icon={BarChart3}
-            iconBg="bg-orange-50"
-            iconColor="text-brand-600"
+            icon={
+              netDeltaRupees > 0 ? TrendingUp : netDeltaRupees < 0 ? TrendingDown : Minus
+            }
+            iconBg={
+              netDeltaRupees > 0
+                ? 'bg-emerald-50'
+                : netDeltaRupees < 0
+                  ? 'bg-red-50'
+                  : 'bg-gray-50'
+            }
+            iconColor={
+              netDeltaRupees > 0
+                ? 'text-emerald-600'
+                : netDeltaRupees < 0
+                  ? 'text-red-600'
+                  : 'text-gray-400'
+            }
             href="/customers?kittyType=BASE&status=ACTIVE"
           />
         </div>

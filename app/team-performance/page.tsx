@@ -6,6 +6,9 @@ import {
   CalendarClock,
   ArrowRight,
   ShieldCheck,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { getCookieHeader } from '../../lib/get-cookie-header';
@@ -69,9 +72,33 @@ export default async function TeamPerformancePage() {
                 'No baseline yet'
               )
             }
-            icon={Wallet}
-            iconBg="bg-orange-50"
-            iconColor="text-brand-600"
+            icon={
+              team.startOfPeriodArc === 0
+                ? Wallet
+                : team.arcDelta > 0
+                  ? TrendingUp
+                  : team.arcDelta < 0
+                    ? TrendingDown
+                    : Minus
+            }
+            iconBg={
+              team.startOfPeriodArc === 0
+                ? 'bg-orange-50'
+                : team.arcDelta > 0
+                  ? 'bg-emerald-50'
+                  : team.arcDelta < 0
+                    ? 'bg-red-50'
+                    : 'bg-gray-50'
+            }
+            iconColor={
+              team.startOfPeriodArc === 0
+                ? 'text-brand-600'
+                : team.arcDelta > 0
+                  ? 'text-emerald-600'
+                  : team.arcDelta < 0
+                    ? 'text-red-600'
+                    : 'text-gray-400'
+            }
           />
           <StatCard
             title="Commercial changes"
