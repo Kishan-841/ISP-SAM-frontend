@@ -19,6 +19,7 @@ import { StatusPill, type PillTone } from '../../components/status-pill';
 import { RevenueWaterfall } from '../../components/revenue-waterfall';
 import { WaterfallDetail } from '../../components/waterfall-detail';
 import { ExpandableArc } from '../../components/expandable-arc';
+import { DeltaTrend } from '../../components/delta-trend';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { getNewBaseMetrics } from '../../services/dashboard';
 import { formatDate } from '../../lib/format-date';
@@ -110,9 +111,10 @@ export default async function NewBaseDashboardPage() {
             title="Current ARC"
             value={<ExpandableArc value={currentArcRupees} />}
             subtitle={
-              <>
-                Δ <ExpandableArc value={netDeltaRupees} signed className="text-xs" /> since onboarding
-              </>
+              <DeltaTrend value={netDeltaRupees}>
+                <ExpandableArc value={netDeltaRupees} signed className="text-xs" />
+                <span className="text-gray-500">since onboarding</span>
+              </DeltaTrend>
             }
             icon={BarChart3}
             iconBg="bg-orange-50"

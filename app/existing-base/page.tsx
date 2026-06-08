@@ -15,6 +15,7 @@ import { QuarterFilter } from '../../components/quarter-filter';
 import { RevenueWaterfall } from '../../components/revenue-waterfall';
 import { WaterfallDetail } from '../../components/waterfall-detail';
 import { ExpandableArc } from '../../components/expandable-arc';
+import { DeltaTrend } from '../../components/delta-trend';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { getExistingBaseMetrics, type FyQuarter } from '../../services/dashboard';
 import { formatRupeesCompact } from '../../lib/format-rupees';
@@ -109,9 +110,10 @@ export default async function ExistingBaseDashboardPage({
             title="Current ARC"
             value={<ExpandableArc value={currentArcRupees} />}
             subtitle={
-              <>
-                Δ <ExpandableArc value={netDeltaRupees} signed className="text-xs" /> since April 1
-              </>
+              <DeltaTrend value={netDeltaRupees}>
+                <ExpandableArc value={netDeltaRupees} signed className="text-xs" />
+                <span className="text-gray-500">since April 1</span>
+              </DeltaTrend>
             }
             icon={BarChart3}
             iconBg="bg-orange-50"

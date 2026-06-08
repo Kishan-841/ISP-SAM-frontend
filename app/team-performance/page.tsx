@@ -15,6 +15,7 @@ import { PageHeader, SectionHeading } from '../../components/page-header';
 import { StatCard } from '../../components/stat-card';
 import { ArcPerSamChart, ChangesPerSamChart } from '../../components/team-charts';
 import { ChurnPill } from '../../components/churn-pill';
+import { DeltaTrend } from '../../components/delta-trend';
 import { formatRupeesCompact } from '../../lib/format-rupees';
 
 export default async function TeamPerformancePage() {
@@ -59,9 +60,14 @@ export default async function TeamPerformancePage() {
             title="ARC managed"
             value={formatRupeesCompact(team.totalArc)}
             subtitle={
-              team.startOfPeriodArc > 0
-                ? `Δ ${formatRupeesCompact(team.arcDelta, { signed: true })} since start`
-                : 'No baseline yet'
+              team.startOfPeriodArc > 0 ? (
+                <DeltaTrend value={team.arcDelta}>
+                  <span>{formatRupeesCompact(team.arcDelta, { signed: true })}</span>
+                  <span className="text-gray-500">since start</span>
+                </DeltaTrend>
+              ) : (
+                'No baseline yet'
+              )
             }
             icon={Wallet}
             iconBg="bg-orange-50"
