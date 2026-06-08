@@ -876,16 +876,16 @@ export function CommercialChangeForm({
                 <UploadSlot
                   icon={FileSignature}
                   label="Client approval"
-                  caption="Customer's email or signed PDF"
+                  caption="Customer's email, PDF, scan, screenshot — anything"
                   state={approvalFile ? 'done' : 'pending'}
                   accent="indigo"
                   optional
                 >
                   <FileDropZone
-                    accept=".eml,.msg,.pdf"
+                    accept="*"
                     file={approvalFile}
                     onFileChange={setApprovalFile}
-                    helper=".eml, .msg or .pdf · up to 10 MB"
+                    helper="Any file format · up to 10 MB"
                     disabled={submitting}
                   />
                 </UploadSlot>
@@ -898,10 +898,10 @@ export function CommercialChangeForm({
                   optional
                 >
                   <FileDropZone
-                    accept=".eml,.msg,.pdf"
+                    accept="*"
                     file={poFile}
                     onFileChange={setPoFile}
-                    helper=".eml, .msg or .pdf · up to 10 MB"
+                    helper="Any file format · up to 10 MB"
                     disabled={submitting}
                   />
                 </UploadSlot>
