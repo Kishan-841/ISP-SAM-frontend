@@ -155,7 +155,28 @@ export function CustomersTable({
       header: 'Current ARC',
       sortable: true,
       align: 'right',
-      cell: (a) => formatRupeesCompact(Number(a.currentArc)),
+      cell: (a) => {
+        // For terminated accounts: show the ARC the customer was paying
+        // immediately before the disconnection, struck through, with a
+        // small "lost" tag. Falls back to ₹0 only when we don't have
+        // the disconnection change row (legacy / hand-terminated).
+        if (a.contractStatus === 'TERMINATED' && a.lastDisconnectionArc != null) {
+          return (
+            <span
+              className="inline-flex items-center gap-1.5"
+              title={`Was paying ${formatRupeesCompact(a.lastDisconnectionArc)} before disconnection`}
+            >
+              <span className="line-through text-gray-400 font-normal">
+                {formatRupeesCompact(a.lastDisconnectionArc)}
+              </span>
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-red-600 bg-red-50 ring-1 ring-red-100 rounded-full px-1.5 py-0.5">
+                lost
+              </span>
+            </span>
+          );
+        }
+        return formatRupeesCompact(Number(a.currentArc));
+      },
       className: 'px-5 py-4 text-sm font-medium text-gray-900 text-right',
     },
     {

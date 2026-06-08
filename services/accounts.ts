@@ -57,6 +57,13 @@ export type Account = {
   /** Current owner — null when the customer is unassigned (CRM-synced, awaiting triage). */
   samOwnerId?: string | null;
   samOwner?: AccountOwner | null;
+  /**
+   * For TERMINATED accounts, the ARC the customer was paying right
+   * before the disconnection took effect (oldArc from the most recent
+   * applied DISCONNECTION change). `null` for active accounts — they
+   * use `currentArc` instead.
+   */
+  lastDisconnectionArc?: number | null;
 };
 
 export type OwnerFilter = 'mine' | 'unassigned' | 'team' | 'all';
