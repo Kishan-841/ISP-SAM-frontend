@@ -169,7 +169,7 @@ export default async function TeamPerformancePage() {
         ) : (
           <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[1100px]">
+              <table className="w-full text-sm min-w-[1000px]">
                 <thead className="bg-gray-50/60 border-b border-gray-100">
                   <tr>
                     <Th>SAM</Th>
@@ -180,7 +180,6 @@ export default async function TeamPerformancePage() {
                     <Th align="center">Changes</Th>
                     <Th align="center">Meetings</Th>
                     <Th align="center">MOM SLA</Th>
-                    <Th align="center">Approval</Th>
                     <Th />
                   </tr>
                 </thead>
@@ -234,9 +233,6 @@ function SamTableRow({ sam }: { sam: import('../../services/team-performance').S
       </td>
       <td className="px-5 py-4 text-center">
         <PercentPill value={sam.momSlaPercent} good={70} ok={50} />
-      </td>
-      <td className="px-5 py-4 text-center">
-        <PercentPill value={sam.approvalPercent} good={95} ok={80} />
       </td>
       <td className="px-5 py-4 text-right">
         <Link
