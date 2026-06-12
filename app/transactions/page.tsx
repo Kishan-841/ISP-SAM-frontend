@@ -5,8 +5,10 @@ import {
   ArrowUpDown,
   XCircle,
   ListChecks,
+  Upload,
 } from 'lucide-react';
 import { getCommercialChanges } from '../../services/commercial-changes';
+import { getMe } from '../../services/auth';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { PageHeader } from '../../components/page-header';
 import { TransactionsTable } from '../../components/transactions-table';
@@ -74,7 +76,11 @@ export default async function TransactionsPage({
   // Always pull the full set so the chip badges can show counts; filter
   // client-rendered list off `validType`. Cheap because /commercial-changes
   // is paginated upstream of large volumes.
-  const { changes: allChanges } = await getCommercialChanges({}, { cookieHeader });
+  const [{ changes: allChanges }, me] = await Promise.all([
+    getCommercialChanges({}, { cookieHeader }),
+    getMe({ cookieHeader }).catch(() => null),
+  ]);
+  const isAdmin = me?.user?.role === 'ADMIN';
   const changes = validType
     ? allChanges.filter((c) => c.changeType === validType)
     : allChanges;
@@ -94,7 +100,21 @@ export default async function TransactionsPage({
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl flex flex-col gap-4">
-      <PageHeader title={title} subtitle={subtitle} />
+      <PageHeader
+        title={title}
+        subtitle={subtitle}
+        right={
+          isAdmin ? (
+            <Link
+              href="/transactions/bulk-import"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Bulk import
+            </Link>
+          ) : undefined
+        }
+      />
 
       {/* Type filter chips */}
       <div className="flex flex-wrap items-center gap-2">
