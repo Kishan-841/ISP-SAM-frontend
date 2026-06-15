@@ -124,42 +124,43 @@ export function MomFormattedPreview(input: MomFormattedPreviewInput) {
   ];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="bg-[#ea580c] px-8 py-7">
-        <div className="text-[22px] font-bold text-white tracking-tight">
-          Minutes of Meeting
+    <div className="max-w-3xl mx-auto">
+      {/* SAM's body content — rendered OUTSIDE the styled card so it reads
+          like a personal plain-text note that happens to be followed by a
+          formatted attachment. Matches mom-to-customer.ts. */}
+      {input.body.trim() && (
+        <div className="px-1 py-2 mb-5 text-[14px] text-gray-900 leading-relaxed">
+          <FormattedBody raw={input.body} />
         </div>
-        <div className="mt-2 text-sm text-orange-100">{input.customerName}</div>
-      </div>
+      )}
 
-      {/* Body */}
-      <div className="px-8 py-7">
-        {/* Key/value details */}
-        <table className="w-full mb-6">
-          <tbody>
-            <DetailRow label="Date" value={formatDate(heldOrScheduled)} />
-            <DetailRow label="Time" value={formatTime(heldOrScheduled)} />
-            <DetailRow
-              label="Type"
-              value={input.meetingType === 'PHYSICAL' ? 'Physical' : 'Online'}
-            />
-            {input.meetingType === 'PHYSICAL' && input.location && (
-              <DetailRow label="Venue" value={input.location} />
-            )}
-          </tbody>
-        </table>
-
-        {/* User body — rendered BEFORE the tables so the SAM's salutation
-            and intro sits at the top of the email, above the structured
-            participants/action-items tables. Matches mom-to-customer.ts. */}
-        {input.body.trim() && (
-          <div className="mb-5">
-            <FormattedBody raw={input.body} />
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        {/* Header */}
+        <div className="bg-[#ea580c] px-8 py-7">
+          <div className="text-[22px] font-bold text-white tracking-tight">
+            Minutes of Meeting
           </div>
-        )}
+          <div className="mt-2 text-sm text-orange-100">{input.customerName}</div>
+        </div>
 
-        {/* Participants */}
+        {/* Body */}
+        <div className="px-8 py-7">
+          {/* Key/value details */}
+          <table className="w-full mb-6">
+            <tbody>
+              <DetailRow label="Date" value={formatDate(heldOrScheduled)} />
+              <DetailRow label="Time" value={formatTime(heldOrScheduled)} />
+              <DetailRow
+                label="Type"
+                value={input.meetingType === 'PHYSICAL' ? 'Physical' : 'Online'}
+              />
+              {input.meetingType === 'PHYSICAL' && input.location && (
+                <DetailRow label="Venue" value={input.location} />
+              )}
+            </tbody>
+          </table>
+
+          {/* Participants */}
         {allParticipants.length > 0 && (
           <>
             <div className="text-[15px] font-bold text-gray-900 mb-2.5">Participants</div>
@@ -271,6 +272,7 @@ export function MomFormattedPreview(input: MomFormattedPreviewInput) {
           {input.phone.trim() && (
             <div className="mt-1 text-[13px] text-gray-500">Phone: {input.phone}</div>
           )}
+        </div>
         </div>
       </div>
     </div>
