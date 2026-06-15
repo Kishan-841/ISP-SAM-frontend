@@ -92,10 +92,15 @@ export function AddMomDialog({
     existingMeeting && parseParticipants(existingMeeting.gazonParticipants).length > 0
       ? parseParticipants(existingMeeting.gazonParticipants)
       : [{ name: '', position: '' }];
+  // Edit mode: use what's saved. Create mode: prefill the five standard
+  // rows the SAM team copy-pastes into every MOM (client portal, MRTG,
+  // escalation matrix, service issues, feedback form). The SAM still edits
+  // anything they want — the prefill is just a starting point so they're
+  // not building the MOM from a blank row every time.
   const initialItems =
     existingMeeting?.actionItems && existingMeeting.actionItems.length > 0
       ? existingMeeting.actionItems
-      : [blankItem(1)];
+      : defaultActionItems();
 
   // ── Step 1: meeting details ────────────────────────────────────────
   const [accountId, setAccountId] = useState(existingMeeting?.accountId ?? '');
@@ -1152,6 +1157,77 @@ function blankItem(srNo: number): ActionItem {
     closureDate: null,
     currentStatus: 'Open',
   };
+}
+
+/**
+ * Five-row template the SAM team uses on every MOM email. SAM edits the
+ * <placeholder> values per customer (URL credentials, circuit id, etc.)
+ * and ships it. Status defaults match the typical real meeting outcome:
+ * the first three + the last are closed-out hand-offs of standard info,
+ * service issues stays Open for ongoing tracking.
+ *
+ * Today's date is used as the default closure for closed-out rows so the
+ * SAM doesn't have to fill it five times. They can change anything.
+ */
+function defaultActionItems(): ActionItem[] {
+  const today = todayIso();
+  return [
+    {
+      srNo: 1,
+      discussionDescription: 'Client Portal',
+      actionOwner: 'NOC / Vaibhav',
+      planOfAction:
+        'Please find your Gazon Fiber Client Portal Login details below:\n' +
+        'URL: https://enterprise.gazonfiber.com/synnefoclient/\n' +
+        'USERNAME: <username>\n' +
+        'PASSWORD: <password>\n' +
+        'CIRCUIT ID: <circuit_id>',
+      closureDate: today,
+      currentStatus: 'Closed',
+    },
+    {
+      srNo: 2,
+      discussionDescription: 'MRTG Access',
+      actionOwner: 'NOC / Vaibhav',
+      planOfAction:
+        'Please find the graph URL and credentials to check the utilization.\n' +
+        'URL: http://nms.gazonindia.com/graph/\n' +
+        'Username: <circuit_id>\n' +
+        'Password: <circuit_id>',
+      closureDate: today,
+      currentStatus: 'Closed',
+    },
+    {
+      srNo: 3,
+      discussionDescription: 'Data Escalation Matrix',
+      actionOwner: '<SAM name>',
+      planOfAction: 'Please find the attached escalation matrix for your reference.',
+      closureDate: today,
+      currentStatus: 'Closed',
+    },
+    {
+      srNo: 4,
+      discussionDescription: 'Service Issues',
+      actionOwner: 'NOC / Vaibhav',
+      planOfAction:
+        'Currently, there are no service issues and the service is functioning ' +
+        'smoothly. However, earlier there were instances related to link downtime, ' +
+        'communication gaps, and delays in timely updates, which we have noted ' +
+        'and are continuously working to improve for a better service experience ' +
+        'going forward.',
+      closureDate: null,
+      currentStatus: 'Open',
+    },
+    {
+      srNo: 5,
+      discussionDescription: 'Feedback and Inspection Form',
+      actionOwner: '<SAM name>',
+      planOfAction:
+        'Feedback and comments have been filled by you. We appreciate your efforts.',
+      closureDate: today,
+      currentStatus: 'Closed',
+    },
+  ];
 }
 
 function labelFor(a: Account): string {

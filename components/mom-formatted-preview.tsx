@@ -150,6 +150,15 @@ export function MomFormattedPreview(input: MomFormattedPreviewInput) {
           </tbody>
         </table>
 
+        {/* User body — rendered BEFORE the tables so the SAM's salutation
+            and intro sits at the top of the email, above the structured
+            participants/action-items tables. Matches mom-to-customer.ts. */}
+        {input.body.trim() && (
+          <div className="mb-5">
+            <FormattedBody raw={input.body} />
+          </div>
+        )}
+
         {/* Participants */}
         {allParticipants.length > 0 && (
           <>
@@ -242,13 +251,6 @@ export function MomFormattedPreview(input: MomFormattedPreviewInput) {
               </table>
             </div>
           </>
-        )}
-
-        {/* User body */}
-        {input.body.trim() && (
-          <div className="mt-5">
-            <FormattedBody raw={input.body} />
-          </div>
         )}
 
         <p className="mt-6 text-[14px] text-gray-700 leading-relaxed">
