@@ -10,8 +10,8 @@ import {
   Eye,
   Plus,
   RefreshCw,
+  Save,
   Search,
-  Send,
   Trash2,
   X,
 } from 'lucide-react';
@@ -41,7 +41,6 @@ import {
   previewMomEmail,
   sendMomEmail,
   type ActionItem,
-  type EmailDispatchStatus,
   type MeetingRow,
   type MeetingType,
 } from '../services/meetings';
@@ -130,7 +129,13 @@ export function AddMomDialog({
   const [bodyEdited, setBodyEdited] = useState(!!existingMeeting?.momContent);
   const [designation, setDesignation] = useState('');
   const [phone, setPhone] = useState('');
-  const [testMode, setTestMode] = useState(false);
+  // The dialog used to support a "test mode" that saved without sending. Per
+  // product feedback, the save-without-sending path is now the ONLY path —
+  // the SAM uses "Copy for Outlook" if they want to actually mail it. So
+  // every submit behaves as the old test mode did; we keep the boolean
+  // hardcoded `true` to avoid threading a new flag through the API
+  // boundary (services + backend already understand it).
+  const testMode = true;
 
   const [previewKey, setPreviewKey] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -225,7 +230,6 @@ export function AddMomDialog({
     setBodyEdited(!!existingMeeting?.momContent);
     setDesignation('');
     setPhone('');
-    setTestMode(false);
     setPreviewKey(0);
     setError(null);
     setSuccess(null);
@@ -306,9 +310,8 @@ export function AddMomDialog({
   }
 
   async function submit() {
-    if (!testMode && !to.trim()) return setError('Recipient email is required.');
     if (!subject.trim()) return setError('Subject is required.');
-    if (!body.trim()) return setError('Email body is required.');
+    if (!body.trim()) return setError('MOM body is required.');
 
     setSubmitting(true);
     setError(null);
@@ -340,46 +343,23 @@ export function AddMomDialog({
             location: meetingType === 'PHYSICAL' ? location.trim() || undefined : undefined,
             ...sharedPayload,
           });
-      const { emailStatus, emailReason } = result;
-      const recipient = to.trim() || selectedAccount?.email || 'the customer';
-
-      if (testMode) {
-        const msg =
-          'Test run complete — meeting saved, no email dispatched. Toggle off "Test mode" to send for real.';
-        setSuccess(msg);
-        toast.info('Test run saved', {
-          description: 'No email was dispatched (test mode was on).',
-        });
-      } else if (emailStatus === 'SENT') {
-        toast.success(`MoM email sent to ${recipient}`, {
-          description: emailReason ? undefined : 'Customer should receive it within a few seconds.',
-        });
-        setOpen(false);
-        reset();
-      } else {
-        const fallback = fallbackMessage(emailStatus);
-        const rawReason = emailReason || fallback;
-        const friendly = friendlyEmailError(emailReason);
-        const inlineMessage = friendly
-          ? `MoM saved, but the email did not go out. ${friendly.headline} ${friendly.hint}`
-          : `MoM saved, but the email did not go out. ${rawReason}`;
-        setError(inlineMessage);
-        toast.error(friendly?.headline ?? 'Email not sent', {
-          description: friendly?.hint ?? rawReason,
-          duration: 10000,
-        });
-        // Dump the raw provider error to the console so devs / support can
-        // copy-paste it without re-running the request.
-        // eslint-disable-next-line no-console
-        console.warn('[MoM email send failed]', { emailStatus, emailReason, recipient });
-      }
+      // `result` is intentionally ignored — testMode=true means no email
+      // dispatch attempted, so emailStatus/emailReason carry no useful
+      // signal. Save success is the only thing the SAM cares about here.
+      void result;
+      toast.success('MOM saved', {
+        description:
+          'Meeting record updated. Use "Copy for Outlook" if you want to mail this MOM yourself.',
+      });
+      setOpen(false);
+      reset();
       router.refresh();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to send MoM email';
+      const msg = err instanceof Error ? err.message : 'Failed to save MOM';
       setError(msg);
-      toast.error('Failed to send MoM email', { description: msg, duration: 10000 });
+      toast.error('Failed to save MOM', { description: msg, duration: 10000 });
       // eslint-disable-next-line no-console
-      console.error('[MoM email send threw]', err);
+      console.error('[MoM save threw]', err);
     } finally {
       setSubmitting(false);
     }
@@ -412,14 +392,14 @@ export function AddMomDialog({
               ? editing
                 ? 'Complete Meeting'
                 : 'Add MOM'
-              : 'Send MOM Email'}
+              : 'Save MOM'}
           </DialogTitle>
           <DialogDescription className="text-sm text-gray-600">
             {step === 1
               ? editing
-                ? 'Fill in participants, action items and minutes — then compose the email.'
+                ? 'Fill in participants, action items and minutes.'
                 : 'Record minutes of a meeting'
-              : 'Compose the minutes-of-meeting email — preview it, then send to the customer.'}
+              : 'Preview the formatted MOM, then save the record. Use "Copy for Outlook" if you want to mail it from your own account.'}
           </DialogDescription>
           <StepIndicator step={step} />
         </DialogHeader>
@@ -683,26 +663,7 @@ export function AddMomDialog({
                 <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
                 Refresh Preview
               </Button>
-              <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={testMode}
-                  onChange={(e) => setTestMode(e.target.checked)}
-                  className="w-4 h-4 accent-orange-600"
-                />
-                <span className="text-sm text-gray-700">
-                  Test mode <span className="text-gray-500">— don&apos;t send email</span>
-                </span>
-              </label>
             </div>
-
-            {testMode && (
-              <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                Test mode is ON. Submitting will save the meeting and MoM record, but no email
-                will leave the box. Audit logs the attempt with{' '}
-                <code className="bg-amber-100 px-1 rounded">testMode=true</code>.
-              </div>
-            )}
 
             <div className="border-t border-gray-100 pt-5">
               <div className="flex items-center gap-2 mb-3">
@@ -795,18 +756,11 @@ export function AddMomDialog({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={
-                    (!testMode && !to) || !subject || !body || submitting || copying
-                  }
+                  disabled={!subject || !body || submitting || copying}
+                  title="Save the meeting + MOM record. No email is sent — use 'Copy for Outlook' to send via your own mail client."
                 >
-                  <Send className="w-4 h-4 mr-2" />
-                  {submitting
-                    ? testMode
-                      ? 'Saving…'
-                      : 'Sending…'
-                    : testMode
-                      ? 'Save (Test)'
-                      : 'Send Email'}
+                  <Save className="w-4 h-4 mr-2" />
+                  {submitting ? 'Saving…' : 'Save MOM'}
                 </Button>
               </div>
             </div>
@@ -1040,77 +994,6 @@ function ActionItemsTable({
   );
 }
 
-function fallbackMessage(status: EmailDispatchStatus): string {
-  switch (status) {
-    case 'SKIPPED':
-      return 'Email transport is currently disabled — no email was sent.';
-    case 'MISCONFIGURED':
-      return 'Recipient or sender misconfigured. Check audit log for details.';
-    case 'FAILED':
-      return 'Email transport returned a failure. Check audit log for details.';
-    case 'SENT':
-      return '';
-  }
-}
-
-/**
- * Translate the raw provider error string from the audit log into a one-line
- * headline + a one-line actionable hint. Picks the first pattern that matches.
- * Returns null when nothing matches — caller falls back to the raw text.
- *
- * Patterns are matched substring-insensitive against the WHOLE reason string
- * so they catch both the orchestrator's prefix (e.g. "Netcore rejected: …")
- * and the provider's own wording.
- */
-function friendlyEmailError(
-  reason: string | undefined,
-): { headline: string; hint: string } | null {
-  if (!reason) return null;
-  const r = reason.toLowerCase();
-
-  if (r.includes('whitelist your ip') || r.includes('please whitelist')) {
-    return {
-      headline: 'Netcore rejected: this server’s IP isn’t allowlisted.',
-      hint:
-        'Ask your admin to add the backend’s public IP to the Netcore API-key allowlist. ' +
-        'See backend audit log for the exact reason.',
-    };
-  }
-  if (r.includes('invalid api_key') || r.includes('invalid api key')) {
-    return {
-      headline: 'Netcore rejected: API key is invalid.',
-      hint:
-        'The NETCORE_API_KEY in the backend env doesn’t match any active key on Netcore. ' +
-        'Admin needs to re-copy from the Netcore dashboard.',
-    };
-  }
-  if (r.includes('domain') && (r.includes('not verified') || r.includes('unverified'))) {
-    return {
-      headline: 'Sender domain not verified on Netcore.',
-      hint: 'The sender address’ domain has to be DKIM/SPF-verified in Netcore.',
-    };
-  }
-  if (r.includes('no customer email')) {
-    return {
-      headline: 'This customer has no email address on record.',
-      hint: 'Edit the customer to add an email, then resend.',
-    };
-  }
-  if (r.includes('not configured') || r.includes('transport not configured')) {
-    return {
-      headline: 'Email transport is disabled on the server.',
-      hint: 'Admin needs to flip EMAIL_TRANSPORT to netcore/resend/smtp and restart the backend.',
-    };
-  }
-  if (r.includes('network error') || r.includes('econnrefused') || r.includes('etimedout')) {
-    return {
-      headline: 'Couldn’t reach the email provider.',
-      hint: 'Likely a network / firewall issue. Try again in a minute; if it persists, contact admin.',
-    };
-  }
-  return null;
-}
-
 // ─── Body autocompose ─────────────────────────────────────────────────
 
 function composeBodyFromMeeting(input: {
@@ -1263,15 +1146,3 @@ function formatHumanDate(isoDate: string): string {
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function formatHumanDateTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-}
