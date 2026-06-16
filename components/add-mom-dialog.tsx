@@ -996,29 +996,57 @@ function ActionItemsTable({
 
 // ─── Body autocompose ─────────────────────────────────────────────────
 
-function composeBodyFromMeeting(input: {
+/**
+ * Default prefilled MOM body. The SAM can edit anything in the textarea
+ * before saving — this is just a starting point that matches the team's
+ * standard customer-facing language.
+ *
+ * `input` is intentionally unused right now (no name/company interpolation,
+ * the team prefers a generic "Sir / Madam" salutation). Keeping the param
+ * shape so all the callers can stay unchanged and we can wire in
+ * personalisation later without another refactor.
+ */
+function composeBodyFromMeeting(_input: {
   clientName: string;
   companyName: string | null;
   actionItems: ActionItem[];
 }): string {
-  const lines: string[] = [];
-  lines.push(`Dear ${input.clientName},`);
-  lines.push('');
-  lines.push(
-    'Thank you for your time. Please find below the minutes of our recent meeting.',
-  );
-  if (input.actionItems.length > 0) {
-    lines.push('');
-    lines.push('Action items:');
-    for (const it of input.actionItems) {
-      const owner = it.actionOwner ? ` (Owner: ${it.actionOwner})` : '';
-      const plan = it.planOfAction ? ` — ${it.planOfAction}` : '';
-      lines.push(`- ${it.discussionDescription}${owner}${plan}`);
-    }
-  }
-  lines.push('');
-  lines.push('Reply to this email if anything needs correction.');
-  return lines.join('\n');
+  return [
+    'Dear Sir / Madam,',
+    '',
+    "Thank you for your valuable time during today's meeting.",
+    'Please find below the Minutes of Meeting (MoM) for your reference and necessary action.',
+    '',
+    'Minutes of Meeting (MOM)',
+    '',
+    'Introduction of Dedicated Service Manager',
+    'I introduced myself as your dedicated Service Manager and primary point of contact for all service-related requirements.',
+    'You may reach out to me directly for any concerns, queries, or support related to your services.',
+    '',
+    'Service & Support Discussion',
+    'We discussed the current status of your services.',
+    'You confirmed that there are currently no issues related to billing, connectivity, or link performance.',
+    '',
+    'Escalation Matrix',
+    'I have shared the latest escalation matrix for your reference.',
+    'The escalation matrix can be used to reach the appropriate support team in case of any service-related concerns.',
+    '',
+    'Company Service Portfolio Update',
+    'We discussed that our organization is now a Class-A ISP Provider, enabling us to deliver enhanced connectivity solutions and support services.',
+    'We also provide the following value-added services:',
+    '- Cloud Services',
+    '- Managed Firewall Solutions',
+    '- Backup Solutions',
+    '- Bandwidth on Demand (BoD) Services',
+    '',
+    'Future Support',
+    'We assured you of our continuous support and assistance for any existing or future service requirements.',
+    'Please feel free to contact me at any time should you require any assistance.',
+    '',
+    'Thank you for your continued association with us.',
+    '',
+    'Warm regards from Gazon Communications India Ltd.',
+  ].join('\n');
 }
 
 // ─── Tiny utils ───────────────────────────────────────────────────────
