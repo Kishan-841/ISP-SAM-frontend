@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
-import { ArrowRight, CheckCircle2, FileSpreadsheet, RefreshCcw, XCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronDown, ChevronRight, FileSpreadsheet, RefreshCcw, XCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -283,45 +283,85 @@ const RECOGNIZED_COLUMNS: Array<{
 ];
 
 function RecognizedColumnsTable() {
+  // The reference table is 22 rows tall and pushes the Upload button several
+  // viewports down. Collapsed by default so the form is compact at first
+  // sight — admins who actually need to verify column spellings click to
+  // expand. Toggle survives across mount.
+  const [expanded, setExpanded] = useState(false);
+  const required = RECOGNIZED_COLUMNS.filter((c) => c.required);
+
   return (
-    <div className="border border-gray-200 rounded-lg overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-56">Field</TableHead>
-            <TableHead>Header spellings accepted</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {RECOGNIZED_COLUMNS.map((c) => (
-            <TableRow key={c.field}>
-              <TableCell className="font-medium text-gray-900 align-top">
-                <div className="flex items-center gap-1.5">
-                  <span>{c.field}</span>
-                  {c.required && (
-                    <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-100 text-red-700">
-                      Required
-                    </span>
-                  )}
-                </div>
-                {c.hint && <p className="text-[11px] text-gray-500 mt-1 font-normal">{c.hint}</p>}
-              </TableCell>
-              <TableCell className="text-gray-700 text-sm">
-                <div className="flex flex-wrap gap-1.5">
-                  {c.spellings.map((s) => (
-                    <span
-                      key={s}
-                      className="inline-block px-2 py-0.5 rounded text-[12px] bg-gray-100 text-gray-700 font-mono"
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left bg-gray-50 hover:bg-gray-100 transition-colors"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          {expanded ? (
+            <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" aria-hidden="true" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" aria-hidden="true" />
+          )}
+          <span className="text-sm font-medium text-gray-900">
+            {RECOGNIZED_COLUMNS.length} recognised columns
+          </span>
+          {!expanded && (
+            <span className="text-xs text-gray-500 truncate">
+              · required:{' '}
+              {required.map((c) => c.field).join(', ')}
+            </span>
+          )}
+        </div>
+        <span className="text-xs font-medium text-brand-600 shrink-0">
+          {expanded ? 'Hide' : 'Show all spellings'}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-gray-200 overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-56">Field</TableHead>
+                <TableHead>Header spellings accepted</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {RECOGNIZED_COLUMNS.map((c) => (
+                <TableRow key={c.field}>
+                  <TableCell className="font-medium text-gray-900 align-top py-2">
+                    <div className="flex items-center gap-1.5">
+                      <span>{c.field}</span>
+                      {c.required && (
+                        <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-100 text-red-700">
+                          Required
+                        </span>
+                      )}
+                    </div>
+                    {c.hint && (
+                      <p className="text-[11px] text-gray-500 mt-1 font-normal">{c.hint}</p>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-gray-700 text-sm py-2">
+                    <div className="flex flex-wrap gap-1.5">
+                      {c.spellings.map((s) => (
+                        <span
+                          key={s}
+                          className="inline-block px-2 py-0.5 rounded text-[12px] bg-gray-100 text-gray-700 font-mono"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }
