@@ -249,8 +249,8 @@ export function CustomersTable({
         title="Customers"
         totalCount={accounts.length}
         searchable
-        searchPlaceholder="Search by name, code, mobile"
-        searchKeys={['clientName', 'companyName', 'mobileNumber', 'customerCode', 'leadId']}
+        searchPlaceholder="Search by name, code, circuit, mobile"
+        searchKeys={['clientName', 'companyName', 'mobileNumber', 'customerCode', 'circuitId', 'leadId']}
         pagination
         columns={columns}
         rows={accounts}

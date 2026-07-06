@@ -290,8 +290,8 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
         rows={changes}
         rowKey={(c) => c.id}
         searchable
-        searchPlaceholder="Search by customer, code, reason"
-        searchKeys={['account.clientName', 'account.customerCode', 'reason']}
+        searchPlaceholder="Search by customer, code, circuit, reason"
+        searchKeys={['account.clientName', 'account.customerCode', 'account.circuitId', 'reason']}
         pagination
         onRowClick={(row) => setSelected(row)}
         emptyTitle="No commercial changes yet"
