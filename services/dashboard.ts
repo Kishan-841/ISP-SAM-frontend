@@ -21,8 +21,11 @@ export type ExistingBaseMetrics = {
    * Existing-base commercial changes still walking the internal approval
    * chain. Excluded from the buckets / Current ARC until approved.
    * `netArcLakh` is the net ARC that will land once all are approved.
+   *
+   * Optional so the dashboard degrades gracefully during a deploy where the
+   * frontend is live but the backend hasn't shipped this field yet.
    */
-  pendingApproval: {
+  pendingApproval?: {
     count: number;
     netArcLakh: number;
     awaitingSuperAdmin2: number;

@@ -59,7 +59,10 @@ export default async function ExistingBaseDashboardPage({
   const netDeltaRupees = currentArcRupees - startArcRupees;
   const probableChurnArcRupees = metrics.probableChurn.arcAtRiskLakh * LAKH;
   const pendingArcRupees = metrics.pending.netArcLakh * LAKH;
-  const pendingApprovalArcRupees = metrics.pendingApproval.netArcLakh * LAKH;
+  // Guarded: the backend may not yet return `pendingApproval` during a deploy
+  // where the frontend is ahead. Falls back to an empty (count 0) provision.
+  const pendingApprovalCount = metrics.pendingApproval?.count ?? 0;
+  const pendingApprovalArcRupees = (metrics.pendingApproval?.netArcLakh ?? 0) * LAKH;
   // Waterfall now ends at the LIVE Current ARC (matches the headline card)
   // and surfaces the pending CRM adjustment as its own row. The previous
   // computed endArc (start + buckets) implicitly assumed every committed
@@ -143,15 +146,15 @@ export default async function ExistingBaseDashboardPage({
           />
         </div>
 
-        {(metrics.pendingApproval.count > 0 || metrics.probableChurn.count > 0) && (
+        {(pendingApprovalCount > 0 || metrics.probableChurn.count > 0) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            {metrics.pendingApproval.count > 0 && (
+            {pendingApprovalCount > 0 && (
               <HoldingCard
                 tone="indigo"
                 icon={ClipboardCheck}
-                count={metrics.pendingApproval.count}
+                count={pendingApprovalCount}
                 headline={
-                  metrics.pendingApproval.count === 1
+                  pendingApprovalCount === 1
                     ? 'change awaiting approval'
                     : 'changes awaiting approval'
                 }
