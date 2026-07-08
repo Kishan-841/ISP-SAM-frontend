@@ -4,7 +4,7 @@ export type AuthUser = {
   id: string;
   email: string;
   name: string;
-  role: 'ADMIN' | 'SAM_HEAD' | 'SAM';
+  role: 'ADMIN' | 'SAM_HEAD' | 'SAM' | 'ACCOUNTS' | 'SUPER_ADMIN_2';
 };
 
 export function login(email: string, password: string) {

@@ -146,6 +146,8 @@ export function EditUserDialog({
                 <SelectItem value="ADMIN">Admin</SelectItem>
                 <SelectItem value="SAM_HEAD">SAM Head</SelectItem>
                 <SelectItem value="SAM">SAM</SelectItem>
+                <SelectItem value="ACCOUNTS">Accounts</SelectItem>
+                <SelectItem value="SUPER_ADMIN_2">Super Admin 2</SelectItem>
               </SelectContent>
             </Select>
           </div>

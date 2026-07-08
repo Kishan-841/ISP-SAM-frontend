@@ -34,6 +34,10 @@ export type CommercialChangeListItem = {
   quickRequestedDays: number | null;
   quickApprovalReason: string | null;
   quickApprovalDecision: 'APPROVED' | 'REJECTED' | null;
+  /** Internal approval-chain state (BASE only). NOT_REQUIRED on NEW/legacy. */
+  approvalStatus: ApprovalStatus;
+  /** Set when approvalStatus=REJECTED. */
+  rejectionReason: string | null;
   account: {
     id: string;
     clientName: string;
@@ -44,6 +48,14 @@ export type CommercialChangeListItem = {
     externalCrmId: string | null;
   };
 };
+
+export type ApprovalStatus =
+  | 'PENDING_SUPER_ADMIN_2'
+  | 'PENDING_SAM_HEAD'
+  | 'PENDING_ACCOUNTS'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'NOT_REQUIRED';
 
 export type DisconnectionCategory = {
   id: string;
@@ -117,7 +129,8 @@ export type CommitResult = {
     | { ok: 'disabled' }
     | { ok: 'local-only' }
     | { ok: 'probable-churn' }
-    | { ok: 'pending-quick-approval' };
+    | { ok: 'pending-quick-approval' }
+    | { ok: 'pending-approval'; stage: string };
 };
 
 export async function commitCommercialChange(input: CommitInput): Promise<CommitResult> {
@@ -272,6 +285,76 @@ export async function samQuickDecision(
     throw new Error(detail || `Decision failed (${res.status})`);
   }
   return (await res.json()) as { change: { id: string; quickApprovalDecision: string } };
+}
+
+// ─── Internal approval chain (BASE / existing-base) ────────────────────────
+
+export type PendingApproval = {
+  id: string;
+  accountId: string;
+  changeType: ChangeType;
+  approvalStatus: ApprovalStatus;
+  oldArc: number;
+  newArc: number;
+  oldBandwidthMbps: number | null;
+  newBandwidthMbps: number | null;
+  effectiveDate: string;
+  mailReceivedDate: string | null;
+  reason: string | null;
+  disconnectionMode: 'NORMAL' | 'QUICK' | null;
+  disconnectionReason: string | null;
+  quickRequestedDays: number | null;
+  quickApprovalReason: string | null;
+  approvalFileUrl: string | null;
+  poFileUrl: string | null;
+  requestedAt: string;
+  account: {
+    id: string;
+    clientName: string;
+    companyName: string | null;
+    customerCode: string | null;
+    circuitId: string | null;
+    kittyType: 'BASE' | 'NEW';
+    currentArc: number;
+    bandwidthMbps: number | null;
+    contractStatus: string;
+    samOwner: { id: string; name: string; email: string } | null;
+  };
+};
+
+export function getPendingApprovals(opts: ApiOpts = {}) {
+  return apiGet<{ items: PendingApproval[]; total: number }>(
+    '/commercial-changes/approvals',
+    opts,
+  );
+}
+
+export async function approvalDecision(
+  commercialChangeId: string,
+  action: 'APPROVE' | 'REJECT',
+  reason?: string,
+): Promise<{ change: { id: string; approvalStatus: ApprovalStatus } }> {
+  const base = typeof window === 'undefined' ? env.internalApiBase : env.apiBase;
+  const res = await fetch(
+    `${base}/commercial-changes/${commercialChangeId}/approval-decision`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, reason }),
+      cache: 'no-store',
+    },
+  );
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const body = (await res.json()) as { error?: string };
+      detail = body.error ?? '';
+    } catch {
+      detail = await res.text();
+    }
+    throw new Error(detail || `Decision failed (${res.status})`);
+  }
+  return (await res.json()) as { change: { id: string; approvalStatus: ApprovalStatus } };
 }
 
 export async function refreshCrmStatus(id: string): Promise<{ change: CommercialChangeListItem }> {

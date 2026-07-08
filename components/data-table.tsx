@@ -55,6 +55,8 @@ export type DataTableProps<T> = {
   emptyFilteredTitle?: string;
   // Per-row class
   actions?: (row: T) => ReactNode;
+  /** Optional per-row <tr> class — e.g. to highlight rows needing attention. */
+  rowClassName?: (row: T) => string;
   className?: string;
   minWidth?: string;
 };
@@ -84,6 +86,7 @@ export function DataTable<T>({
   emptyIcon = Inbox,
   emptyFilteredTitle = 'No results match your search',
   actions,
+  rowClassName,
   className = '',
   minWidth,
 }: DataTableProps<T>) {
@@ -282,6 +285,7 @@ export function DataTable<T>({
                     onRowClick={onRowClick}
                     renderExpanded={renderExpanded}
                     expanded={expanded}
+                    rowClassName={rowClassName}
                   />
                 );
               })
@@ -326,6 +330,7 @@ function Row<T>({
   onRowClick,
   renderExpanded,
   expanded,
+  rowClassName,
 }: {
   row: T;
   index: number;
@@ -334,12 +339,14 @@ function Row<T>({
   onRowClick?: (row: T) => void;
   renderExpanded?: (row: T) => ReactNode;
   expanded: boolean;
+  rowClassName?: (row: T) => string;
 }) {
   const interactive = !!onRowClick || !!renderExpanded;
+  const extra = rowClassName?.(row) ?? '';
   return (
     <>
       <tr
-        className={`divide-x divide-gray-100 transition-colors hover:bg-gray-50/60 ${interactive ? 'cursor-pointer' : ''}`}
+        className={`divide-x divide-gray-100 transition-colors hover:bg-gray-50/60 ${interactive ? 'cursor-pointer' : ''} ${extra}`.trim()}
         onClick={() => onRowClick?.(row)}
       >
         {columns.map((col) => (

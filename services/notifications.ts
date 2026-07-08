@@ -3,6 +3,8 @@ import { apiGet, type ApiOpts } from './api-client';
 
 export type NotificationKind =
   | 'COMMERCIAL_CHANGE_COMMITTED'
+  | 'COMMERCIAL_CHANGE_APPROVED'
+  | 'COMMERCIAL_CHANGE_REJECTED'
   | 'CUSTOMER_ASSIGNED'
   | 'CUSTOMER_UNASSIGNED'
   | 'CUSTOMER_ACTIVATED'

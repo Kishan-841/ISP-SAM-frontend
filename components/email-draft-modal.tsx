@@ -1,6 +1,7 @@
 'use client';
 
-import { CheckCircle2, AlertTriangle, Send } from 'lucide-react';
+import type { ComponentType } from 'react';
+import { CheckCircle2, AlertTriangle, Send, Clock, ShieldCheck } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -25,15 +26,31 @@ type CrmOutcome =
   | { ok: 'disabled' }
   | { ok: 'local-only' }
   | { ok: 'probable-churn' }
-  | { ok: 'pending-quick-approval' };
+  | { ok: 'pending-quick-approval' }
+  | { ok: 'pending-approval'; stage: string };
 
-/*
- * Post-commit confirmation modal. Originally exposed an email draft + copy /
- * download buttons; that's been removed — operators didn't use it and the
- * accounts-team notification fires via the backend's notification bridge
- * anyway. The modal now just confirms the change + reports the CRM outcome.
- * The `draft` prop is retained as the "there's a result to show" gate so
- * the caller in CommercialChangeForm needs no changes.
+type Tone = 'success' | 'info' | 'pending' | 'error';
+
+const TONE_BADGE: Record<Tone, string> = {
+  success: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+  info: 'bg-brand-50 text-brand-600 ring-brand-100',
+  pending: 'bg-amber-50 text-amber-600 ring-amber-100',
+  error: 'bg-red-50 text-red-600 ring-red-100',
+};
+
+type Outcome = {
+  tone: Tone;
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  body: string;
+  detail?: React.ReactNode;
+};
+
+/**
+ * Post-commit confirmation modal. One clean status card per outcome — a tinted
+ * icon badge, a short title, and one or two plain-language lines — instead of
+ * stacked pastel banners. The `draft` prop is retained purely as the
+ * "there's a result to show" gate so the caller needs no changes.
  */
 export function EmailDraftModal({
   open,
@@ -52,112 +69,144 @@ export function EmailDraftModal({
 }) {
   if (!draft) return null;
 
-  const actionLabel = changeType ? CHANGE_LABEL[changeType] : 'change';
-  const actionTitle = changeType
-    ? `${actionLabel.charAt(0).toUpperCase()}${actionLabel.slice(1)} confirmed`
-    : 'Change confirmed';
-  const forClient = clientName ? ` for ${clientName}` : '';
+  const outcome = resolveOutcome(crm ?? null, changeType ?? null, clientName ?? null);
+  const Icon = outcome.icon;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      {/* Override the primitive's `sm:max-w-sm` cap (a base `max-w-md` loses to
+          it) so the header/footer don't overflow the card on the right. */}
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="sr-only">{actionTitle}</DialogTitle>
+          <DialogTitle className="sr-only">{outcome.title}</DialogTitle>
         </DialogHeader>
 
-        {/* Confirmation banner — green, prominent, action-aware */}
-        <div className="flex gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-4">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5" />
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-emerald-900">{actionTitle}</p>
-            <p className="text-sm text-emerald-800 leading-relaxed">
-              The {actionLabel}
-              {forClient} has been recorded with the client&apos;s approval attached.
-            </p>
+        <div className="flex flex-col items-center text-center gap-4 pt-2 pb-1">
+          <div
+            className={`flex items-center justify-center w-14 h-14 rounded-full ring-1 ${TONE_BADGE[outcome.tone]}`}
+          >
+            <Icon className="w-6 h-6" />
           </div>
+          <div className="flex flex-col gap-1.5">
+            <h2 className="text-lg font-semibold text-gray-900 tracking-tight">{outcome.title}</h2>
+            <p className="text-sm text-gray-600 leading-relaxed max-w-sm mx-auto">{outcome.body}</p>
+          </div>
+          {outcome.detail}
         </div>
 
-        {/* CRM service-order outcome */}
-        {crm && crm.ok === true && (
-          <div className="flex gap-3 rounded-md border border-blue-200 bg-blue-50 p-4">
-            <Send className="h-5 w-5 shrink-0 text-blue-600 mt-0.5" />
-            <div className="flex flex-col gap-1">
-              <p className="text-sm font-semibold text-blue-900">
-                Service order created in CRM · {crm.orderNumber}
-              </p>
-              <p className="text-sm text-blue-800 leading-relaxed">
-                Status:{' '}
-                <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-white border border-blue-200">
-                  {crm.status}
-                </span>{' '}
-                — the relevant CRM team has been notified and will action it.
-              </p>
-            </div>
-          </div>
-        )}
-        {crm && crm.ok === 'local-only' && (
-          <div className="flex gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-4">
-            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5" />
-            <div className="flex flex-col gap-1">
-              <p className="text-sm font-semibold text-emerald-900">
-                Applied immediately — no CRM order
-              </p>
-              <p className="text-sm text-emerald-800 leading-relaxed">
-                This customer was imported (no CRM external ID), so the new ARC, bandwidth and
-                status have been written to the account directly. The change is already visible on
-                the Existing Base dashboard.
-              </p>
-            </div>
-          </div>
-        )}
-        {crm && crm.ok === 'probable-churn' && (
-          <div className="flex gap-3 rounded-md border border-amber-200 bg-amber-50 p-4">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
-            <div className="flex flex-col gap-1">
-              <p className="text-sm font-semibold text-amber-900">
-                Probable churn — 21-day retention window started
-              </p>
-              <p className="text-sm text-amber-800 leading-relaxed">
-                The customer is in the retention queue. SAM will be prompted on day 21 to either
-                retain (via a rate revision) or proceed with disconnection.
-              </p>
-            </div>
-          </div>
-        )}
-        {crm && crm.ok === 'pending-quick-approval' && (
-          <div className="flex gap-3 rounded-md border border-amber-200 bg-amber-50 p-4">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
-            <div className="flex flex-col gap-1">
-              <p className="text-sm font-semibold text-amber-900">
-                Quick disconnect — awaiting CRM Admin approval
-              </p>
-              <p className="text-sm text-amber-800 leading-relaxed">
-                The 21-day retention is skipped. The customer stays on hold until CRM Admin
-                approves or rejects. You&apos;ll be notified the moment a decision lands.
-              </p>
-            </div>
-          </div>
-        )}
-        {crm && crm.ok === false && (
-          <div className="flex gap-3 rounded-md border border-red-200 bg-red-50 p-4">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-red-600 mt-0.5" />
-            <div className="flex flex-col gap-1">
-              <p className="text-sm font-semibold text-red-900">
-                CRM service-order failed{crm.status ? ` (${crm.status})` : ''}
-              </p>
-              <p className="text-sm text-red-800 leading-relaxed">{crm.error}</p>
-              <p className="text-xs text-red-700 mt-1">
-                The SAM-side change is saved; the CRM bridge can be retried from the Transactions
-                page.
-              </p>
-            </div>
-          </div>
-        )}
-
-        <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>Done</Button>
+        <DialogFooter className="sm:justify-center">
+          <Button onClick={() => onOpenChange(false)} className="min-w-28">
+            Done
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
+}
+
+function resolveOutcome(
+  crm: CrmOutcome | null,
+  changeType: ChangeType | null,
+  clientName: string | null,
+): Outcome {
+  const action = changeType ? CHANGE_LABEL[changeType] : 'change';
+  const forClient = clientName ? ` for ${clientName}` : '';
+
+  if (crm && crm.ok === true) {
+    return {
+      tone: 'info',
+      icon: Send,
+      title: 'Sent to CRM',
+      body: `The order was created — the CRM team will action it${forClient}.`,
+      detail: (
+        <DetailChip>
+          Order <span className="font-mono">{crm.orderNumber}</span>
+          <Dot />
+          {formatStatus(crm.status)}
+        </DetailChip>
+      ),
+    };
+  }
+
+  if (crm && crm.ok === 'local-only') {
+    return {
+      tone: 'success',
+      icon: CheckCircle2,
+      title: 'Applied',
+      body: `The ${action}${forClient} is live on the Existing Base dashboard.`,
+    };
+  }
+
+  if (crm && crm.ok === 'probable-churn') {
+    return {
+      tone: 'pending',
+      icon: Clock,
+      title: 'Retention started',
+      body: `${
+        clientName ?? 'The customer'
+      } enters a 21-day window. You'll be prompted to retain or proceed on day 21.`,
+    };
+  }
+
+  if (crm && crm.ok === 'pending-quick-approval') {
+    return {
+      tone: 'pending',
+      icon: Clock,
+      title: 'Awaiting CRM Admin',
+      body: 'Quick disconnect skips retention. It stays on hold until CRM Admin decides — you’ll be notified.',
+    };
+  }
+
+  if (crm && crm.ok === 'pending-approval') {
+    const withWhom =
+      crm.stage === 'PENDING_SUPER_ADMIN_2' ? 'Super Admin 2' : 'the Accounts team';
+    return {
+      tone: 'info',
+      icon: ShieldCheck,
+      title: 'Sent for approval',
+      body: `Now with ${withWhom}. It goes live once approved — you'll be notified if it's approved or rejected.`,
+      detail: <DetailChip>Awaiting {withWhom}</DetailChip>,
+    };
+  }
+
+  if (crm && crm.ok === false) {
+    return {
+      tone: 'error',
+      icon: AlertTriangle,
+      title: 'Saved — CRM sync failed',
+      body: `${crm.error}. The change is saved on SAM; retry the CRM sync from Transactions.`,
+    };
+  }
+
+  // disabled, or no CRM result at all.
+  return {
+    tone: 'success',
+    icon: CheckCircle2,
+    title: `${cap(action)} recorded`,
+    body: `The ${action}${forClient} is saved with the client’s approval attached.`,
+  };
+}
+
+function DetailChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
+      {children}
+    </span>
+  );
+}
+
+function Dot() {
+  return <span className="text-gray-300">·</span>;
+}
+
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function formatStatus(status: string): string {
+  return status
+    .toLowerCase()
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 }

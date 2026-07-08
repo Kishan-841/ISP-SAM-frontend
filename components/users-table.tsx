@@ -17,12 +17,16 @@ const ROLE_TONE: Record<UserRecord['role'], PillTone> = {
   ADMIN: 'purple',
   SAM_HEAD: 'orange',
   SAM: 'blue',
+  ACCOUNTS: 'emerald',
+  SUPER_ADMIN_2: 'red',
 };
 
 const ROLE_LABEL: Record<UserRecord['role'], string> = {
   ADMIN: 'Admin',
   SAM_HEAD: 'SAM Head',
   SAM: 'SAM',
+  ACCOUNTS: 'Accounts',
+  SUPER_ADMIN_2: 'Super Admin 2',
 };
 
 export function UsersTable({

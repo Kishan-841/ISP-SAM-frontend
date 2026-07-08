@@ -17,12 +17,14 @@ import { PageHeader } from '../../../components/page-header';
 import { FormSection, FormField } from '../../../components/form-section';
 import { createUser, getUsers, type UserRecord } from '../../../services/users';
 
-type Role = 'ADMIN' | 'SAM_HEAD' | 'SAM';
+type Role = 'ADMIN' | 'SAM_HEAD' | 'SAM' | 'ACCOUNTS' | 'SUPER_ADMIN_2';
 
 const ROLE_LABELS: Record<Role, string> = {
   SAM: 'SAM',
   SAM_HEAD: 'SAM Head',
   ADMIN: 'Admin',
+  ACCOUNTS: 'Accounts',
+  SUPER_ADMIN_2: 'Super Admin 2',
 };
 
 export default function NewUserPage() {

@@ -35,6 +35,8 @@ const KIND_VISUAL: Record<
   { icon: React.ComponentType<{ className?: string }>; label: string }
 > = {
   COMMERCIAL_CHANGE_COMMITTED: { icon: ClipboardList, label: 'Commercial change' },
+  COMMERCIAL_CHANGE_APPROVED: { icon: CheckCircle2, label: 'Change approved' },
+  COMMERCIAL_CHANGE_REJECTED: { icon: X, label: 'Change rejected' },
   CUSTOMER_ASSIGNED: { icon: UserPlus, label: 'Assignment' },
   CUSTOMER_UNASSIGNED: { icon: UserMinus, label: 'Unassignment' },
   CUSTOMER_ACTIVATED: { icon: UsersIcon, label: 'New customer' },

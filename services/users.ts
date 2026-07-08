@@ -15,7 +15,7 @@ export function getUsers(opts: ApiOpts = {}) {
 export function createUser(input: {
   email: string;
   name: string;
-  role: 'ADMIN' | 'SAM_HEAD' | 'SAM';
+  role: 'ADMIN' | 'SAM_HEAD' | 'SAM' | 'ACCOUNTS' | 'SUPER_ADMIN_2';
   password: string;
   samHeadId?: string;
 }) {
@@ -24,7 +24,7 @@ export function createUser(input: {
 
 export type UpdateUserInput = {
   name?: string;
-  role?: 'ADMIN' | 'SAM_HEAD' | 'SAM';
+  role?: 'ADMIN' | 'SAM_HEAD' | 'SAM' | 'ACCOUNTS' | 'SUPER_ADMIN_2';
   /** null clears the reports-to. undefined leaves it alone. */
   samHeadId?: string | null;
   /** Admin password reset. */

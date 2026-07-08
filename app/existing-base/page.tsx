@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import {
   Users,
   BarChart3,
@@ -8,10 +7,11 @@ import {
   Shield,
   UserX,
   ShieldAlert,
-  ArrowRight,
+  ClipboardCheck,
 } from 'lucide-react';
 import { PageHeader, SectionHeading } from '../../components/page-header';
 import { StatCard } from '../../components/stat-card';
+import { HoldingCard } from '../../components/holding-card';
 import { QuarterFilter } from '../../components/quarter-filter';
 import { RevenueWaterfall } from '../../components/revenue-waterfall';
 import { WaterfallDetail } from '../../components/waterfall-detail';
@@ -59,6 +59,7 @@ export default async function ExistingBaseDashboardPage({
   const netDeltaRupees = currentArcRupees - startArcRupees;
   const probableChurnArcRupees = metrics.probableChurn.arcAtRiskLakh * LAKH;
   const pendingArcRupees = metrics.pending.netArcLakh * LAKH;
+  const pendingApprovalArcRupees = metrics.pendingApproval.netArcLakh * LAKH;
   // Waterfall now ends at the LIVE Current ARC (matches the headline card)
   // and surfaces the pending CRM adjustment as its own row. The previous
   // computed endArc (start + buckets) implicitly assumed every committed
@@ -142,31 +143,52 @@ export default async function ExistingBaseDashboardPage({
           />
         </div>
 
-        {metrics.probableChurn.count > 0 && (
-          <Link
-            href="/probable-churn"
-            className="group flex items-center justify-between gap-4 mb-4 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 transition-[background-color,border-color,transform] duration-200 ease-[var(--ease-out)] hoverable:hover:bg-amber-100 hoverable:hover:border-amber-300 active:scale-[0.995]"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-md grid place-items-center shrink-0 bg-amber-100 text-amber-700">
-                <ShieldAlert className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex flex-col">
-                <p className="text-sm font-semibold text-amber-900">
-                  {metrics.probableChurn.count} customer{metrics.probableChurn.count === 1 ? '' : 's'}{' '}
-                  in the retention queue
-                </p>
-                <p className="text-xs text-amber-800">
-                  {formatRupeesCompact(probableChurnArcRupees)} ARC at risk — excluded from Current ARC
-                  until disconnection is decided.
-                </p>
-              </div>
-            </div>
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-900 whitespace-nowrap">
-              Review retention queue
-              <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 ease-[var(--ease-out)] hoverable:group-hover:translate-x-0.5" />
-            </span>
-          </Link>
+        {(metrics.pendingApproval.count > 0 || metrics.probableChurn.count > 0) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            {metrics.pendingApproval.count > 0 && (
+              <HoldingCard
+                tone="indigo"
+                icon={ClipboardCheck}
+                count={metrics.pendingApproval.count}
+                headline={
+                  metrics.pendingApproval.count === 1
+                    ? 'change awaiting approval'
+                    : 'changes awaiting approval'
+                }
+                detail="Not yet in Current ARC — applies once approved."
+                amount={
+                  pendingApprovalArcRupees === 0
+                    ? '—'
+                    : formatRupeesCompact(pendingApprovalArcRupees, { signed: true })
+                }
+                amountClassName={
+                  pendingApprovalArcRupees > 0
+                    ? 'text-emerald-600'
+                    : pendingApprovalArcRupees < 0
+                      ? 'text-red-600'
+                      : 'text-gray-400'
+                }
+                href="/transactions"
+                cta="View pending"
+              />
+            )}
+            {metrics.probableChurn.count > 0 && (
+              <HoldingCard
+                tone="amber"
+                icon={ShieldAlert}
+                count={metrics.probableChurn.count}
+                headline={
+                  metrics.probableChurn.count === 1
+                    ? 'customer in the retention queue'
+                    : 'customers in the retention queue'
+                }
+                detail="ARC at risk — excluded until disconnection is decided."
+                amount={formatRupeesCompact(probableChurnArcRupees)}
+                href="/probable-churn"
+                cta="Review retention"
+              />
+            )}
+          </div>
         )}
 
         <div className="card-stagger grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

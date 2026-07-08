@@ -17,6 +17,18 @@ export type ExistingBaseMetrics = {
    * COMPLETED — see CLAUDE.md convention #3.
    */
   pending: { count: number; netArcLakh: number };
+  /**
+   * Existing-base commercial changes still walking the internal approval
+   * chain. Excluded from the buckets / Current ARC until approved.
+   * `netArcLakh` is the net ARC that will land once all are approved.
+   */
+  pendingApproval: {
+    count: number;
+    netArcLakh: number;
+    awaitingSuperAdmin2: number;
+    awaitingSamHead: number;
+    awaitingAccounts: number;
+  };
   probableChurn: { count: number; arcAtRiskLakh: number };
 };
 

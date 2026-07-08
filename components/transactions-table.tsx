@@ -1,14 +1,37 @@
 'use client';
 
-import { useState } from 'react';
-import { ClipboardList, Zap } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ClipboardList, Zap, Hourglass } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { DataTable, type Column } from './data-table';
 import { StatusPill, type PillTone } from './status-pill';
 import { CrmStatusPill } from './crm-status-pill';
 import { CrmRowActions } from './crm-row-actions';
 import { TransactionDetailSheet } from './transaction-detail-sheet';
-import type { CommercialChangeListItem } from '../services/commercial-changes';
+import type { ApprovalStatus, CommercialChangeListItem } from '../services/commercial-changes';
 import { formatRupeesCompact } from '../lib/format-rupees';
+
+const PENDING_STAGES: ApprovalStatus[] = [
+  'PENDING_SUPER_ADMIN_2',
+  'PENDING_SAM_HEAD',
+  'PENDING_ACCOUNTS',
+];
+
+// Options for the approval-stage filter. Order mirrors the chain.
+const APPROVAL_FILTERS: { value: string; label: string }[] = [
+  { value: 'ALL', label: 'All approvals' },
+  { value: 'AWAITING', label: 'Awaiting approval' },
+  { value: 'PENDING_SUPER_ADMIN_2', label: 'Awaiting Super Admin 2' },
+  { value: 'PENDING_SAM_HEAD', label: 'Awaiting SAM Head' },
+  { value: 'PENDING_ACCOUNTS', label: 'Awaiting Accounts' },
+  { value: 'REJECTED', label: 'Rejected' },
+];
 
 const TYPE_TONE: Record<CommercialChangeListItem['changeType'], PillTone> = {
   UPGRADE: 'emerald',
@@ -24,8 +47,34 @@ const TYPE_LABEL: Record<CommercialChangeListItem['changeType'], string> = {
   DISCONNECTION: 'Disconnection',
 };
 
+const APPROVAL_META: Record<
+  CommercialChangeListItem['approvalStatus'],
+  { tone: PillTone; label: string } | null
+> = {
+  PENDING_SUPER_ADMIN_2: { tone: 'amber', label: 'Awaiting Super Admin 2' },
+  PENDING_SAM_HEAD: { tone: 'amber', label: 'Awaiting SAM Head' },
+  PENDING_ACCOUNTS: { tone: 'blue', label: 'Awaiting Accounts' },
+  APPROVED: { tone: 'emerald', label: 'Approved' },
+  REJECTED: { tone: 'red', label: 'Rejected' },
+  NOT_REQUIRED: null,
+};
+
 export function TransactionsTable({ changes }: { changes: CommercialChangeListItem[] }) {
   const [selected, setSelected] = useState<CommercialChangeListItem | null>(null);
+  const [approvalFilter, setApprovalFilter] = useState<string>('ALL');
+
+  const rows = useMemo(() => {
+    if (approvalFilter === 'ALL') return changes;
+    if (approvalFilter === 'AWAITING') {
+      return changes.filter((c) => PENDING_STAGES.includes(c.approvalStatus));
+    }
+    return changes.filter((c) => c.approvalStatus === approvalFilter);
+  }, [changes, approvalFilter]);
+
+  const awaitingCount = useMemo(
+    () => changes.filter((c) => PENDING_STAGES.includes(c.approvalStatus)).length,
+    [changes],
+  );
 
   const columns: Column<CommercialChangeListItem>[] = [
     {
@@ -232,6 +281,22 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       className: 'px-5 py-4 text-center',
     },
     {
+      key: 'approvalStatus',
+      header: 'Approval',
+      align: 'center',
+      cell: (c) => {
+        const meta = APPROVAL_META[c.approvalStatus];
+        if (!meta) return <span className="text-xs text-gray-400">—</span>;
+        // Rejected rows carry the mandatory reason — surface it on hover.
+        return (
+          <StatusPill tone={meta.tone}>
+            <span title={c.rejectionReason ?? undefined}>{meta.label}</span>
+          </StatusPill>
+        );
+      },
+      className: 'px-5 py-4 text-center whitespace-nowrap',
+    },
+    {
       key: 'crmStatus',
       header: 'CRM Status',
       align: 'center',
@@ -287,13 +352,42 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
     <>
       <DataTable<CommercialChangeListItem>
         columns={columns}
-        rows={changes}
+        rows={rows}
         rowKey={(c) => c.id}
         searchable
         searchPlaceholder="Search by customer, code, circuit, reason"
         searchKeys={['account.clientName', 'account.customerCode', 'account.circuitId', 'reason']}
+        filters={
+          <div className="flex items-center gap-2">
+            {awaitingCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
+                <Hourglass className="w-3.5 h-3.5" />
+                {awaitingCount} awaiting
+              </span>
+            )}
+            <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+              <SelectTrigger className="h-9 w-48 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {APPROVAL_FILTERS.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
         pagination
         onRowClick={(row) => setSelected(row)}
+        rowClassName={(c) =>
+          PENDING_STAGES.includes(c.approvalStatus)
+            ? 'border-l-2 border-l-amber-400 bg-amber-50/40'
+            : c.approvalStatus === 'REJECTED'
+              ? 'border-l-2 border-l-red-300 bg-red-50/30'
+              : ''
+        }
         emptyTitle="No commercial changes yet"
         emptySubtitle="Initiate one from Commercial Change."
         emptyIcon={ClipboardList}

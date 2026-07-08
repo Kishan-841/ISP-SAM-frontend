@@ -48,7 +48,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Commercial Change', href: '/commercial-change', icon: ClipboardList },
   { label: 'Transactions', href: '/transactions', icon: ListChecks },
   { label: 'Probable Churn', href: '/probable-churn', icon: ShieldAlert },
-  { label: 'Quick Approvals', href: '/quick-approvals', icon: ShieldCheck, roles: ['ADMIN', 'SAM_HEAD'] },
+  { label: 'Approvals', href: '/approvals', icon: ShieldCheck, roles: ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD', 'ACCOUNTS'] },
   { label: 'Meetings & MoM', href: '/meetings', icon: CalendarDays },
   { label: 'Team Performance', href: '/team-performance', icon: Activity, roles: ['ADMIN', 'SAM_HEAD'] },
   { label: 'Excel Import', href: '/excel-import', icon: FileDown },
