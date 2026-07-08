@@ -15,6 +15,23 @@ export function logout() {
   return apiPost<{ ok: boolean }>('/auth/logout', {});
 }
 
+/**
+ * Change the caller's password. Signed-in (in-app) usage omits `email` and
+ * relies on the session cookie; the signed-out login-page modal passes `email`
+ * to identify the account by email + current password.
+ */
+export function changePassword(
+  currentPassword: string,
+  newPassword: string,
+  email?: string,
+) {
+  return apiPost<{ ok: boolean }>('/auth/change-password', {
+    currentPassword,
+    newPassword,
+    ...(email ? { email } : {}),
+  });
+}
+
 export function getMe(opts: ApiOpts = {}) {
   return apiGet<{ user: AuthUser }>('/auth/me', opts);
 }

@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 import { login } from '../../services/auth';
+import { ChangePasswordModal } from '../../components/change-password-modal';
 
 const FEATURES = [
   { num: '01', title: 'Two-Kitty Architecture', detail: 'Defend Base. Grow New.' },
@@ -22,6 +24,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [changePwOpen, setChangePwOpen] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -185,6 +188,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  placeholder="Enter your password"
                   className="pl-10 pr-11 h-12 bg-stone-50/60 border-stone-200 focus-visible:bg-white focus-visible:ring-brand-500/30 focus-visible:border-brand-400 transition-[background-color,border-color,box-shadow] duration-200 ease-[var(--ease-out)]"
                 />
                 <button
@@ -197,6 +201,13 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => setChangePwOpen(true)}
+                className="self-end text-[11px] text-stone-400 hover:text-brand-600 transition-colors duration-150"
+              >
+                Change password
+              </button>
             </div>
 
             {error && (
@@ -243,6 +254,21 @@ export default function LoginPage() {
           </p>
         </div>
       </section>
+
+      <ChangePasswordModal
+        open={changePwOpen}
+        onOpenChange={setChangePwOpen}
+        defaultEmail={email}
+        onChanged={(changedEmail) => {
+          setChangePwOpen(false);
+          setEmail(changedEmail);
+          setPassword('');
+          setError(null);
+          toast.success('Password updated', {
+            description: 'Sign in with your new password.',
+          });
+        }}
+      />
     </main>
   );
 }

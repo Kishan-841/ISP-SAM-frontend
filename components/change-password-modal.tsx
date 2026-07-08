@@ -1,30 +1,63 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import { Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
-import { PageHeader } from '../../components/page-header';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { toast } from 'sonner';
-import { changePassword } from '../../services/auth';
+import { changePassword } from '../services/auth';
 
 const MIN_LENGTH = 6;
 
-export default function ChangePasswordPage() {
-  const router = useRouter();
+/**
+ * Signed-out "change password" for the login screen. Identifies the account by
+ * email + current password (no session), then lets the user sign in with the
+ * new one. For the in-app, already-signed-in flow, use /change-password.
+ */
+export function ChangePasswordModal({
+  open,
+  onOpenChange,
+  defaultEmail,
+  onChanged,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  defaultEmail?: string;
+  onChanged: (email: string) => void;
+}) {
+  const [email, setEmail] = useState(defaultEmail ?? '');
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Reset transient fields each time the modal opens; seed the email.
+  useEffect(() => {
+    if (open) {
+      setEmail(defaultEmail ?? '');
+      setCurrent('');
+      setNext('');
+      setConfirm('');
+      setError(null);
+      setSubmitting(false);
+    }
+  }, [open, defaultEmail]);
+
   const tooShort = next.length > 0 && next.length < MIN_LENGTH;
   const sameAsCurrent = next.length > 0 && next === current;
   const mismatch = confirm.length > 0 && confirm !== next;
   const canSubmit =
+    email.trim().length > 0 &&
     current.length > 0 &&
     next.length >= MIN_LENGTH &&
     next !== current &&
@@ -37,40 +70,58 @@ export default function ChangePasswordPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await changePassword(current, next);
-      toast.success('Password updated', {
-        description: 'Your new password is now active.',
-      });
-      setCurrent('');
-      setNext('');
-      setConfirm('');
-      router.refresh();
+      await changePassword(current, next, email.trim().toLowerCase());
+      onChanged(email.trim().toLowerCase());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not change your password.');
-    } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-      <PageHeader title="Change password" subtitle="Update your account password" />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Change password</DialogTitle>
+          <DialogDescription>
+            Enter your email and current password to set a new one, then sign in.
+          </DialogDescription>
+        </DialogHeader>
 
-      <form onSubmit={onSubmit} noValidate className="max-w-md">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col gap-5">
+        <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="cp-email" className="text-xs font-medium uppercase tracking-wider text-gray-600">
+              Email
+            </Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <Input
+                id="cp-email"
+                type="email"
+                autoComplete="email"
+                autoFocus={!defaultEmail}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@gazonindia.com"
+                className="pl-10 h-11 bg-gray-50/60 border-gray-200 focus-visible:bg-white"
+              />
+            </div>
+          </div>
+
           <PasswordField
-            id="current-password"
+            id="cp-current"
             label="Current password"
             value={current}
             onChange={setCurrent}
             autoComplete="current-password"
             placeholder="Enter your current password"
-            autoFocus
+            autoFocus={!!defaultEmail}
           />
 
           <div className="flex flex-col gap-1.5">
             <PasswordField
-              id="new-password"
+              id="cp-new"
               label="New password"
               value={next}
               onChange={setNext}
@@ -81,15 +132,13 @@ export default function ChangePasswordPage() {
             {tooShort ? (
               <p className="text-xs text-red-600">Must be at least {MIN_LENGTH} characters.</p>
             ) : sameAsCurrent ? (
-              <p className="text-xs text-red-600">Must be different from your current password.</p>
-            ) : (
-              <p className="text-xs text-gray-400">At least {MIN_LENGTH} characters.</p>
-            )}
+              <p className="text-xs text-red-600">Must differ from your current password.</p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-1.5">
             <PasswordField
-              id="confirm-password"
+              id="cp-confirm"
               label="Confirm new password"
               value={confirm}
               onChange={setConfirm}
@@ -106,18 +155,17 @@ export default function ChangePasswordPage() {
             </Alert>
           )}
 
-          <div className="flex items-center gap-3 pt-1">
-            <Button type="submit" disabled={!canSubmit} className="min-w-40">
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!canSubmit}>
               {submitting ? 'Updating…' : 'Update password'}
             </Button>
-            <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              You&apos;ll stay signed in.
-            </span>
-          </div>
-        </div>
-      </form>
-    </div>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
