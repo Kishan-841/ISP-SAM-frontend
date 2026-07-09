@@ -66,6 +66,8 @@ export default async function NewBaseDashboardPage() {
     downgradesArcRupees,
     terminationsArcRupees,
     endArcRupees: currentArcRupees,
+    probableChurnArcRupees,
+    probableChurnCount: metrics.probableChurn.count,
     pendingArcRupees,
     pendingCount: metrics.pending.count,
   };

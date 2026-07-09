@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowUpRight, Clock } from 'lucide-react';
+import { ArrowUpRight, Clock, ShieldAlert } from 'lucide-react';
 import { DataTable, type Column } from './data-table';
 import { ExpandableArc } from './expandable-arc';
 
@@ -12,10 +12,18 @@ export type WaterfallDetailInput = {
   terminationsArcRupees: number;
   endArcRupees: number;
   /**
+   * ARC held out of Current while customers sit in the retention window. When
+   * non-zero, an "In retention" row appears between Disconnections and
+   * End-of-Period. This is NOT a CRM concern (often local, no-CRM leads), so
+   * it's shown separately from Pending CRM settlement. Omit / zero = no row.
+   */
+  probableChurnArcRupees?: number;
+  probableChurnCount?: number;
+  /**
    * Net ARC adjustment of changes committed-but-not-applied (CRM still
    * working through them). When non-zero, a "Pending CRM settlement" row
-   * is inserted between Disconnections and End-of-Period so the waterfall
-   * sum lines up with the live Current ARC card. Omit / zero = no row.
+   * is inserted so the waterfall sum lines up with the live Current ARC
+   * card. Omit / zero = no row.
    */
   pendingArcRupees?: number;
   /** Count of commercial changes still in CRM workflow — used for tooltip copy. */
@@ -25,8 +33,8 @@ export type WaterfallDetailInput = {
 type WaterfallRow = {
   label: string;
   arc: number;
-  tone: 'neutral' | 'positive' | 'negative' | 'final' | 'pending';
-  sign?: '+' | '−' | '=' | '⏳';
+  tone: 'neutral' | 'positive' | 'negative' | 'final' | 'pending' | 'churn';
+  sign?: '+' | '−' | '=' | '⏳' | '⚠';
   href: string;
   hrefHint: string;
 };
@@ -37,6 +45,7 @@ const TONE_CLASS: Record<WaterfallRow['tone'], string> = {
   negative: 'text-red-600',
   final: 'text-gray-900 font-semibold',
   pending: 'text-amber-700',
+  churn: 'text-amber-700',
 };
 
 const SIGN_BG: Record<NonNullable<WaterfallRow['sign']>, string> = {
@@ -44,6 +53,7 @@ const SIGN_BG: Record<NonNullable<WaterfallRow['sign']>, string> = {
   '−': 'bg-red-50 text-red-700',
   '=': 'bg-gray-100 text-gray-700',
   '⏳': 'bg-amber-50 text-amber-700',
+  '⚠': 'bg-amber-50 text-amber-700',
 };
 
 export function WaterfallDetail({
@@ -64,6 +74,8 @@ export function WaterfallDetail({
   // visible reason.
   const showPending =
     input.pendingArcRupees != null && Math.abs(input.pendingArcRupees) >= 1_000;
+  const showChurn =
+    input.probableChurnArcRupees != null && Math.abs(input.probableChurnArcRupees) >= 1_000;
 
   const rows: WaterfallRow[] = [
     {
@@ -97,6 +109,24 @@ export function WaterfallDetail({
       href: '/transactions?type=DISCONNECTION',
       hrefHint: 'See termination transactions',
     },
+    ...(showChurn
+      ? [
+          {
+            // ARC excluded from Current while these customers are in the 21-day
+            // retention window. Not a CRM matter — often local, no-CRM leads.
+            label:
+              input.probableChurnCount && input.probableChurnCount > 0
+                ? `In retention · at risk (${input.probableChurnCount})`
+                : 'In retention · at risk',
+            arc: -Math.abs(input.probableChurnArcRupees!),
+            tone: 'churn' as const,
+            sign: '⚠' as const,
+            href: '/probable-churn',
+            hrefHint:
+              'ARC held out of Current ARC while these customers sit in the retention window — decided as RETAIN or PROCEED at day 21',
+          },
+        ]
+      : []),
     ...(showPending
       ? [
           {
@@ -140,7 +170,13 @@ export function WaterfallDetail({
             }`}
             aria-hidden="true"
           >
-            {row.sign === '⏳' ? <Clock className="w-3 h-3" /> : row.sign ?? '·'}
+            {row.sign === '⏳' ? (
+              <Clock className="w-3 h-3" />
+            ) : row.sign === '⚠' ? (
+              <ShieldAlert className="w-3 h-3" />
+            ) : (
+              row.sign ?? '·'
+            )}
           </span>
           <span className={`${TONE_CLASS[row.tone]} ${row.tone === 'final' ? 'text-sm' : ''}`}>
             {row.label}

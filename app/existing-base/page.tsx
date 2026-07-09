@@ -73,6 +73,10 @@ export default async function ExistingBaseDashboardPage({
     downgradesArcRupees,
     terminationsArcRupees,
     endArcRupees: currentArcRupees,
+    // Probable churn is its own labeled row — NOT lumped into Pending CRM
+    // settlement (which is now genuine CRM-in-flight only).
+    probableChurnArcRupees,
+    probableChurnCount: metrics.probableChurn.count,
     pendingArcRupees,
     pendingCount: metrics.pending.count,
   };
