@@ -49,7 +49,7 @@ export default async function ApprovalsPage({
   const tab: ApprovalTab =
     sp.status === 'approved' || sp.status === 'rejected' ? sp.status : 'pending';
 
-  const { items, total } = await getApprovals(tab, { cookieHeader });
+  const { items, total, counts } = await getApprovals(tab, { cookieHeader });
 
   const subtitle =
     tab === 'pending'
@@ -69,6 +69,7 @@ export default async function ApprovalsPage({
         {TABS.map((t) => {
           const Icon = t.icon;
           const active = t.key === tab;
+          const count = counts[t.key];
           const href = t.key === 'pending' ? '/approvals' : `/approvals?status=${t.key}`;
           return (
             <Link
@@ -82,11 +83,13 @@ export default async function ApprovalsPage({
             >
               <Icon className="w-3.5 h-3.5" />
               {t.label}
-              {active && (
-                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-white/20 text-white">
-                  {total}
-                </span>
-              )}
+              <span
+                className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold ${
+                  active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {count}
+              </span>
             </Link>
           );
         })}

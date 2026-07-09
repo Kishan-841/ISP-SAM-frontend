@@ -330,12 +330,16 @@ export type PendingApproval = {
 
 export type ApprovalTab = 'pending' | 'approved' | 'rejected';
 
+export type ApprovalTabCounts = Record<ApprovalTab, number>;
+
 export function getApprovals(tab: ApprovalTab = 'pending', opts: ApiOpts = {}) {
   const qs = tab === 'pending' ? '' : `?status=${tab}`;
-  return apiGet<{ items: PendingApproval[]; total: number; status: ApprovalTab }>(
-    `/commercial-changes/approvals${qs}`,
-    opts,
-  );
+  return apiGet<{
+    items: PendingApproval[];
+    total: number;
+    status: ApprovalTab;
+    counts: ApprovalTabCounts;
+  }>(`/commercial-changes/approvals${qs}`, opts);
 }
 
 /** @deprecated use getApprovals('pending') */
