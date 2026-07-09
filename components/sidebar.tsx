@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import {
   Home,
   BarChart3,
@@ -28,8 +28,19 @@ import {
 import type { ComponentType, SVGProps } from 'react';
 import type { AuthUser } from '../services/auth';
 import { logout } from '../services/auth';
+import { getSidebarCounts, type SidebarCounts } from '../services/sidebar';
 import { env } from '../lib/env';
 import { setSidebarCollapsed } from '../app/actions/sidebar';
+
+const COUNTS_POLL_MS = 45_000;
+const EMPTY_COUNTS: SidebarCounts = { approvals: 0, probableChurn: 0, unassignedCustomers: 0 };
+
+// Which nav hrefs carry a badge, and which count field feeds each.
+const COUNT_FIELD_BY_HREF: Record<string, keyof SidebarCounts> = {
+  '/approvals': 'approvals',
+  '/probable-churn': 'probableChurn',
+  '/customers': 'unassignedCustomers',
+};
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -125,6 +136,37 @@ export function Sidebar({
     return () => window.removeEventListener('sam:open-sidebar', open);
   }, []);
 
+  // Sidebar badge counts — polled (same approach as the notification bell):
+  // interval + on navigation + when the tab regains focus. Cheap, robust, and
+  // consistent with the rest of the app; no websockets needed.
+  const [counts, setCounts] = useState<SidebarCounts>(EMPTY_COUNTS);
+  const refreshCounts = useCallback(async () => {
+    try {
+      setCounts(await getSidebarCounts());
+    } catch {
+      // Silent — a badge hiccup must never break the sidebar.
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshCounts();
+  }, [refreshCounts, pathname]);
+
+  useEffect(() => {
+    const t = setInterval(refreshCounts, COUNTS_POLL_MS);
+    const onFocus = () => refreshCounts();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshCounts();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [refreshCounts]);
+
   function toggleCollapsed() {
     const next = !collapsed;
     setCollapsed(next);
@@ -204,12 +246,15 @@ export function Sidebar({
             {visibleNavItems.map((item) => {
               const active = isActive(pathname, item.href);
               const Icon = item.icon;
+              const countField = COUNT_FIELD_BY_HREF[item.href];
+              const count = countField ? counts[countField] : 0;
+              const badgeLabel = count > 99 ? '99+' : String(count);
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     title={mode === 'collapsed' ? item.label : undefined}
-                    aria-label={item.label}
+                    aria-label={count > 0 ? `${item.label} (${count} pending)` : item.label}
                     className={`flex items-center gap-3 ${itemPadX} py-2.5 text-sm border-l-4 transition-colors ${
                       active
                         ? 'bg-brand-50 text-brand-700 font-semibold border-brand-600'
@@ -217,8 +262,30 @@ export function Sidebar({
                     }`}
                     aria-current={active ? 'page' : undefined}
                   >
-                    <Icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    <span className="relative shrink-0">
+                      <Icon className="w-4 h-4" aria-hidden="true" />
+                      {/* Collapsed rail: a compact badge over the icon. */}
+                      {count > 0 && !showLabels && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute -top-2 -right-2 min-w-[15px] h-[15px] px-0.5 rounded-full bg-brand-600 text-white text-[9px] font-bold leading-none flex items-center justify-center ring-2 ring-white"
+                        >
+                          {badgeLabel}
+                        </span>
+                      )}
+                    </span>
                     {showLabels && <span className="truncate">{item.label}</span>}
+                    {/* Expanded rail: a pill pushed to the right edge. */}
+                    {count > 0 && showLabels && (
+                      <span
+                        aria-hidden="true"
+                        className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold leading-none flex items-center justify-center ${
+                          active ? 'bg-brand-600 text-white' : 'bg-brand-100 text-brand-700'
+                        }`}
+                      >
+                        {badgeLabel}
+                      </span>
+                    )}
                   </Link>
                 </li>
               );
