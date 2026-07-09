@@ -1,22 +1,31 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { getMe } from '../../services/auth';
-import { getPendingApprovals } from '../../services/commercial-changes';
+import { getApprovals, type ApprovalTab } from '../../services/commercial-changes';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { PageHeader } from '../../components/page-header';
 import { ApprovalsList } from '../../components/approvals-list';
+import { ApprovalsHistoryTable } from '../../components/approvals-history-table';
 
 /**
- * Internal approval queue for BASE (existing-base) commercial changes.
+ * Internal approvals for BASE (existing-base) commercial changes.
  *
- * Each approver sees only the stage they own:
- *   SUPER_ADMIN_2 → first-stage disconnection sign-off
- *   SAM_HEAD      → quick-disconnect sign-off (their team only)
- *   ACCOUNTS      → final commercial sign-off (applies the change)
- *   ADMIN         → the whole pipeline
+ *   Pending  → the viewer's per-stage queue (with Approve / Reject)
+ *   Approved → history of fully-approved changes (who + when)
+ *   Rejected → history of rejected changes (who + when + reason)
  *
  * NEW-base changes never appear here — they route straight to CRM.
  */
+export const dynamic = 'force-dynamic';
+
 const ALLOWED_ROLES = ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD', 'ACCOUNTS'] as const;
+
+const TABS: { key: ApprovalTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: 'pending', label: 'Pending', icon: Clock },
+  { key: 'approved', label: 'Approved', icon: CheckCircle2 },
+  { key: 'rejected', label: 'Rejected', icon: XCircle },
+];
 
 const STAGE_HINT: Record<string, string> = {
   ADMIN: 'every pending stage across all SAMs',
@@ -25,27 +34,69 @@ const STAGE_HINT: Record<string, string> = {
   ACCOUNTS: 'final sign-offs — approving applies the change',
 };
 
-export default async function ApprovalsPage() {
+export default async function ApprovalsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
   const cookieHeader = await getCookieHeader();
   const me = await getMe({ cookieHeader });
   if (!(ALLOWED_ROLES as readonly string[]).includes(me.user.role)) {
     redirect('/');
   }
 
-  const { items, total } = await getPendingApprovals({ cookieHeader });
-  const hint = STAGE_HINT[me.user.role] ?? 'awaiting your decision';
+  const sp = await searchParams;
+  const tab: ApprovalTab =
+    sp.status === 'approved' || sp.status === 'rejected' ? sp.status : 'pending';
+
+  const { items, total } = await getApprovals(tab, { cookieHeader });
+
+  const subtitle =
+    tab === 'pending'
+      ? total === 0
+        ? `No commercial changes awaiting ${STAGE_HINT[me.user.role] ?? 'your decision'}.`
+        : `${total} ${total === 1 ? 'change' : 'changes'} · ${STAGE_HINT[me.user.role] ?? 'awaiting your decision'}`
+      : tab === 'approved'
+        ? `${total} approved commercial ${total === 1 ? 'change' : 'changes'}`
+        : `${total} rejected commercial ${total === 1 ? 'change' : 'changes'}`;
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl flex flex-col gap-6">
-      <PageHeader
-        title="Approvals"
-        subtitle={
-          total === 0
-            ? `No commercial changes awaiting ${hint}.`
-            : `${total} ${total === 1 ? 'change' : 'changes'} · ${hint}`
-        }
-      />
-      <ApprovalsList items={items} />
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl flex flex-col gap-4">
+      <PageHeader title="Approvals" subtitle={subtitle} />
+
+      {/* Tabs */}
+      <div className="flex flex-wrap items-center gap-2">
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          const active = t.key === tab;
+          const href = t.key === 'pending' ? '/approvals' : `/approvals?status=${t.key}`;
+          return (
+            <Link
+              key={t.key}
+              href={href}
+              className={
+                active
+                  ? 'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-gray-900 text-white ring-1 ring-gray-900 transition-all shadow-sm'
+                  : 'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all'
+              }
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {t.label}
+              {active && (
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-white/20 text-white">
+                  {total}
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+
+      {tab === 'pending' ? (
+        <ApprovalsList items={items} />
+      ) : (
+        <ApprovalsHistoryTable items={items} tab={tab} />
+      )}
     </div>
   );
 }

@@ -308,6 +308,12 @@ export type PendingApproval = {
   approvalFileUrl: string | null;
   poFileUrl: string | null;
   requestedAt: string;
+  // Decision fields — populated on approved/rejected history rows, null while pending.
+  rejectionReason: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  /** Name of whoever decided (approver for approved, rejecter for rejected). */
+  decidedByName: string | null;
   account: {
     id: string;
     clientName: string;
@@ -322,11 +328,19 @@ export type PendingApproval = {
   };
 };
 
-export function getPendingApprovals(opts: ApiOpts = {}) {
-  return apiGet<{ items: PendingApproval[]; total: number }>(
-    '/commercial-changes/approvals',
+export type ApprovalTab = 'pending' | 'approved' | 'rejected';
+
+export function getApprovals(tab: ApprovalTab = 'pending', opts: ApiOpts = {}) {
+  const qs = tab === 'pending' ? '' : `?status=${tab}`;
+  return apiGet<{ items: PendingApproval[]; total: number; status: ApprovalTab }>(
+    `/commercial-changes/approvals${qs}`,
     opts,
   );
+}
+
+/** @deprecated use getApprovals('pending') */
+export function getPendingApprovals(opts: ApiOpts = {}) {
+  return getApprovals('pending', opts);
 }
 
 export async function approvalDecision(
