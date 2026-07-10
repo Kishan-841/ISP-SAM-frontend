@@ -105,16 +105,22 @@ export function CustomersTable({
       key: 'clientName',
       header: 'Customer',
       sortable: true,
+      // Company name is the primary line (matches the rest of the app —
+      // approvals, notifications). The contact person's name sits below it.
+      // Falls back to the contact name when there's no company on record.
       cell: (a) => (
         <Link
           href={`/customers/${a.id}`}
           onClick={(e) => e.stopPropagation()}
           className="hover:text-brand-600"
         >
-          {a.clientName}
+          {a.companyName ?? a.clientName}
         </Link>
       ),
-      secondary: (a) => a.companyName ?? null,
+      // Contact person below — only when there IS a company AND the contact
+      // name is actually different (avoids showing the same name twice when a
+      // row has no separate person, e.g. clientName fell back to companyName).
+      secondary: (a) => (a.companyName && a.clientName !== a.companyName ? a.clientName : null),
     },
     {
       key: 'currentPlan',
