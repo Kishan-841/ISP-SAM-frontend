@@ -106,7 +106,12 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
       sortable: true,
       cell: (c) => (
         <div className="flex flex-col items-center">
-          <span className="text-sm font-medium text-gray-900 whitespace-nowrap">{c.account.clientName}</span>
+          <span className="text-sm font-medium text-gray-900 whitespace-nowrap">
+            {c.account.companyName ?? c.account.clientName}
+          </span>
+          {c.account.companyName && c.account.clientName !== c.account.companyName && (
+            <span className="text-xs text-gray-500 whitespace-nowrap">{c.account.clientName}</span>
+          )}
           {c.account.customerCode && (
             <span className="font-mono text-xs text-brand-600 whitespace-nowrap">{c.account.customerCode}</span>
           )}
@@ -356,7 +361,13 @@ export function TransactionsTable({ changes }: { changes: CommercialChangeListIt
         rowKey={(c) => c.id}
         searchable
         searchPlaceholder="Search by customer, code, circuit, reason"
-        searchKeys={['account.clientName', 'account.customerCode', 'account.circuitId', 'reason']}
+        searchKeys={[
+          'account.companyName',
+          'account.clientName',
+          'account.customerCode',
+          'account.circuitId',
+          'reason',
+        ]}
         filters={
           <div className="flex items-center gap-2">
             {awaitingCount > 0 && (

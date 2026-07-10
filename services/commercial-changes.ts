@@ -41,6 +41,7 @@ export type CommercialChangeListItem = {
   account: {
     id: string;
     clientName: string;
+    companyName: string | null;
     customerCode: string | null;
     circuitId: string | null;
     kittyType: 'BASE' | 'NEW';
