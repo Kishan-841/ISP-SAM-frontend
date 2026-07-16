@@ -140,7 +140,26 @@ export function ApprovalsHistoryTable({
             className: 'px-5 py-4',
           } satisfies Column<PendingApproval>,
         ]
-      : []),
+      : [
+          {
+            // Only disconnections carry a material-recovery outcome (recorded
+            // by SUPER_ADMIN_2 on the final gate); everything else shows "—".
+            key: 'material',
+            header: 'Material',
+            align: 'center',
+            cell: (c: PendingApproval) =>
+              c.materialRecovered == null ? (
+                <span className="text-xs text-gray-400">—</span>
+              ) : (
+                <span title={c.materialRecoveryNotes ?? undefined}>
+                  <StatusPill tone={c.materialRecovered ? 'emerald' : 'amber'}>
+                    {c.materialRecovered ? 'Recovered' : 'Not recovered'}
+                  </StatusPill>
+                </span>
+              ),
+            className: 'px-5 py-4 text-center whitespace-nowrap',
+          } satisfies Column<PendingApproval>,
+        ]),
     {
       key: 'raisedBy',
       header: 'Raised by',

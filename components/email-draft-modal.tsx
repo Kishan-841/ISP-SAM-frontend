@@ -159,7 +159,11 @@ function resolveOutcome(
 
   if (crm && crm.ok === 'pending-approval') {
     const withWhom =
-      crm.stage === 'PENDING_SUPER_ADMIN_2' ? 'Super Admin 2' : 'the Accounts team';
+      crm.stage === 'PENDING_SAM_HEAD'
+        ? 'your SAM Head'
+        : crm.stage === 'PENDING_SUPER_ADMIN_2'
+          ? 'Super Admin 2'
+          : 'the Accounts team';
     return {
       tone: 'info',
       icon: ShieldCheck,

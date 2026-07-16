@@ -248,6 +248,8 @@ export function ApprovalsList({ items }: { items: PendingApproval[] }) {
 function DecisionDialog({ decision, onClose }: { decision: Decision; onClose: () => void }) {
   const router = useRouter();
   const [reason, setReason] = useState('');
+  const [materialRecovered, setMaterialRecovered] = useState(true);
+  const [materialNotes, setMaterialNotes] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
@@ -259,6 +261,16 @@ function DecisionDialog({ decision, onClose }: { decision: Decision; onClose: ()
   const typeLabel = CHANGE_LABEL[item.changeType];
   const reasonMissing = isReject && reason.trim().length < 3;
 
+  const isDisconnection = item.changeType === 'DISCONNECTION';
+  // Terminal = the approval that actually does something. ACCOUNTS is terminal
+  // for non-disconnections; SUPER_ADMIN_2 is the final gate on disconnections.
+  const isTerminal =
+    item.approvalStatus === 'PENDING_SUPER_ADMIN_2' ||
+    (item.approvalStatus === 'PENDING_ACCOUNTS' && !isDisconnection);
+  // Material recovery is captured only on that final disconnection gate.
+  const showMaterial =
+    !isReject && isDisconnection && item.approvalStatus === 'PENDING_SUPER_ADMIN_2';
+
   async function confirm() {
     if (reasonMissing) {
       setError('A reason is required to reject.');
@@ -267,7 +279,14 @@ function DecisionDialog({ decision, onClose }: { decision: Decision; onClose: ()
     setBusy(true);
     setError(null);
     try {
-      await approvalDecision(item.id, action, reason.trim() || undefined);
+      await approvalDecision(
+        item.id,
+        action,
+        reason.trim() || undefined,
+        showMaterial
+          ? { recovered: materialRecovered, notes: materialNotes.trim() || undefined }
+          : undefined,
+      );
       toast.success(
         isReject ? `Rejected — ${name} stays active.` : `Approved — ${name}`,
         { duration: 5000 },
@@ -340,11 +359,58 @@ function DecisionDialog({ decision, onClose }: { decision: Decision; onClose: ()
             />
           </div>
         ) : (
-          <p className="text-sm text-gray-600 leading-relaxed">
-            {item.approvalStatus === 'PENDING_ACCOUNTS'
-              ? 'Approving applies this change and makes it visible on the dashboard.'
-              : 'Approving passes this to the next approver in the chain.'}
-          </p>
+          <>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {!isTerminal
+                ? 'Approving passes this to the next approver in the chain.'
+                : isDisconnection
+                  ? 'This is the final approval — it starts the disconnection timer.'
+                  : 'Approving applies this change and makes it visible on the dashboard.'}
+            </p>
+
+            {showMaterial && (
+              <div className="flex flex-col gap-3 rounded-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="text-sm font-medium text-gray-700">Material recovered</Label>
+                  <div className="flex items-center gap-1.5">
+                    {[
+                      { v: true, label: 'Yes' },
+                      { v: false, label: 'No' },
+                    ].map(({ v, label }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => setMaterialRecovered(v)}
+                        disabled={busy}
+                        aria-pressed={materialRecovered === v}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                          materialRecovered === v
+                            ? v
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-amber-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Textarea
+                  value={materialNotes}
+                  onChange={(e) => setMaterialNotes(e.target.value)}
+                  rows={2}
+                  placeholder="Notes (optional) — e.g. router + ONT collected, or what's still pending."
+                  disabled={busy}
+                />
+                {!materialRecovered && (
+                  <p className="text-xs text-amber-700">
+                    Recorded as not recovered — the disconnection still goes ahead.
+                  </p>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {error && (

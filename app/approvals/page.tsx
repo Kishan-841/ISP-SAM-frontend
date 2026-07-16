@@ -15,6 +15,12 @@ import { ApprovalsHistoryTable } from '../../components/approvals-history-table'
  *   Approved → history of fully-approved changes (who + when)
  *   Rejected → history of rejected changes (who + when + reason)
  *
+ * Chain:
+ *   UPGRADE / DOWNGRADE / RATE_REVISION → ACCOUNTS (terminal)
+ *   DISCONNECTION (normal)              → ACCOUNTS → SUPER_ADMIN_2 (terminal)
+ *   DISCONNECTION (quick)               → SAM_HEAD → ACCOUNTS → SUPER_ADMIN_2
+ * SUPER_ADMIN_2 is the final gate on disconnections (records material recovery).
+ *
  * NEW-base changes never appear here — they route straight to CRM.
  */
 export const dynamic = 'force-dynamic';
@@ -29,9 +35,9 @@ const TABS: { key: ApprovalTab; label: string; icon: React.ComponentType<{ class
 
 const STAGE_HINT: Record<string, string> = {
   ADMIN: 'every pending stage across all SAMs',
-  SUPER_ADMIN_2: 'first-stage disconnection sign-offs',
-  SAM_HEAD: 'quick-disconnect sign-offs for your team',
-  ACCOUNTS: 'final sign-offs — approving applies the change',
+  SUPER_ADMIN_2: 'final disconnection sign-off — record material recovery',
+  SAM_HEAD: 'first-stage quick-disconnect sign-offs for your team',
+  ACCOUNTS: 'commercial sign-off — disconnections then go to Super Admin 2',
 };
 
 export default async function ApprovalsPage({

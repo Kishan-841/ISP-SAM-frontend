@@ -315,6 +315,10 @@ export type PendingApproval = {
   rejectedAt: string | null;
   /** Name of whoever decided (approver for approved, rejecter for rejected). */
   decidedByName: string | null;
+  /** Material recovery — recorded by SUPER_ADMIN_2 on the final disconnection
+   *  approval. null on non-disconnections / not-yet-finalised rows. */
+  materialRecovered: boolean | null;
+  materialRecoveryNotes: string | null;
   account: {
     id: string;
     clientName: string;
@@ -352,6 +356,8 @@ export async function approvalDecision(
   commercialChangeId: string,
   action: 'APPROVE' | 'REJECT',
   reason?: string,
+  /** Only sent on the SUPER_ADMIN_2 approval of a disconnection (final gate). */
+  material?: { recovered: boolean; notes?: string },
 ): Promise<{ change: { id: string; approvalStatus: ApprovalStatus } }> {
   const base = typeof window === 'undefined' ? env.internalApiBase : env.apiBase;
   const res = await fetch(
@@ -359,7 +365,16 @@ export async function approvalDecision(
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, reason }),
+      body: JSON.stringify({
+        action,
+        reason,
+        ...(material
+          ? {
+              materialRecovered: material.recovered,
+              materialRecoveryNotes: material.notes,
+            }
+          : {}),
+      }),
       cache: 'no-store',
     },
   );
