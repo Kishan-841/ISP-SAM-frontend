@@ -74,6 +74,8 @@ export function CustomersTable({
   const [assignTarget, setAssignTarget] = useState<Account | null>(null);
 
   const canAssign = currentUser?.role === 'ADMIN' || currentUser?.role === 'SAM_HEAD';
+  /** Changing the owner of an already-assigned customer is ADMIN-only. */
+  const canReassign = currentUser?.role === 'ADMIN';
 
   const columns: Column<Account>[] = [
     {
@@ -217,6 +219,12 @@ export function CustomersTable({
             align: 'center' as const,
             cell: (a: Account) => {
               const isReassign = !!a.samOwner;
+              // Only ADMIN can change the owner of an already-assigned
+              // customer. SAM_HEAD assigns out of the triage queue only —
+              // enforced server-side too (REASSIGN_FORBIDDEN).
+              if (isReassign && !canReassign) {
+                return <span className="text-xs text-gray-400">—</span>;
+              }
               return (
                 <button
                   type="button"
