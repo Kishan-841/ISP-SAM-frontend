@@ -22,6 +22,18 @@ function fmtDateTime(iso: string | null): string {
   return Number.isNaN(d.getTime()) ? iso : DATE_FMT.format(d).toLowerCase();
 }
 
+const DAY_FMT = new Intl.DateTimeFormat('en-IN', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+});
+
+function fmtDay(iso: string | null): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : DAY_FMT.format(d);
+}
+
 const CHANGE_LABEL: Record<ChangeType, string> = {
   UPGRADE: 'Upgrade',
   DOWNGRADE: 'Downgrade',
@@ -106,6 +118,14 @@ export function ApprovalsHistoryTable({
             <span className="font-semibold text-brand-600">{formatRupees(c.newArc)}</span>
           </div>
         ),
+      className: 'px-5 py-4 text-center whitespace-nowrap',
+    },
+    {
+      key: 'effectiveDate',
+      header: 'Effective',
+      align: 'center',
+      sortable: true,
+      cell: (c) => <span className="text-sm text-gray-700">{fmtDay(c.effectiveDate)}</span>,
       className: 'px-5 py-4 text-center whitespace-nowrap',
     },
     {

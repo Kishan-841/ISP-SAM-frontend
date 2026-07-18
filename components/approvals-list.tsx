@@ -150,6 +150,14 @@ export function ApprovalsList({ items }: { items: PendingApproval[] }) {
       className: 'px-5 py-4 text-center whitespace-nowrap',
     },
     {
+      key: 'effectiveDate',
+      header: 'Effective',
+      align: 'center',
+      sortable: true,
+      cell: (c) => <span className="text-sm text-gray-700">{fmtDate(c.effectiveDate)}</span>,
+      className: 'px-5 py-4 text-center whitespace-nowrap',
+    },
+    {
       key: 'raisedBy',
       header: 'Raised by',
       align: 'center',
