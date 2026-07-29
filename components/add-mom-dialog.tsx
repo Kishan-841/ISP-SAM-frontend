@@ -51,6 +51,14 @@ import type { Account } from '../services/accounts';
 type Participant = { name: string; position: string };
 type Step = 1 | 2;
 
+/** Split a comma/semicolon-separated recipient string into clean addresses. */
+function splitEmails(s: string): string[] {
+  return s
+    .split(/[,;]/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
 const STATUS_OPTIONS: ActionItem['currentStatus'][] = ['Open', 'In Progress', 'Closed'];
 
 export function AddMomDialog({
@@ -257,10 +265,7 @@ export function AddMomDialog({
     setError(null);
     setSuccess(null);
     try {
-      const ccList = cc
-        .split(/[,;]/)
-        .map((s) => s.trim())
-        .filter(Boolean);
+      const ccList = splitEmails(cc);
 
       const preview = await previewMomEmail({
         accountId,
@@ -288,7 +293,7 @@ export function AddMomDialog({
         }),
       ]);
 
-      const recipient = to.trim() || selectedAccount?.email || '';
+      const recipient = splitEmails(to).join(', ') || selectedAccount?.email || '';
       const ccLine = ccList.length > 0 ? ` (CC: ${ccList.join(', ')})` : '';
       const next = recipient
         ? `Open Outlook → New Email → paste in body (Ctrl+V). To: ${recipient}${ccLine}. Subject: "${preview.subject}".`
@@ -317,16 +322,17 @@ export function AddMomDialog({
     setError(null);
     setSuccess(null);
     try {
-      const ccList = cc
-        .split(/[,;]/)
-        .map((s) => s.trim())
-        .filter(Boolean);
+      // "To" may hold several addresses (comma/semicolon separated). The
+      // backend takes a single primary recipient; the rest ride along as CC,
+      // so everyone the SAM listed still gets the MoM.
+      const toList = splitEmails(to);
+      const ccList = [...toList.slice(1), ...splitEmails(cc)];
       const sharedPayload = {
         clientParticipants: cleanClient.length ? JSON.stringify(cleanClient) : undefined,
         gazonParticipants: cleanGazon.length ? JSON.stringify(cleanGazon) : undefined,
         actionItems: cleanItems.length ? cleanItems : undefined,
         momContent: body.trim(),
-        to: to.trim() || undefined,
+        to: toList[0] || undefined,
         cc: ccList.length > 0 ? ccList : undefined,
         subject: subject.trim(),
         samDesignation: designation.trim() || undefined,
@@ -579,13 +585,12 @@ export function AddMomDialog({
                 </Label>
                 <Input
                   id="mom-to"
-                  type="email"
                   value={to}
                   onChange={(e) => {
                     setTo(e.target.value);
                     setToEdited(true);
                   }}
-                  placeholder="customer@example.com"
+                  placeholder="customer@example.com, another@example.com"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
