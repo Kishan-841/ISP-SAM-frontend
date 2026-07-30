@@ -126,6 +126,9 @@ export function AddMomDialog({
   const [clientPpts, setClientPpts] = useState<Participant[]>(initialClientPpts);
   const [gazonPpts, setGazonPpts] = useState<Participant[]>(initialGazonPpts);
   const [items, setItems] = useState<ActionItem[]>(initialItems);
+  // Flips once the SAM manually edits the action-items table, so the
+  // customer-based prefill never clobbers their edits.
+  const [itemsEdited, setItemsEdited] = useState(false);
 
   // ── Step 2: email composer ────────────────────────────────────────
   const [to, setTo] = useState('');
@@ -198,6 +201,16 @@ export function AddMomDialog({
     [items],
   );
 
+  // Prefill the credential rows (Client Portal username + circuit id, MRTG
+  // username/password = circuit id) from the chosen customer. Create mode
+  // only, and only while the SAM hasn't hand-edited the table.
+  useEffect(() => {
+    if (existingMeeting) return;
+    if (itemsEdited) return;
+    if (!selectedAccount) return;
+    setItems(defaultActionItems(selectedAccount));
+  }, [selectedAccount, itemsEdited, existingMeeting]);
+
   // Whenever step 1 data changes, refresh step 2 auto-fills (unless edited).
   useEffect(() => {
     if (!selectedAccount) return;
@@ -229,6 +242,7 @@ export function AddMomDialog({
     setClientPpts(initialClientPpts);
     setGazonPpts(initialGazonPpts);
     setItems(initialItems);
+    setItemsEdited(false);
     setTo('');
     setToEdited(false);
     setCc('');
@@ -546,7 +560,13 @@ export function AddMomDialog({
               />
             </div>
 
-            <ActionItemsTable items={items} onChange={setItems} />
+            <ActionItemsTable
+              items={items}
+              onChange={(next) => {
+                setItemsEdited(true);
+                setItems(next);
+              }}
+            />
 
             {error && (
               <Alert variant="destructive">
@@ -1085,8 +1105,14 @@ function blankItem(srNo: number): ActionItem {
  * Today's date is used as the default closure for closed-out rows so the
  * SAM doesn't have to fill it five times. They can change anything.
  */
-function defaultActionItems(): ActionItem[] {
+function defaultActionItems(
+  account?: { userName?: string | null; circuitId?: string | null } | null,
+): ActionItem[] {
   const today = todayIso();
+  // Prefill from the chosen customer where we have it; fall back to the
+  // <placeholder> so the SAM still knows what to fill for the rest.
+  const username = account?.userName?.trim() || '<username>';
+  const circuitId = account?.circuitId?.trim() || '<circuit_id>';
   return [
     {
       srNo: 1,
@@ -1095,9 +1121,10 @@ function defaultActionItems(): ActionItem[] {
       planOfAction:
         'Please find your Gazon Fiber Client Portal Login details below:\n' +
         'URL: https://enterprise.gazonfiber.com/synnefoclient/\n' +
-        'USERNAME: <username>\n' +
-        'PASSWORD: <password>\n' +
-        'CIRCUIT ID: <circuit_id>',
+        `USERNAME: ${username}\n` +
+        // Portal password is a shared default for every customer.
+        'PASSWORD: 123456\n' +
+        `CIRCUIT ID: ${circuitId}`,
       closureDate: today,
       currentStatus: 'Closed',
     },
@@ -1108,8 +1135,9 @@ function defaultActionItems(): ActionItem[] {
       planOfAction:
         'Please find the graph URL and credentials to check the utilization.\n' +
         'URL: http://nms.gazonindia.com/graph/\n' +
-        'Username: <circuit_id>\n' +
-        'Password: <circuit_id>',
+        // MRTG username AND password are both the circuit id.
+        `Username: ${circuitId}\n` +
+        `Password: ${circuitId}`,
       closureDate: today,
       currentStatus: 'Closed',
     },
