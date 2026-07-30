@@ -36,7 +36,7 @@ export type SamDetail = {
       arcDeltaPercent: number;
     };
     commercialChanges: { value: number; teamAvg: number; activationPending: number };
-    meetings: { value: number; teamAvg: number; upcomingCount: number };
+    meetings: { value: number; teamAvg: number; upcomingCount: number; online: number; offline: number };
     momSla: { value: number; teamAvg: number; momsOverdue: number };
   };
   changes: Record<ChangeType, { count: number; arcImpact: number }>;

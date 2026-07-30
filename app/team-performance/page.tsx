@@ -16,7 +16,11 @@ import { getMe } from '../../services/auth';
 import { getTeamPerformance } from '../../services/team-performance';
 import { PageHeader, SectionHeading } from '../../components/page-header';
 import { StatCard } from '../../components/stat-card';
-import { ArcPerSamChart, ChangesPerSamChart } from '../../components/team-charts';
+import {
+  ArcPerSamChart,
+  ChangesPerSamChart,
+  MeetingsPerSamChart,
+} from '../../components/team-charts';
 import { ChurnPill } from '../../components/churn-pill';
 import { DeltaTrend } from '../../components/delta-trend';
 import { formatRupeesCompact } from '../../lib/format-rupees';
@@ -184,6 +188,7 @@ export default async function TeamPerformancePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <ArcPerSamChart sams={sams} />
             <ChangesPerSamChart sams={sams} />
+            <MeetingsPerSamChart sams={sams} />
           </div>
         </section>
       )}
@@ -307,16 +312,23 @@ function MeetingsCell({ sam }: { sam: import('../../services/team-performance').
   ].filter((c) => c.count > 0);
 
   return (
-    <div className="inline-flex items-center gap-1.5 flex-wrap justify-center">
-      {chips.map((c) => (
-        <span
-          key={c.label}
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ring-1 tabular-nums ${c.classes}`}
-        >
-          <span>{c.count}</span>
-          <span className="text-[10px] uppercase tracking-wider opacity-70">{c.label}</span>
+    <div className="flex flex-col items-center gap-1">
+      <div className="inline-flex items-center gap-1.5 flex-wrap justify-center">
+        {chips.map((c) => (
+          <span
+            key={c.label}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ring-1 tabular-nums ${c.classes}`}
+          >
+            <span>{c.count}</span>
+            <span className="text-[10px] uppercase tracking-wider opacity-70">{c.label}</span>
+          </span>
+        ))}
+      </div>
+      {sam.meetingsHeld > 0 && (
+        <span className="text-[11px] text-gray-500 tabular-nums">
+          {sam.meetingsOnline} online · {sam.meetingsOffline} offline
         </span>
-      ))}
+      )}
     </div>
   );
 }

@@ -286,7 +286,7 @@ function SamKpiRow({ data }: { data: SamDetail }) {
         teamAvg={k.meetings.teamAvg}
         teamAvgFormat={(n) => n.toFixed(1)}
         delta={k.meetings.value - k.meetings.teamAvg}
-        sub={`${k.meetings.upcomingCount} upcoming this week`}
+        sub={`${k.meetings.online} online · ${k.meetings.offline} offline · ${k.meetings.upcomingCount} upcoming`}
       />
       <KpiCard
         icon={Mail}

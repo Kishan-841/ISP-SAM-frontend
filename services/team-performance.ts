@@ -20,6 +20,9 @@ export type SamRow = {
   changes: Record<CommercialChangeType, { count: number; arcImpact: number }>;
   totalChanges: number;
   meetingsHeld: number;
+  /** Held meetings by mode; online + offline === meetingsHeld. */
+  meetingsOnline: number;
+  meetingsOffline: number;
   momsSent: number;
   momSlaPercent: number;
   approvalPercent: number;
@@ -49,6 +52,8 @@ export type TeamPerformance = {
     momsPending: number;
     momsSent: number;
     meetingsHeld: number;
+    meetingsOnline: number;
+    meetingsOffline: number;
     activationPending: number;
     customersWithoutMeeting30d: number;
     netChurnArc: number;
