@@ -497,7 +497,7 @@ function ExpandedMeetingRow({ meeting }: { meeting: MeetingRow }) {
                   <td className="px-3 py-2 text-gray-600">{it.srNo || idx + 1}</td>
                   <td className="px-3 py-2 text-gray-900">{it.discussionDescription}</td>
                   <td className="px-3 py-2 text-gray-700">{it.actionOwner || '—'}</td>
-                  <td className="px-3 py-2 text-gray-700">{it.planOfAction || '—'}</td>
+                  <td className="px-3 py-2 text-gray-700 whitespace-pre-line">{it.planOfAction || '—'}</td>
                   <td className="px-3 py-2 text-gray-700">{it.closureDate || '—'}</td>
                   <td className="px-3 py-2">
                     <StatusPill tone={ACTION_ITEM_TONE[it.currentStatus] ?? 'gray'}>

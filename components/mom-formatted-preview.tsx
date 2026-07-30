@@ -233,7 +233,7 @@ export function MomFormattedPreview(input: MomFormattedPreviewInput) {
                       <td className="px-3.5 py-3 border-t border-gray-100 text-gray-700 align-top">
                         {it.actionOwner || '—'}
                       </td>
-                      <td className="px-3.5 py-3 border-t border-gray-100 text-gray-700 align-top">
+                      <td className="px-3.5 py-3 border-t border-gray-100 text-gray-700 align-top whitespace-pre-line">
                         {it.planOfAction || '—'}
                       </td>
                       <td className="px-3.5 py-3 border-t border-gray-100 text-gray-700 align-top whitespace-nowrap">
