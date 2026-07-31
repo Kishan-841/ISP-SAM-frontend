@@ -8,6 +8,8 @@ import {
   CalendarPlus,
   Clipboard,
   Eye,
+  Maximize2,
+  Minimize2,
   Plus,
   RefreshCw,
   Save,
@@ -917,6 +919,16 @@ function ActionItemsTable({
   items: ActionItem[];
   onChange: (i: ActionItem[]) => void;
 }) {
+  // Which rows have their Plan of Action expanded to show the full text.
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const toggleExpand = (idx: number) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+
   function update(idx: number, patch: Partial<ActionItem>) {
     onChange(items.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   }
@@ -951,7 +963,7 @@ function ActionItemsTable({
           </thead>
           <tbody>
             {items.map((item, idx) => (
-              <tr key={idx} className="border-t border-gray-100">
+              <tr key={idx} className="border-t border-gray-100 [&>td]:align-top">
                 <td className="px-3 py-2 text-gray-600">{idx + 1}</td>
                 <td className="px-2 py-2">
                   <Input
@@ -970,12 +982,34 @@ function ActionItemsTable({
                   />
                 </td>
                 <td className="px-2 py-2">
-                  <Input
-                    placeholder="Plan..."
-                    value={item.planOfAction}
-                    onChange={(e) => update(idx, { planOfAction: e.target.value })}
-                    className="h-9"
-                  />
+                  <div className="relative">
+                    <Textarea
+                      placeholder="Plan..."
+                      value={item.planOfAction}
+                      onChange={(e) => update(idx, { planOfAction: e.target.value })}
+                      rows={
+                        expanded.has(idx)
+                          ? Math.min(16, Math.max(3, item.planOfAction.split('\n').length))
+                          : 1
+                      }
+                      className={`resize-none pr-8 text-sm leading-relaxed ${
+                        expanded.has(idx) ? '' : 'h-9 overflow-hidden'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(idx)}
+                      className="absolute top-1.5 right-1.5 p-0.5 rounded text-gray-400 hover:text-brand-600 hover:bg-gray-100 transition-colors"
+                      aria-label={expanded.has(idx) ? 'Collapse' : 'Expand to see full text'}
+                      title={expanded.has(idx) ? 'Collapse' : 'Expand to see full text'}
+                    >
+                      {expanded.has(idx) ? (
+                        <Minimize2 className="w-3.5 h-3.5" />
+                      ) : (
+                        <Maximize2 className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
                 </td>
                 <td className="px-2 py-2">
                   <Input
