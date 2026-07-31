@@ -773,7 +773,11 @@ export function AddMomDialog({
                   onClick={() => {
                     void copyForOutlook();
                   }}
-                  disabled={!accountId || !subject || !body || submitting || copying}
+                  // Only blocked while an action is running. Customer/date/time
+                  // are already enforced at the step-1 gate; subject/body are
+                  // validated in copyForOutlook() with an inline error, so we
+                  // don't leave the button mysteriously disabled.
+                  disabled={submitting || copying}
                   title="Copy the styled email to clipboard so you can paste it into Outlook and send from your own account."
                 >
                   <Clipboard className="w-4 h-4 mr-2" />
@@ -781,7 +785,9 @@ export function AddMomDialog({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!subject || !body || submitting || copying}
+                  // Validated in submit() with an inline error rather than a
+                  // silently-disabled button (see Copy-for-Outlook above).
+                  disabled={submitting || copying}
                   title="Save the meeting + MOM record. No email is sent — use 'Copy for Outlook' to send via your own mail client."
                 >
                   <Save className="w-4 h-4 mr-2" />
