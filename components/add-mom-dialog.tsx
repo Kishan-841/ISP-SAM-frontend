@@ -260,12 +260,24 @@ export function AddMomDialog({
   }
 
   function goToStep2() {
+    // Plain-language guidance so the SAM knows exactly what to fix — the button
+    // is no longer disabled, so this runs on click and tells them what's missing.
     if (!accountId) {
-      setError('Pick a customer.');
+      toast.error('Choose a customer', {
+        description: 'Select which customer this meeting was with, then continue.',
+      });
       return;
     }
-    if (!date || !time) {
-      setError('Date and time are required.');
+    if (!date) {
+      toast.error('Add the meeting date', {
+        description: 'Pick the date the meeting took place.',
+      });
+      return;
+    }
+    if (!time) {
+      toast.error('Add the meeting time', {
+        description: 'Set the time the meeting took place.',
+      });
       return;
     }
     setError(null);
@@ -273,9 +285,24 @@ export function AddMomDialog({
   }
 
   async function copyForOutlook() {
-    if (!accountId) return setError('Pick a customer first.');
-    if (!subject.trim()) return setError('Subject is required.');
-    if (!body.trim()) return setError('Email body is required.');
+    if (!accountId) {
+      toast.error('Choose a customer', {
+        description: 'Go back to step 1 and select the customer this MOM is for.',
+      });
+      return;
+    }
+    if (!subject.trim()) {
+      toast.error('Add a subject', {
+        description: 'The email needs a subject line before you can copy it.',
+      });
+      return;
+    }
+    if (!body.trim()) {
+      toast.error('The email body is empty', {
+        description: 'Type the meeting notes into the body before copying.',
+      });
+      return;
+    }
 
     setCopying(true);
     setError(null);
@@ -331,8 +358,18 @@ export function AddMomDialog({
   }
 
   async function submit() {
-    if (!subject.trim()) return setError('Subject is required.');
-    if (!body.trim()) return setError('MOM body is required.');
+    if (!subject.trim()) {
+      toast.error('Add a subject', {
+        description: 'Give the MOM a subject line before saving.',
+      });
+      return;
+    }
+    if (!body.trim()) {
+      toast.error('The MOM is empty', {
+        description: 'Type the meeting minutes into the body before saving.',
+      });
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -585,7 +622,7 @@ export function AddMomDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={!accountId || !date || !time}>
+              <Button type="submit">
                 Next: Compose Email
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
