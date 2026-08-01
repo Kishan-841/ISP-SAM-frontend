@@ -444,7 +444,16 @@ export function AddMomDialog({
           )}
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-5xl w-[90vw] max-h-[90vh] !gap-0 p-0 overflow-hidden flex flex-col">
+      <DialogContent
+        className="sm:max-w-5xl w-[90vw] max-h-[90vh] !gap-0 p-0 overflow-hidden flex flex-col"
+        // Keep the form from closing by accident and wiping everything the SAM
+        // typed. A Status dropdown / date picker inside the scroll area can leak
+        // its own Escape/dismiss up to the dialog; an outside click near the
+        // scrollbar does the same. Only the explicit Cancel / ✕ buttons close it.
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader className="bg-orange-50 px-6 py-4 border-b border-orange-100 flex-shrink-0">
           <DialogTitle className="text-xl font-semibold text-gray-900">
             {step === 1
