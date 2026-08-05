@@ -161,59 +161,6 @@ export function ChangesPerSamChart({ sams }: { sams: SamRow[] }) {
   );
 }
 
-const COLOR_ONLINE = '#0ea5e9'; // sky-500
-const COLOR_OFFLINE = '#6366f1'; // indigo-500
-
-/** Horizontal stacked bar — held meetings per SAM, split online vs offline. */
-export function MeetingsPerSamChart({ sams }: { sams: SamRow[] }) {
-  const data = [...sams]
-    .sort((a, b) => b.meetingsHeld - a.meetingsHeld)
-    .map((s) => ({
-      name: shortName(s.name),
-      Online: s.meetingsOnline,
-      Offline: s.meetingsOffline,
-    }));
-
-  const hasData = data.some((d) => d.Online + d.Offline > 0);
-  if (!hasData) return <ChartEmpty title="Meetings held per SAM" />;
-
-  return (
-    <div className="bg-white rounded-xl ring-1 ring-gray-200 p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-900">Meetings held per SAM</h3>
-        <span className="text-[11px] text-gray-400">Online vs offline</span>
-      </div>
-      <ResponsiveContainer width="100%" height={Math.max(220, data.length * 56)}>
-        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, left: 16, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
-          <XAxis
-            type="number"
-            allowDecimals={false}
-            tick={{ fill: '#6b7280', fontSize: 11 }}
-            axisLine={{ stroke: '#e5e7eb' }}
-            tickLine={false}
-          />
-          <YAxis
-            type="category"
-            dataKey="name"
-            tick={{ fill: '#374151', fontSize: 12 }}
-            axisLine={{ stroke: '#e5e7eb' }}
-            tickLine={false}
-            width={120}
-          />
-          <Tooltip
-            cursor={{ fill: '#f9fafb' }}
-            contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
-          />
-          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-          <Bar dataKey="Online" stackId="a" name="Online" fill={COLOR_ONLINE} />
-          <Bar dataKey="Offline" stackId="a" name="Offline" fill={COLOR_OFFLINE} radius={[0, 6, 6, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
 function ChartEmpty({ title }: { title: string }) {
   return (
     <div className="bg-white rounded-xl ring-1 ring-gray-200 p-5 min-h-[220px] flex flex-col">

@@ -16,11 +16,7 @@ import { getMe } from '../../services/auth';
 import { getTeamPerformance } from '../../services/team-performance';
 import { PageHeader, SectionHeading } from '../../components/page-header';
 import { StatCard } from '../../components/stat-card';
-import {
-  ArcPerSamChart,
-  ChangesPerSamChart,
-  MeetingsPerSamChart,
-} from '../../components/team-charts';
+import { ArcPerSamChart, ChangesPerSamChart } from '../../components/team-charts';
 import { ChurnPill } from '../../components/churn-pill';
 import { DeltaTrend } from '../../components/delta-trend';
 import { formatRupeesCompact } from '../../lib/format-rupees';
@@ -188,7 +184,6 @@ export default async function TeamPerformancePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <ArcPerSamChart sams={sams} />
             <ChangesPerSamChart sams={sams} />
-            <MeetingsPerSamChart sams={sams} />
           </div>
         </section>
       )}
