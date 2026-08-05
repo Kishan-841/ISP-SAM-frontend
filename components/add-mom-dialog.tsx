@@ -63,6 +63,9 @@ function splitEmails(s: string): string[] {
 
 const STATUS_OPTIONS: ActionItem['currentStatus'][] = ['Open', 'In Progress', 'Closed'];
 
+/** Always-CC'd recipients on every MOM (SAM leadership). Prefilled, editable. */
+const DEFAULT_CC = 'avinash.doijad@gazonindia.com, sanith@gazonindia.com';
+
 export function AddMomDialog({
   accounts,
   existingMeeting = null,
@@ -135,7 +138,7 @@ export function AddMomDialog({
   // ── Step 2: email composer ────────────────────────────────────────
   const [to, setTo] = useState('');
   const [toEdited, setToEdited] = useState(false);
-  const [cc, setCc] = useState('');
+  const [cc, setCc] = useState(DEFAULT_CC);
   const [subject, setSubject] = useState('');
   const [subjectEdited, setSubjectEdited] = useState(false);
   const [body, setBody] = useState(existingMeeting?.momContent ?? '');
@@ -247,7 +250,7 @@ export function AddMomDialog({
     setItemsEdited(false);
     setTo('');
     setToEdited(false);
-    setCc('');
+    setCc(DEFAULT_CC);
     setSubject('');
     setSubjectEdited(false);
     setBody(existingMeeting?.momContent ?? '');
