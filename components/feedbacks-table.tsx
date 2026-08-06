@@ -53,13 +53,6 @@ export function FeedbacksTable({ rows }: { rows: FeedbackListRow[] }) {
       cell: (r) => <InterestPill level={r.interestLevel} />,
     },
     {
-      key: 'npsScore',
-      header: 'NPS',
-      align: 'center',
-      sortable: true,
-      cell: (r) => <span className="tabular-nums text-gray-700">{r.npsScore ?? '—'}</span>,
-    },
-    {
       key: 'submittedAt',
       header: 'Submitted',
       sortable: true,
