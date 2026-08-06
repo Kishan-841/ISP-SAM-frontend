@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { CheckCircle2, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { Check, CheckCircle2, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   submitFeedback,
@@ -145,7 +145,10 @@ export function FeedbackForm({ form }: { form: FeedbackForm }) {
               key={sectionId}
               className="bg-white rounded-2xl ring-1 ring-gray-200 shadow-sm overflow-hidden"
             >
-              <header className="bg-orange-50 border-b border-orange-100 px-5 sm:px-6 py-3.5">
+              <header className="flex items-center gap-3 border-b border-gray-100 px-5 sm:px-6 py-4">
+                <span className="grid place-items-center w-7 h-7 rounded-lg bg-brand-600 text-white text-xs font-bold flex-shrink-0 shadow-sm shadow-brand-600/25">
+                  {sectionId}
+                </span>
                 <h2 className="text-sm font-semibold text-gray-900">{section?.title}</h2>
               </header>
               <div className="px-5 sm:px-6 py-5 flex flex-col gap-6">
@@ -306,10 +309,10 @@ function QuestionField({
                   type="button"
                   onClick={() => onChange(n)}
                   className={cn(
-                    'flex items-center justify-center py-3 rounded-lg ring-1 text-base font-semibold transition-colors',
+                    'flex items-center justify-center py-3 rounded-lg ring-1 text-base font-semibold transition',
                     active
-                      ? 'bg-brand-600 text-white ring-brand-600'
-                      : 'bg-white text-gray-700 ring-gray-200 hover:bg-orange-50',
+                      ? 'bg-brand-600 text-white ring-brand-600 shadow-sm shadow-brand-600/20'
+                      : 'bg-white text-gray-700 ring-gray-200 hover:ring-brand-300 hover:text-brand-700 hover:shadow-sm',
                   )}
                 >
                   {n}
@@ -329,10 +332,10 @@ function QuestionField({
                   type="button"
                   onClick={() => onChange(n)}
                   className={cn(
-                    'w-9 h-9 rounded-lg ring-1 text-sm font-semibold transition-colors',
+                    'w-9 h-9 rounded-lg ring-1 text-sm font-semibold transition',
                     active
-                      ? 'bg-brand-600 text-white ring-brand-600'
-                      : 'bg-white text-gray-700 ring-gray-200 hover:bg-orange-50',
+                      ? 'bg-brand-600 text-white ring-brand-600 shadow-sm shadow-brand-600/20'
+                      : 'bg-white text-gray-700 ring-gray-200 hover:ring-brand-300 hover:text-brand-700 hover:shadow-sm',
                   )}
                 >
                   {n}
@@ -352,10 +355,10 @@ function QuestionField({
                   type="button"
                   onClick={() => onChange(opt)}
                   className={cn(
-                    'px-3.5 py-2 rounded-lg ring-1 text-sm font-medium transition-colors',
+                    'px-3.5 py-2 rounded-lg ring-1 text-sm font-medium transition',
                     active
-                      ? 'bg-brand-600 text-white ring-brand-600'
-                      : 'bg-white text-gray-700 ring-gray-200 hover:bg-orange-50',
+                      ? 'bg-brand-600 text-white ring-brand-600 shadow-sm shadow-brand-600/20'
+                      : 'bg-white text-gray-700 ring-gray-200 hover:ring-brand-300 hover:text-brand-700 hover:shadow-sm',
                   )}
                 >
                   {opt}
@@ -376,19 +379,19 @@ function QuestionField({
                     type="button"
                     onClick={() => onToggleMulti(opt)}
                     className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-lg ring-1 text-sm text-left transition-colors',
+                      'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left transition',
                       active
-                        ? 'bg-orange-50 text-gray-900 ring-brand-300'
-                        : 'bg-white text-gray-700 ring-gray-200 hover:bg-gray-50',
+                        ? 'bg-brand-50/60 text-gray-900 ring-2 ring-brand-500'
+                        : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:ring-brand-300 hover:shadow-sm',
                     )}
                   >
                     <span
                       className={cn(
-                        'w-4 h-4 rounded flex items-center justify-center ring-1 flex-shrink-0',
-                        active ? 'bg-brand-600 ring-brand-600' : 'bg-white ring-gray-300',
+                        'w-[18px] h-[18px] rounded-[5px] flex items-center justify-center flex-shrink-0 transition',
+                        active ? 'bg-brand-600 ring-1 ring-brand-600' : 'bg-white ring-1 ring-gray-300',
                       )}
                     >
-                      {active && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                      {active && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                     </span>
                     {opt}
                   </button>
