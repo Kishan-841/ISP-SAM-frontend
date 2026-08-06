@@ -18,15 +18,14 @@ export default async function FeedbackPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <header className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 text-brand-700 font-semibold tracking-tight">
-            <span className="text-lg">Gazon Communication</span>
-          </div>
-          <h1 className="mt-3 text-2xl font-bold text-gray-900">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">
+            Gazon Communication
+          </p>
+          <h1 className="mt-2 text-lg sm:text-xl font-bold text-gray-900 tracking-tight">
             Customer Feedback &amp; Service Assessment
           </h1>
-          <p className="mt-2 text-sm text-gray-600 max-w-xl mx-auto">
-            Thank you for choosing Gazon Communication. Your feedback helps us improve our services
-            and better understand your business needs. This survey takes about 5 minutes.
+          <p className="mt-1.5 text-sm text-gray-500">
+            Takes about 5 minutes — your input directly shapes our service.
           </p>
         </header>
 

@@ -266,6 +266,7 @@ function QuestionField({
             type={q.type === 'email' ? 'email' : q.type === 'tel' ? 'tel' : 'text'}
             value={typeof value === 'string' ? value : ''}
             onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholderFor(q)}
             className={inputCls(error)}
           />
         )}
@@ -275,6 +276,7 @@ function QuestionField({
             rows={4}
             value={typeof value === 'string' ? value : ''}
             onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholderFor(q)}
             className={inputCls(error)}
           />
         )}
@@ -412,6 +414,25 @@ function QuestionField({
       {error && <p className="text-xs text-red-600 mt-1.5">{error}</p>}
     </div>
   );
+}
+
+/** Friendly placeholder per question, falling back to a type-based default. */
+const PLACEHOLDERS: Record<string, string> = {
+  q1: 'e.g. Acme Corp Pvt Ltd',
+  q2: 'Your full name',
+  q3: 'e.g. IT Manager',
+  q4: 'you@company.com',
+  q5: '10-digit mobile number',
+  q6: 'Gazon service manager (if known)',
+  q20: 'Tell us anything that would help us serve you better…',
+};
+
+function placeholderFor(q: FeedbackQuestion): string {
+  if (PLACEHOLDERS[q.id]) return PLACEHOLDERS[q.id]!;
+  if (q.type === 'email') return 'you@company.com';
+  if (q.type === 'tel') return '10-digit mobile number';
+  if (q.type === 'textarea') return 'Type your answer…';
+  return 'Type your answer…';
 }
 
 function inputCls(error?: string) {
