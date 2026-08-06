@@ -25,7 +25,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const PUBLIC_PATHS = new Set(['/login']);
+const PUBLIC_PATHS = new Set(['/login', '/feedback']);
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const h = await headers();
