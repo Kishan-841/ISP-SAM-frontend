@@ -10,6 +10,16 @@ export default async function FeedbackPage() {
   let form: FeedbackForm | null = null;
   try {
     form = await getFeedbackForm();
+    // Shims that take effect immediately, even if the backend catalog hasn't
+    // redeployed yet:
+    //  - Q6 "Service Manager Name" is covered by the "Your SAM" dropdown.
+    //  - Rating scale hints (e.g. "5 = Excellent, 1 = Very Poor") are obvious.
+    form = {
+      ...form,
+      questions: form.questions
+        .filter((q) => q.id !== 'q6')
+        .map((q) => (q.type === 'rating5' ? { ...q, help: undefined } : q)),
+    };
   } catch {
     form = null;
   }

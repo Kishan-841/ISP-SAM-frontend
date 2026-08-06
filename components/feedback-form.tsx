@@ -306,16 +306,13 @@ function QuestionField({
                   type="button"
                   onClick={() => onChange(n)}
                   className={cn(
-                    'flex flex-col items-center gap-1 py-2.5 rounded-lg ring-1 transition-colors',
+                    'flex items-center justify-center py-3 rounded-lg ring-1 text-base font-semibold transition-colors',
                     active
                       ? 'bg-brand-600 text-white ring-brand-600'
                       : 'bg-white text-gray-700 ring-gray-200 hover:bg-orange-50',
                   )}
                 >
-                  <span className="text-base font-semibold">{n}</span>
-                  <span className={cn('text-[10px] leading-tight', active ? 'text-white/90' : 'text-gray-500')}>
-                    {form.ratingLabels[String(n)]}
-                  </span>
+                  {n}
                 </button>
               );
             })}
