@@ -4,7 +4,7 @@ import { getCookieHeader } from '../../lib/get-cookie-header';
 import { getMe } from '../../services/auth';
 import { listFeedbacks, type FeedbackListRow } from '../../services/feedback';
 import { PageHeader } from '../../components/page-header';
-import { FeedbacksTable } from '../../components/feedbacks-table';
+import { FeedbacksView } from '../../components/feedbacks-view';
 
 const ALLOWED = ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD'] as const;
 
@@ -49,7 +49,7 @@ export default async function FeedbacksPage() {
           </p>
         </div>
       ) : (
-        <FeedbacksTable rows={rows} />
+        <FeedbacksView rows={rows} />
       )}
     </div>
   );

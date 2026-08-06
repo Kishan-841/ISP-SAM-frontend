@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Star, MessageSquareText } from 'lucide-react';
@@ -8,7 +9,13 @@ import { InterestPill } from './interest-pill';
 import { formatDateTime } from '../lib/format-date';
 import type { FeedbackListRow } from '../services/feedback';
 
-export function FeedbacksTable({ rows }: { rows: FeedbackListRow[] }) {
+export function FeedbacksTable({
+  rows,
+  filters,
+}: {
+  rows: FeedbackListRow[];
+  filters?: ReactNode;
+}) {
   const router = useRouter();
 
   const columns: Column<FeedbackListRow>[] = [
@@ -68,6 +75,7 @@ export function FeedbacksTable({ rows }: { rows: FeedbackListRow[] }) {
       searchable
       searchPlaceholder="Search customer, company or SAM…"
       searchKeys={['customerName', 'companyName', 'sam.name']}
+      filters={filters}
       pagination
       defaultPageSize={10}
       minWidth="min-w-[820px]"
