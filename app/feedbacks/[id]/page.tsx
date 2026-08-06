@@ -98,7 +98,7 @@ export default async function FeedbackDetailPage({
                 <div key={q.id} className="px-5 py-3.5 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4">
                   <dt className="text-xs text-gray-500 sm:col-span-1">{q.label}</dt>
                   <dd className="text-sm text-gray-900 sm:col-span-2">
-                    {renderAnswer(q, fb!.responses[q.id], fb!.ratingLabels)}
+                    {renderAnswer(q, fb!.responses[q.id], fb!.ratingLabels, fb!.sam.name)}
                   </dd>
                 </div>
               ))}
@@ -129,7 +129,10 @@ function renderAnswer(
   q: FeedbackQuestion,
   value: unknown,
   ratingLabels: Record<string, string>,
+  samName?: string,
 ): React.ReactNode {
+  // "Your SAM" is stored as the SAM's id — show the resolved name instead.
+  if (q.type === 'sam') return <span>{samName ?? String(value)}</span>;
   if (q.type === 'rating5' && typeof value === 'number') {
     return (
       <span className="inline-flex items-center gap-1.5">
