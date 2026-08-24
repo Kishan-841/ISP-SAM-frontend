@@ -1206,7 +1206,7 @@ function defaultActionItems(
     {
       srNo: 1,
       discussionDescription: 'Client Portal',
-      actionOwner: 'NOC / Vaibhav',
+      actionOwner: 'NOC / Vaibhav bartakke',
       planOfAction:
         'Please find your Gazon Fiber Client Portal Login details below:\n' +
         'URL: https://enterprise.gazonfiber.com/synnefoclient/\n' +
@@ -1220,7 +1220,7 @@ function defaultActionItems(
     {
       srNo: 2,
       discussionDescription: 'MRTG Access',
-      actionOwner: 'NOC / Vaibhav',
+      actionOwner: 'NOC / Vaibhav bartakke',
       planOfAction:
         'Please find the graph URL and credentials to check the utilization.\n' +
         'URL: http://nms.gazonindia.com/graph/\n' +
@@ -1241,13 +1241,9 @@ function defaultActionItems(
     {
       srNo: 4,
       discussionDescription: 'Service Issues',
-      actionOwner: 'NOC / Vaibhav',
+      actionOwner: 'NOC / Vaibhav bartakke',
       planOfAction:
-        'Currently, there are no service issues and the service is functioning ' +
-        'smoothly. However, earlier there were instances related to link downtime, ' +
-        'communication gaps, and delays in timely updates, which we have noted ' +
-        'and are continuously working to improve for a better service experience ' +
-        'going forward.',
+        'Currently, there are no service issues and the service is functioning smoothly.',
       closureDate: null,
       currentStatus: 'Open',
     },
