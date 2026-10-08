@@ -23,6 +23,9 @@ import { ExpandableArc } from '../../components/expandable-arc';
 import { DeltaTrend } from '../../components/delta-trend';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { getNewBaseMetrics } from '../../services/dashboard';
+import { getSamFilterOptions } from '../../services/sam-options';
+import { SamFilter } from '../../components/sam-filter';
+import { dashboardHref } from '../../lib/dashboard-filters';
 import { formatDate } from '../../lib/format-date';
 import { formatRupeesCompact } from '../../lib/format-rupees';
 
@@ -39,9 +42,17 @@ const STATUS_TONE: Record<string, PillTone> = {
   TERMINATED: 'gray',
 };
 
-export default async function NewBaseDashboardPage() {
+export default async function NewBaseDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sam?: string }>;
+}) {
+  const sam = (await searchParams).sam || undefined;
   const cookieHeader = await getCookieHeader();
-  const metrics = await getNewBaseMetrics({ cookieHeader });
+  const [metrics, sams] = await Promise.all([
+    getNewBaseMetrics({ sam }, { cookieHeader }),
+    getSamFilterOptions({ cookieHeader }),
+  ]);
 
   const ttfm =
     metrics.avgTimeToFirstMomDays === null
@@ -77,6 +88,7 @@ export default async function NewBaseDashboardPage() {
       <PageHeader
         title="New Base Dashboard"
         subtitle="Growth & velocity (post-April 1 customers)"
+        right={<SamFilter sams={sams} active={sam} />}
       />
 
       {/* Components — mirrors existing-base */}
@@ -177,7 +189,7 @@ export default async function NewBaseDashboardPage() {
             iconBg="bg-emerald-50"
             iconColor="text-emerald-600"
             valueColor="text-emerald-600"
-            href={metrics.upgrades.count > 0 ? '/new-base/upgrades' : undefined}
+            href={metrics.upgrades.count > 0 ? dashboardHref('/new-base/upgrades', { sam }) : undefined}
           />
           <StatCard
             title={`Downgrades (${metrics.downgrades.count})`}
@@ -187,7 +199,7 @@ export default async function NewBaseDashboardPage() {
             iconBg="bg-amber-50"
             iconColor="text-amber-600"
             valueColor="text-amber-600"
-            href={metrics.downgrades.count > 0 ? '/new-base/downgrades' : undefined}
+            href={metrics.downgrades.count > 0 ? dashboardHref('/new-base/downgrades', { sam }) : undefined}
           />
           <StatCard
             title="Rate Revisions"
@@ -200,7 +212,7 @@ export default async function NewBaseDashboardPage() {
             icon={Shield}
             iconBg="bg-indigo-50"
             iconColor="text-indigo-600"
-            href={metrics.rateRevisions.count > 0 ? '/new-base/rate-revisions' : undefined}
+            href={metrics.rateRevisions.count > 0 ? dashboardHref('/new-base/rate-revisions', { sam }) : undefined}
           />
           <StatCard
             title={`Disconnections (${metrics.terminations.count})`}
@@ -210,7 +222,7 @@ export default async function NewBaseDashboardPage() {
             iconBg="bg-red-50"
             iconColor="text-red-600"
             valueColor="text-red-600"
-            href={metrics.terminations.count > 0 ? '/new-base/disconnections' : undefined}
+            href={metrics.terminations.count > 0 ? dashboardHref('/new-base/disconnections', { sam }) : undefined}
           />
         </div>
       </section>

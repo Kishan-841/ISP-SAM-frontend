@@ -169,9 +169,13 @@ export async function assignAccount(
 
 export type TeamMember = { id: string; name: string; email: string };
 
-export async function getTeam(): Promise<TeamMember[]> {
+export async function getTeam(opts: ApiOpts = {}): Promise<TeamMember[]> {
   const base = typeof window === 'undefined' ? env.internalApiBase : env.apiBase;
-  const res = await fetch(`${base}/users/team`, { cache: 'no-store' });
+  // Server-side callers must thread the cookie header through — the JWT lives
+  // in an httpOnly cookie that a server fetch does not forward on its own.
+  const headers: Record<string, string> = {};
+  if (opts.cookieHeader) headers.Cookie = opts.cookieHeader;
+  const res = await fetch(`${base}/users/team`, { headers, cache: 'no-store' });
   if (!res.ok) throw new Error(`Failed to load team (${res.status})`);
   const json = (await res.json()) as { users: TeamMember[] };
   return json.users;

@@ -3,19 +3,27 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { useTransition } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { dashboardHref } from '../lib/dashboard-filters';
 
 const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4', 'All'] as const;
 type Quarter = (typeof QUARTERS)[number];
 type ActiveQuarter = 'Q1' | 'Q2' | 'Q3' | 'Q4' | undefined;
 
-export function QuarterFilter({ active }: { active?: ActiveQuarter }) {
+export function QuarterFilter({
+  active,
+  sam,
+}: {
+  active?: ActiveQuarter;
+  /** Selected SAM, carried across quarter changes so the filters compose. */
+  sam?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
 
   function pick(q: Quarter) {
     startTransition(() => {
-      router.push(q === 'All' ? pathname : `${pathname}?quarter=${q}`);
+      router.push(dashboardHref(pathname, { quarter: q === 'All' ? undefined : q, sam }));
     });
   }
 

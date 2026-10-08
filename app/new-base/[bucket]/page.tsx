@@ -4,19 +4,23 @@ import { BucketChangesView } from '../../../components/bucket-changes-view';
 import { getCookieHeader } from '../../../lib/get-cookie-header';
 import { getBucketChanges } from '../../../services/dashboard';
 import { BUCKET_LABEL, BUCKET_SUBTITLE, bucketFromSlug } from '../../../lib/bucket';
+import { dashboardHref } from '../../../lib/dashboard-filters';
 
 export default async function NewBaseBucketPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ bucket: string }>;
+  searchParams: Promise<{ sam?: string }>;
 }) {
   const { bucket: slug } = await params;
   const bucket = bucketFromSlug(slug);
   if (!bucket) notFound();
 
+  const sam = (await searchParams).sam || undefined;
   const cookieHeader = await getCookieHeader();
   const { changes } = await getBucketChanges(
-    { kittyType: 'NEW', bucket },
+    { kittyType: 'NEW', bucket, sam },
     { cookieHeader },
   );
 
@@ -31,7 +35,7 @@ export default async function NewBaseBucketPage({
       <BucketChangesView
         rows={changes}
         bucket={bucket}
-        backHref="/new-base"
+        backHref={dashboardHref('/new-base', { sam })}
         backLabel="New Base"
       />
     </div>

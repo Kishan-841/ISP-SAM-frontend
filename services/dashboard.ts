@@ -72,15 +72,22 @@ export type NewBaseMetrics = {
 export type FyQuarter = 'Q1' | 'Q2' | 'Q3' | 'Q4';
 
 export function getExistingBaseMetrics(
-  filters: { quarter?: FyQuarter } = {},
+  filters: { quarter?: FyQuarter; sam?: string } = {},
   opts: ApiOpts = {},
 ) {
-  const qs = filters.quarter ? `?quarter=${filters.quarter}` : '';
-  return apiGet<ExistingBaseMetrics>(`/dashboard/existing-base${qs}`, opts);
+  const qs = new URLSearchParams();
+  if (filters.quarter) qs.set('quarter', filters.quarter);
+  if (filters.sam) qs.set('sam', filters.sam);
+  const query = qs.toString();
+  return apiGet<ExistingBaseMetrics>(
+    `/dashboard/existing-base${query ? `?${query}` : ''}`,
+    opts,
+  );
 }
 
-export function getNewBaseMetrics(opts: ApiOpts = {}) {
-  return apiGet<NewBaseMetrics>('/dashboard/new-base', opts);
+export function getNewBaseMetrics(filters: { sam?: string } = {}, opts: ApiOpts = {}) {
+  const qs = filters.sam ? `?sam=${encodeURIComponent(filters.sam)}` : '';
+  return apiGet<NewBaseMetrics>(`/dashboard/new-base${qs}`, opts);
 }
 
 export type Bucket = 'UPGRADE' | 'DOWNGRADE' | 'RATE_REVISION' | 'DISCONNECTION';
@@ -115,7 +122,7 @@ export type BucketChangeRow = {
 };
 
 export function getBucketChanges(
-  filters: { kittyType: KittyType; bucket: Bucket; quarter?: FyQuarter },
+  filters: { kittyType: KittyType; bucket: Bucket; quarter?: FyQuarter; sam?: string },
   opts: ApiOpts = {},
 ) {
   const qs = new URLSearchParams({
@@ -123,5 +130,6 @@ export function getBucketChanges(
     bucket: filters.bucket,
   });
   if (filters.quarter) qs.set('quarter', filters.quarter);
+  if (filters.sam) qs.set('sam', filters.sam);
   return apiGet<{ changes: BucketChangeRow[] }>(`/dashboard/changes?${qs}`, opts);
 }

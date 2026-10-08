@@ -13,12 +13,15 @@ import { PageHeader, SectionHeading } from '../../components/page-header';
 import { StatCard } from '../../components/stat-card';
 import { HoldingCard } from '../../components/holding-card';
 import { QuarterFilter } from '../../components/quarter-filter';
+import { SamFilter } from '../../components/sam-filter';
 import { RevenueWaterfall } from '../../components/revenue-waterfall';
 import { WaterfallDetail } from '../../components/waterfall-detail';
 import { ExpandableArc } from '../../components/expandable-arc';
 import { DeltaTrend } from '../../components/delta-trend';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { getExistingBaseMetrics, type FyQuarter } from '../../services/dashboard';
+import { getSamFilterOptions } from '../../services/sam-options';
+import { dashboardHref } from '../../lib/dashboard-filters';
 import { formatRupeesCompact } from '../../lib/format-rupees';
 
 // Quarter filter pushes ?quarter=Qx via router.push — the page must re-run
@@ -33,20 +36,24 @@ const QUARTERS: ReadonlySet<string> = new Set(['Q1', 'Q2', 'Q3', 'Q4']);
 function bucketHref(
   slug: 'upgrades' | 'downgrades' | 'rate-revisions' | 'disconnections',
   quarter: FyQuarter | undefined,
+  sam: string | undefined,
 ): string {
-  const base = `/existing-base/${slug}`;
-  return quarter ? `${base}?quarter=${quarter}` : base;
+  return dashboardHref(`/existing-base/${slug}`, { quarter, sam });
 }
 
 export default async function ExistingBaseDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ quarter?: string }>;
+  searchParams: Promise<{ quarter?: string; sam?: string }>;
 }) {
   const sp = await searchParams;
   const quarter = QUARTERS.has(sp.quarter ?? '') ? (sp.quarter as FyQuarter) : undefined;
+  const sam = sp.sam || undefined;
   const cookieHeader = await getCookieHeader();
-  const metrics = await getExistingBaseMetrics({ quarter }, { cookieHeader });
+  const [metrics, sams] = await Promise.all([
+    getExistingBaseMetrics({ quarter, sam }, { cookieHeader }),
+    getSamFilterOptions({ cookieHeader }),
+  ]);
   // Convert metrics (lakh-denominated) into rupees for the chart + detail table.
   // NOTE: rate revisions are intentionally absent from the waterfall — they
   // preserve ARC by definition (bandwidth uplift at the same price), so the
@@ -86,7 +93,12 @@ export default async function ExistingBaseDashboardPage({
       <PageHeader
         title="Existing Base Dashboard"
         subtitle={`${quarter ?? 'FYTD'} · April 1st Base accounts`}
-        right={<QuarterFilter active={quarter} />}
+        right={
+          <>
+            <SamFilter sams={sams} active={sam} quarter={quarter} />
+            <QuarterFilter active={quarter} sam={sam} />
+          </>
+        }
       />
 
       <section className="mb-8">
@@ -207,7 +219,7 @@ export default async function ExistingBaseDashboardPage({
             iconBg="bg-emerald-50"
             iconColor="text-emerald-600"
             valueColor="text-emerald-600"
-            href={metrics.upgrades.count > 0 ? bucketHref('upgrades', quarter) : undefined}
+            href={metrics.upgrades.count > 0 ? bucketHref('upgrades', quarter, sam) : undefined}
           />
           <StatCard
             title={`Downgrades (${metrics.downgrades.count})`}
@@ -217,7 +229,7 @@ export default async function ExistingBaseDashboardPage({
             iconBg="bg-amber-50"
             iconColor="text-amber-600"
             valueColor="text-amber-600"
-            href={metrics.downgrades.count > 0 ? bucketHref('downgrades', quarter) : undefined}
+            href={metrics.downgrades.count > 0 ? bucketHref('downgrades', quarter, sam) : undefined}
           />
           <StatCard
             title="Rate Revisions"
@@ -231,7 +243,7 @@ export default async function ExistingBaseDashboardPage({
             iconBg="bg-indigo-50"
             iconColor="text-indigo-600"
             href={
-              metrics.rateRevisions.count > 0 ? bucketHref('rate-revisions', quarter) : undefined
+              metrics.rateRevisions.count > 0 ? bucketHref('rate-revisions', quarter, sam) : undefined
             }
           />
           <StatCard
@@ -242,7 +254,7 @@ export default async function ExistingBaseDashboardPage({
             iconBg="bg-red-50"
             iconColor="text-red-600"
             valueColor="text-red-600"
-            href={metrics.terminations.count > 0 ? bucketHref('disconnections', quarter) : undefined}
+            href={metrics.terminations.count > 0 ? bucketHref('disconnections', quarter, sam) : undefined}
           />
         </div>
       </section>
