@@ -9,6 +9,7 @@ import {
   Calendar as CalendarIcon,
 } from 'lucide-react';
 import type { MeetingRow } from '../services/meetings';
+import { meetingParty } from '../lib/meeting-party';
 import { formatDate } from '../lib/format-date';
 
 /**
@@ -206,7 +207,7 @@ export function MeetingsCalendar({ meetings }: { meetings: MeetingRow[] }) {
                           >
                             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_COLOUR[s]}`} />
                             <span className="truncate">
-                              {m.account.companyName || m.account.clientName}
+                              {meetingParty(m).name}
                             </span>
                           </div>
                         );
@@ -266,7 +267,7 @@ export function MeetingsCalendar({ meetings }: { meetings: MeetingRow[] }) {
                     <div className="flex items-center gap-2 text-sm text-gray-900">
                       <span className="tabular-nums text-gray-500 text-xs">{time}</span>
                       <span className="font-medium truncate">
-                        {m.account.companyName || m.account.clientName}
+                        {meetingParty(m).name}
                       </span>
                       <span className="text-xs text-gray-400">·</span>
                       <span className="text-xs text-gray-500 capitalize">

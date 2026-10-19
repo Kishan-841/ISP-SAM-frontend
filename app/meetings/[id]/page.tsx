@@ -4,6 +4,7 @@ import { ArrowLeft, Printer, Mail } from 'lucide-react';
 import { PageHeader } from '../../../components/page-header';
 import { getCookieHeader } from '../../../lib/get-cookie-header';
 import { getMeeting } from '../../../services/meetings';
+import { meetingParty } from '../../../lib/meeting-party';
 import { getMe } from '../../../services/auth';
 import {
   MomFormattedPreview,
@@ -30,10 +31,11 @@ export default async function MeetingViewPage({
   if (!meeting) notFound();
   const { user: me } = await getMe({ cookieHeader });
 
-  const customerName = meeting.account.companyName || meeting.account.clientName;
+  const party = meetingParty(meeting);
+  const customerName = party.name;
   const clientParticipants: Participant[] = parseParticipants(meeting.clientParticipants);
   const gazonParticipants: Participant[] = parseParticipants(meeting.gazonParticipants);
-  const samName = meeting.account.samOwner?.name ?? meeting.createdByUser?.name ?? 'Owning SAM';
+  const samName = party.samOwnerName ?? meeting.createdByUser?.name ?? 'Owning SAM';
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-6xl flex flex-col gap-6">
@@ -64,7 +66,7 @@ export default async function MeetingViewPage({
           {me.role === 'ADMIN' && (
             <DeleteMeetingButton
               meetingId={meeting.id}
-              customerName={meeting.account.companyName || meeting.account.clientName}
+              customerName={customerName}
             />
           )}
         </div>

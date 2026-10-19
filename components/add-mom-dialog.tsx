@@ -116,6 +116,21 @@ export function AddMomDialog({
 
   // ── Step 1: meeting details ────────────────────────────────────────
   const [accountId, setAccountId] = useState(existingMeeting?.accountId ?? '');
+  // A MOM is either for an existing customer or for a prospect — a company
+  // the SAM visited that isn't in SAM yet. Prospect details are typed in and
+  // live on the meeting itself; see lib/meeting-party.ts.
+  const [momTarget, setMomTarget] = useState<'CUSTOMER' | 'PROSPECT'>(
+    existingMeeting && !existingMeeting.account ? 'PROSPECT' : 'CUSTOMER',
+  );
+  const [prospectCompany, setProspectCompany] = useState(
+    existingMeeting?.prospectCompany ?? '',
+  );
+  const [prospectContact, setProspectContact] = useState(
+    existingMeeting?.prospectContactName ?? '',
+  );
+  const [prospectPhone, setProspectPhone] = useState(existingMeeting?.prospectPhone ?? '');
+  const [prospectEmail, setProspectEmail] = useState(existingMeeting?.prospectEmail ?? '');
+  const isProspect = momTarget === 'PROSPECT';
   const [customerSearch, setCustomerSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [date, setDate] = useState(
@@ -161,6 +176,8 @@ export function AddMomDialog({
 
   const selectedAccount = useMemo<Account | null>(() => {
     if (existingMeeting) {
+      // A prospect meeting has no customer at all.
+      if (!existingMeeting.account) return null;
       // The meetings list may have fewer fields than Account; reuse what we have.
       const fromList = accounts.find((a) => a.id === existingMeeting.accountId);
       if (fromList) return fromList;
@@ -216,6 +233,37 @@ export function AddMomDialog({
     setItems(defaultActionItems(selectedAccount));
   }, [selectedAccount, itemsEdited, existingMeeting]);
 
+  // Prospect equivalent of the customer auto-fill below: the typed-in company
+  // drives the subject and body, and their email seeds the To field.
+  useEffect(() => {
+    if (!isProspect) return;
+    const company = prospectCompany.trim();
+    if (!company) return;
+    if (!toEdited) setTo(prospectEmail.trim());
+    if (!subjectEdited) {
+      setSubject(`Minutes of Meeting — ${company} — ${formatHumanDate(date)}`);
+    }
+    if (!bodyEdited) {
+      setBody(
+        composeBodyFromMeeting({
+          clientName: prospectContact.trim() || company,
+          companyName: company,
+          actionItems: cleanItems,
+        }),
+      );
+    }
+  }, [
+    isProspect,
+    prospectCompany,
+    prospectContact,
+    prospectEmail,
+    date,
+    cleanItems,
+    toEdited,
+    subjectEdited,
+    bodyEdited,
+  ]);
+
   // Whenever step 1 data changes, refresh step 2 auto-fills (unless edited).
   useEffect(() => {
     if (!selectedAccount) return;
@@ -238,6 +286,11 @@ export function AddMomDialog({
   function reset() {
     setStep(1);
     setAccountId(existingMeeting?.accountId ?? '');
+    setMomTarget(existingMeeting && !existingMeeting.account ? 'PROSPECT' : 'CUSTOMER');
+    setProspectCompany(existingMeeting?.prospectCompany ?? '');
+    setProspectContact(existingMeeting?.prospectContactName ?? '');
+    setProspectPhone(existingMeeting?.prospectPhone ?? '');
+    setProspectEmail(existingMeeting?.prospectEmail ?? '');
     setCustomerSearch('');
     setSearchOpen(false);
     setDate(existingMeeting ? isoDateOf(existingMeeting.scheduledAt) : todayIso());
@@ -262,12 +315,32 @@ export function AddMomDialog({
     setSuccess(null);
   }
 
+  /** Who this MOM is for, in the shape the API expects: one or the other. */
+  function momTargetPayload() {
+    return isProspect
+      ? {
+          prospectCompany: prospectCompany.trim(),
+          prospectContactName: prospectContact.trim(),
+          prospectPhone: prospectPhone.trim() || undefined,
+          prospectEmail: prospectEmail.trim() || undefined,
+        }
+      : { accountId };
+  }
+
   function goToStep2() {
     // Plain-language guidance so the SAM knows exactly what to fix — the button
     // is no longer disabled, so this runs on click and tells them what's missing.
-    if (!accountId) {
+    if (isProspect) {
+      if (!prospectCompany.trim() || !prospectContact.trim()) {
+        toast.error('Add the prospect details', {
+          description: 'Company name and contact person are both needed for a prospect MOM.',
+        });
+        return;
+      }
+    } else if (!accountId) {
       toast.error('Choose a customer', {
-        description: 'Select which customer this meeting was with, then continue.',
+        description:
+          'Select which customer this meeting was with — or switch to Prospect if they are not in SAM yet.',
       });
       return;
     }
@@ -288,9 +361,15 @@ export function AddMomDialog({
   }
 
   async function copyForOutlook() {
-    if (!accountId) {
+    if (!isProspect && !accountId) {
       toast.error('Choose a customer', {
         description: 'Go back to step 1 and select the customer this MOM is for.',
+      });
+      return;
+    }
+    if (isProspect && !prospectCompany.trim()) {
+      toast.error('Add the prospect company', {
+        description: 'Go back to step 1 and type the company this MOM is for.',
       });
       return;
     }
@@ -314,7 +393,7 @@ export function AddMomDialog({
       const ccList = splitEmails(cc);
 
       const preview = await previewMomEmail({
-        accountId,
+        ...momTargetPayload(),
         scheduledAt: new Date(`${date}T${time}:00`).toISOString(),
         meetingType,
         location: meetingType === 'PHYSICAL' ? location.trim() || undefined : undefined,
@@ -399,7 +478,7 @@ export function AddMomDialog({
       const result = editing
         ? await completeMeeting(existingMeeting!.id, sharedPayload)
         : await sendMomEmail({
-            accountId,
+            ...momTargetPayload(),
             scheduledAt: new Date(`${date}T${time}:00`).toISOString(),
             meetingType,
             location: meetingType === 'PHYSICAL' ? location.trim() || undefined : undefined,
@@ -427,8 +506,9 @@ export function AddMomDialog({
     }
   }
 
-  const customerName =
-    selectedAccount?.companyName || selectedAccount?.clientName || 'Customer';
+  const customerName = isProspect
+    ? prospectCompany.trim() || 'Prospect'
+    : selectedAccount?.companyName || selectedAccount?.clientName || 'Customer';
   return (
     <Dialog
       open={open}
@@ -484,8 +564,109 @@ export function AddMomDialog({
             className="flex flex-col min-h-0 flex-1"
           >
             <div className="px-6 py-5 flex flex-col gap-5 overflow-y-auto flex-1 min-h-0">
+            {!editing && (
+              <div className="flex flex-col gap-2">
+                <Label>Who was this meeting with?</Label>
+                <div className="inline-flex self-start rounded-md border border-gray-200 bg-gray-50 p-1 gap-1">
+                  {([
+                    ['CUSTOMER', 'Existing customer'],
+                    ['PROSPECT', 'Prospect (not in SAM yet)'],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => {
+                        setMomTarget(value);
+                        // Switching sides clears the other side's selection so
+                        // the payload can never name both.
+                        if (value === 'PROSPECT') {
+                          setAccountId('');
+                          setCustomerSearch('');
+                        } else {
+                          setProspectCompany('');
+                          setProspectContact('');
+                          setProspectPhone('');
+                          setProspectEmail('');
+                        }
+                        setToEdited(false);
+                        setSubjectEdited(false);
+                        setBodyEdited(false);
+                      }}
+                      className={
+                        momTarget === value
+                          ? 'px-3 py-1.5 text-xs font-medium rounded bg-brand-600 text-white'
+                          : 'px-3 py-1.5 text-xs font-medium rounded text-gray-600 hoverable:hover:bg-gray-100'
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {isProspect && (
+                  <p className="text-xs text-gray-500">
+                    For a company that isn&apos;t a customer yet. The MOM is recorded against
+                    you and counts in your MOM numbers.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {isProspect ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="mom-prospect-company">
+                    Company name<RequiredStar />
+                  </Label>
+                  <Input
+                    id="mom-prospect-company"
+                    value={prospectCompany}
+                    onChange={(e) => setProspectCompany(e.target.value)}
+                    placeholder="e.g. Accolade Electronics Pvt Ltd"
+                    readOnly={editing}
+                    disabled={editing}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="mom-prospect-contact">
+                    Contact person<RequiredStar />
+                  </Label>
+                  <Input
+                    id="mom-prospect-contact"
+                    value={prospectContact}
+                    onChange={(e) => setProspectContact(e.target.value)}
+                    placeholder="Who you met"
+                    readOnly={editing}
+                    disabled={editing}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="mom-prospect-email">Email</Label>
+                  <Input
+                    id="mom-prospect-email"
+                    type="email"
+                    value={prospectEmail}
+                    onChange={(e) => setProspectEmail(e.target.value)}
+                    placeholder="Used as the MOM recipient"
+                    readOnly={editing}
+                    disabled={editing}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="mom-prospect-phone">Phone</Label>
+                  <Input
+                    id="mom-prospect-phone"
+                    value={prospectPhone}
+                    onChange={(e) => setProspectPhone(e.target.value)}
+                    placeholder="Optional"
+                    readOnly={editing}
+                    disabled={editing}
+                  />
+                </div>
+              </div>
+            ) : null}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-2 relative">
+              <div className={`flex flex-col gap-2 relative${isProspect ? ' hidden' : ''}`}>
                 <Label htmlFor="mom-customer">
                   Customer<RequiredStar />
                 </Label>

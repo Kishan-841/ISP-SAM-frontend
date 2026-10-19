@@ -21,6 +21,7 @@ import { ConfirmDeleteDialog } from './confirm-delete-dialog';
 import { parseParticipants } from '../lib/participants';
 import { formatDate, formatDateTime } from '../lib/format-date';
 import { deleteMeeting, type ActionItem, type MeetingRow } from '../services/meetings';
+import { meetingParty } from '../lib/meeting-party';
 import type { Account } from '../services/accounts';
 import type { AuthUser } from '../services/auth';
 
@@ -159,28 +160,39 @@ export function MeetingsTable({
       key: 'customer',
       header: 'Customer',
       sortable: true,
-      cell: (m) => (
-        <span className="font-medium text-gray-900">
-          {m.account.companyName || m.account.clientName}
-        </span>
-      ),
-      secondary: (m) =>
-        [
-          m.account.companyName ? m.account.clientName : null,
-          m.account.customerCode,
-          m.account.circuitId,
-        ]
-          .filter(Boolean)
-          .join(' · ') || null,
+      cell: (m) => {
+        const party = meetingParty(m);
+        return (
+          <span className="font-medium text-gray-900">
+            {party.name}
+            {party.isProspect && (
+              <span className="ml-2 text-[10px] uppercase tracking-wide text-gray-500">
+                Prospect
+              </span>
+            )}
+          </span>
+        );
+      },
+      secondary: (m) => {
+        const party = meetingParty(m);
+        return (
+          [party.contact, party.customerCode, party.circuitId].filter(Boolean).join(' · ') ||
+          null
+        );
+      },
     },
     {
       key: 'kitty',
       header: 'Kitty',
-      cell: (m) => (
-        <StatusPill tone={m.account.kittyType === 'BASE' ? 'orange' : 'emerald'}>
-          {m.account.kittyType === 'BASE' ? 'Base' : 'New'}
-        </StatusPill>
-      ),
+      cell: (m) => {
+        const kitty = meetingParty(m).kittyType;
+        if (!kitty) return <StatusPill tone="gray">Prospect</StatusPill>;
+        return (
+          <StatusPill tone={kitty === 'BASE' ? 'orange' : 'emerald'}>
+            {kitty === 'BASE' ? 'Base' : 'New'}
+          </StatusPill>
+        );
+      },
     },
     {
       key: 'meetingType',
@@ -237,7 +249,7 @@ export function MeetingsTable({
       header: 'SAM',
       cell: (m) => (
         <span className="text-gray-700">
-          {m.account.samOwner?.name ?? m.createdByUser?.name ?? '—'}
+          {meetingParty(m).samOwnerName ?? m.createdByUser?.name ?? '—'}
         </span>
       ),
     },
@@ -270,7 +282,7 @@ export function MeetingsTable({
             <>
               The meeting for{' '}
               <span className="font-semibold text-gray-900">
-                {deletingMeeting.account.companyName || deletingMeeting.account.clientName}
+                {meetingParty(deletingMeeting).name}
               </span>{' '}
               on {formatDate(deletingMeeting.scheduledAt) ?? ''} will be permanently removed.
               Any MoM content is wiped. The deletion is recorded in the audit log.

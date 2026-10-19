@@ -13,7 +13,7 @@ export type ActionItem = {
 
 export type MeetingRow = {
   id: string;
-  accountId: string;
+  accountId: string | null;
   scheduledAt: string;
   heldAt: string | null;
   momSentAt: string | null;
@@ -24,6 +24,7 @@ export type MeetingRow = {
   clientParticipants: string | null;
   gazonParticipants: string | null;
   actionItems: ActionItem[] | null;
+  /** Null for a prospect meeting — the prospect* fields describe it instead. */
   account: {
     id: string;
     clientName: string;
@@ -33,7 +34,11 @@ export type MeetingRow = {
     kittyType: 'BASE' | 'NEW';
     samOwnerId: string | null;
     samOwner: { id: string; name: string; email: string } | null;
-  };
+  } | null;
+  prospectCompany: string | null;
+  prospectContactName: string | null;
+  prospectPhone: string | null;
+  prospectEmail: string | null;
   createdByUser: { id: string; name: string; email: string } | null;
 };
 
@@ -73,7 +78,14 @@ export function submitMom(id: string, momContent: string) {
 }
 
 export type SendMomEmailInput = {
-  accountId: string;
+  /** Omitted for a prospect MOM — pass the prospect* fields instead. */
+  accountId?: string;
+  /** Prospect meeting: typed-in company instead of a customer. */
+  prospectCompany?: string;
+  prospectContactName?: string;
+  prospectPhone?: string;
+  prospectEmail?: string;
+
   scheduledAt: string;
   meetingType: MeetingType;
   location?: string;
@@ -120,7 +132,13 @@ export function sendMomEmail(input: SendMomEmailInput) {
 }
 
 export type PreviewMomEmailInput = {
-  accountId: string;
+  accountId?: string;
+  /** Prospect meeting: typed-in company instead of a customer. */
+  prospectCompany?: string;
+  prospectContactName?: string;
+  prospectPhone?: string;
+  prospectEmail?: string;
+
   scheduledAt: string;
   heldAt?: string;
   meetingType: MeetingType;

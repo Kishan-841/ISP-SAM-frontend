@@ -23,6 +23,7 @@ import { AddMomDialog } from './add-mom-dialog';
 import { StatusPill } from './status-pill';
 import { formatDate, formatDateTime } from '../lib/format-date';
 import { markHeld, submitMom, type MeetingRow } from '../services/meetings';
+import { meetingParty } from '../lib/meeting-party';
 import type { Account } from '../services/accounts';
 
 type Status = 'UPCOMING' | 'AWAITING_OUTCOME' | 'MOM_PENDING' | 'MOM_SENT';
@@ -266,6 +267,7 @@ function MeetingRow({ m }: { m: MeetingRow }) {
 
   const status = localStatus;
   const meta = STATUS_META[status];
+  const party = meetingParty(m);
 
   async function onMarkHeld() {
     setBusy('held');
@@ -302,34 +304,43 @@ function MeetingRow({ m }: { m: MeetingRow }) {
       <div className="p-4 flex items-start gap-4 flex-wrap">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <Link
-              href={`/customers/${m.account.id}`}
-              className="text-sm font-semibold text-gray-900 hover:text-brand-600 truncate"
-            >
-              {m.account.companyName || m.account.clientName}
-            </Link>
-            <StatusPill tone={m.account.kittyType === 'BASE' ? 'orange' : 'emerald'}>
-              {m.account.kittyType === 'BASE' ? 'Base' : 'New'}
-            </StatusPill>
+            {party.href ? (
+              <Link
+                href={party.href}
+                className="text-sm font-semibold text-gray-900 hover:text-brand-600 truncate"
+              >
+                {party.name}
+              </Link>
+            ) : (
+              <span className="text-sm font-semibold text-gray-900 truncate">{party.name}</span>
+            )}
+            {party.kittyType ? (
+              <StatusPill tone={party.kittyType === 'BASE' ? 'orange' : 'emerald'}>
+                {party.kittyType === 'BASE' ? 'Base' : 'New'}
+              </StatusPill>
+            ) : (
+              <StatusPill tone="gray">Prospect</StatusPill>
+            )}
             <StatusPill tone={m.meetingType === 'PHYSICAL' ? 'purple' : 'blue'}>
               {m.meetingType === 'PHYSICAL' ? 'Physical' : 'Online'}
             </StatusPill>
             <StatusBadge status={status} meta={meta} />
           </div>
           <div className="text-xs text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
-            {m.account.customerCode && (
-              <span className="font-mono text-brand-600">{m.account.customerCode}</span>
+            {party.contact && <span>{party.contact}</span>}
+            {party.customerCode && (
+              <span className="font-mono text-brand-600">{party.customerCode}</span>
             )}
-            {m.account.circuitId && (
+            {party.circuitId && (
               <>
                 <span className="text-gray-300">·</span>
-                <span className="font-mono">{m.account.circuitId}</span>
+                <span className="font-mono">{party.circuitId}</span>
               </>
             )}
-            {m.account.samOwner && (
+            {party.samOwnerName && (
               <>
                 <span className="text-gray-300">·</span>
-                <span>SAM: {m.account.samOwner.name}</span>
+                <span>SAM: {party.samOwnerName}</span>
               </>
             )}
           </div>
@@ -572,16 +583,7 @@ function filterByQuery(meetings: MeetingRow[], query: string): MeetingRow[] {
   const q = query.trim().toLowerCase();
   if (!q) return meetings;
   return meetings.filter((m) => {
-    const haystack = [
-      m.account.companyName,
-      m.account.clientName,
-      m.account.customerCode,
-      m.account.circuitId,
-      m.account.samOwner?.name,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
+    const haystack = meetingParty(m).searchText.toLowerCase();
     return haystack.includes(q);
   });
 }
