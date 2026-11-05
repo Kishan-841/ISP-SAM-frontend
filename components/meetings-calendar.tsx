@@ -68,7 +68,7 @@ function buildGrid(month: Date): Date[][] {
   start.setDate(first.getDate() - offset);
 
   const rows: Date[][] = [];
-  let cursor = new Date(start);
+  const cursor = new Date(start);
   for (let r = 0; r < 6; r++) {
     const row: Date[] = [];
     for (let c = 0; c < 7; c++) {
