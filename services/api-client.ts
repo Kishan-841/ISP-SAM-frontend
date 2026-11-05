@@ -47,13 +47,18 @@ async function apiMutate<T>(
   if (!res.ok) {
     const text = await res.text();
     // Surface backend error message when JSON, fall back to status code.
-    let parsed: { error?: string } | null = null;
+    // `detail` is appended when present: error codes alone ("MSP_REJECTED")
+    // tell the user nothing, and the detail is often the other system's own
+    // wording. Callers matching on the code with .includes() still match.
+    let parsed: { error?: string; detail?: string } | null = null;
     try {
-      parsed = JSON.parse(text) as { error?: string };
+      parsed = JSON.parse(text) as { error?: string; detail?: string };
     } catch {
       parsed = null;
     }
-    if (parsed?.error) throw new Error(parsed.error);
+    if (parsed?.error) {
+      throw new Error(parsed.detail ? `${parsed.error}: ${parsed.detail}` : parsed.error);
+    }
     throw new Error(`API ${res.status}: ${text}`);
   }
   return (await res.json()) as T;

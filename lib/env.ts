@@ -28,10 +28,17 @@ const quickDisconnectEnabled =
 const leadDispatchEnabled =
   process.env.NEXT_PUBLIC_LEAD_DISPATCH_ENABLED === 'true';
 
+// MSP leads — when true, Create Lead offers "MSP Lead" and /my-leads shows
+// the MSP tab. MUST mirror MSP_LEADS_ENABLED on the backend (which also gates
+// POST /leads/msp). Separate from LEAD_DISPATCH_ENABLED so either destination
+// can be switched on alone.
+const mspLeadsEnabled = process.env.NEXT_PUBLIC_MSP_LEADS_ENABLED === 'true';
+
 export const env = {
   apiBase,
   internalApiBase,
   testMode,
   quickDisconnectEnabled,
   leadDispatchEnabled,
+  mspLeadsEnabled,
 } as const;

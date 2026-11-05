@@ -73,8 +73,20 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const FLAGGED_NAV_ITEMS: Array<NavItem & { enabled: boolean }> = [
-  { label: 'Create Lead', href: '/create-lead', icon: UserPlus, enabled: env.leadDispatchEnabled },
-  { label: 'My Leads', href: '/my-leads', icon: ListChecks, enabled: env.leadDispatchEnabled },
+  // Either destination being on is enough — the page itself offers whichever
+  // of ILL / MSP is enabled.
+  {
+    label: 'Create Lead',
+    href: '/create-lead',
+    icon: UserPlus,
+    enabled: env.leadDispatchEnabled || env.mspLeadsEnabled,
+  },
+  {
+    label: 'My Leads',
+    href: '/my-leads',
+    icon: ListChecks,
+    enabled: env.leadDispatchEnabled || env.mspLeadsEnabled,
+  },
 ];
 
 function isActive(pathname: string, href: string): boolean {
