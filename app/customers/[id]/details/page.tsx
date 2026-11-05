@@ -195,6 +195,7 @@ export default async function CustomerDetailsPage({
           value={account.contactPersonName}
           preserveLines
         />
+        <Field icon={Building2} label="City" value={account.city} />
         <Field icon={MapPin} label="Address" value={account.address} preserveLines fullWidth />
       </Section>
 

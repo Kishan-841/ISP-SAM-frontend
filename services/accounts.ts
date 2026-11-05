@@ -40,6 +40,8 @@ export type Account = {
   startOfPeriodArc?: string | null;
   /** Free-form installation/service address. Populated by Excel import. */
   address?: string | null;
+  /** City of the service address. Sent by the CRM on activation. */
+  city?: string | null;
   /** GSTIN — 15-char Indian tax ID. Populated by Excel import. */
   gstNumber?: string | null;
   /** Primary IT/operations contact at the customer. */
@@ -112,6 +114,7 @@ export type AccountUpdatePatch = {
   customerCode?: string | null;
   circuitId?: string | null;
   address?: string | null;
+  city?: string | null;
   gstNumber?: string | null;
   contactPersonName?: string | null;
   industryType?: string | null;

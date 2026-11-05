@@ -100,6 +100,7 @@ export function EditCustomerSectionDialog({
   const [mobileNumber, setMobileNumber] = useState(account.mobileNumber ?? '');
   const [contactPersonName, setContactPersonName] = useState(account.contactPersonName ?? '');
   const [address, setAddress] = useState(account.address ?? '');
+  const [city, setCity] = useState(account.city ?? '');
 
   const [accountManager, setAccountManager] = useState(account.accountManager ?? '');
 
@@ -175,6 +176,7 @@ export function EditCustomerSectionDialog({
       if (contactPersonName !== (account.contactPersonName ?? ''))
         patch.contactPersonName = contactPersonName.trim() || null;
       if (address !== (account.address ?? '')) patch.address = address.trim() || null;
+      if (city.trim() !== orEmpty(account.city)) patch.city = city.trim() || null;
     } else if (section === 'ownership') {
       if (accountManager.trim() !== orEmpty(account.accountManager))
         patch.accountManager = accountManager.trim() || null;
@@ -371,6 +373,9 @@ export function EditCustomerSectionDialog({
                     onChange={(e) => setContactPersonName(e.target.value)}
                     rows={2}
                   />
+                </FormField>
+                <FormField label="City">
+                  <Input value={city} onChange={(e) => setCity(e.target.value)} />
                 </FormField>
                 <FormField label="Address" fullWidth>
                   <Textarea
