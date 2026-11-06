@@ -24,6 +24,7 @@ import {
   History,
   ShieldAlert,
   ShieldCheck,
+  Map,
   UserPlus,
   X,
 } from 'lucide-react';
@@ -65,6 +66,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Meetings & MoM', href: '/meetings', icon: CalendarDays },
   { label: 'Team Performance', href: '/team-performance', icon: Activity, roles: ['ADMIN', 'SAM_HEAD'] },
   { label: 'Meeting Summary', href: '/meeting-summary', icon: CalendarCheck, roles: ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD'] },
+  { label: 'Zones & Cities', href: '/geography', icon: Map, roles: ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD'] },
   { label: 'Feedbacks', href: '/feedbacks', icon: MessageSquareText, roles: ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD'] },
   { label: 'Excel Import', href: '/excel-import', icon: FileDown },
   { label: 'Users', href: '/users', icon: UserCog, roles: ['ADMIN', 'SAM_HEAD'] },
