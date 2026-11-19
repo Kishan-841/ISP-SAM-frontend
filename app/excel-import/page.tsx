@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
-import { ArrowRight, CheckCircle2, ChevronDown, ChevronRight, FileSpreadsheet, RefreshCcw, XCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronDown, ChevronRight, FileSpreadsheet, MapPin, RefreshCcw, UserPlus, XCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -17,6 +17,7 @@ import {
 import { PageHeader } from '../../components/page-header';
 import { FormSection } from '../../components/form-section';
 import { FileDropZone } from '../../components/file-drop-zone';
+import { BulkUpdatePanel } from '../../components/bulk-update-panel';
 import { StatusPill, type PillTone } from '../../components/status-pill';
 import { formatRupees } from '../../lib/format-rupees';
 import {
@@ -30,7 +31,17 @@ import {
 const PREVIEW_LIMIT = 25;
 const ERROR_LIMIT = 50;
 
+/**
+ * Two spreadsheet jobs live here, and the difference between them matters:
+ * "Add or update" CREATES a customer when a row matches nothing, while
+ * "Update zone, city & industry" never creates. Picking the wrong one with
+ * a sheet of existing customers is how you end up with the book twice, so
+ * the tabs say what each does rather than just naming them.
+ */
+type Mode = 'create' | 'enrich';
+
 export default function ExcelImportPage() {
+  const [mode, setMode] = useState<Mode>('create');
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +79,11 @@ export default function ExcelImportPage() {
         subtitle="Upload a .xlsx or .csv file of existing customers"
       />
 
-      {!result && (
+      <ModeTabs mode={mode} onChange={setMode} />
+
+      {mode === 'enrich' && <BulkUpdatePanel />}
+
+      {mode === 'create' && !result && (
         <form onSubmit={onSubmit}>
           <Card>
             <CardContent className="px-6 pt-6 pb-0 divide-y divide-gray-100">
@@ -120,9 +135,74 @@ export default function ExcelImportPage() {
         </form>
       )}
 
-      {result && (
+      {mode === 'create' && result && (
         <ResultPanel result={result} fileName={fileName} onReset={reset} />
       )}
+    </div>
+  );
+}
+
+// ─── Mode tabs ────────────────────────────────────────────────────────
+
+const MODES: Array<{
+  id: Mode;
+  label: string;
+  hint: string;
+  icon: typeof UserPlus;
+}> = [
+  {
+    id: 'create',
+    label: 'Add or update customers',
+    hint: 'Creates customers that aren\u2019t in SAM yet',
+    icon: UserPlus,
+  },
+  {
+    id: 'enrich',
+    label: 'Update zone, city & industry',
+    hint: 'Existing customers only \u2014 never creates one',
+    icon: MapPin,
+  },
+];
+
+function ModeTabs({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="tablist">
+      {MODES.map((m) => {
+        const active = m.id === mode;
+        const Icon = m.icon;
+        return (
+          <button
+            key={m.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(m.id)}
+            className={`flex items-start gap-3 text-left rounded-xl px-4 py-3 ring-1 transition-colors ${
+              active
+                ? 'bg-orange-50 ring-brand-300'
+                : 'bg-white ring-gray-200 hover:ring-gray-300'
+            }`}
+          >
+            <span
+              className={`w-9 h-9 rounded-lg grid place-items-center shrink-0 ${
+                active ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              <Icon className="w-4.5 h-4.5" />
+            </span>
+            <span className="min-w-0">
+              <span
+                className={`block text-sm font-medium ${
+                  active ? 'text-brand-700' : 'text-gray-900'
+                }`}
+              >
+                {m.label}
+              </span>
+              <span className="block text-xs text-gray-500 mt-0.5">{m.hint}</span>
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
