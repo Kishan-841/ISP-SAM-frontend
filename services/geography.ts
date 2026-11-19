@@ -21,6 +21,23 @@ export type GeoZoneRow = Omit<GeoCityRow, 'zone'> & {
   unknownCityCount: number;
 };
 
+export type GeoIndustryRow = Omit<GeoCityRow, 'zone'>;
+
+/**
+ * Industry rollup. Mapped independently of zone — a customer can carry one
+ * and not the other — so it keeps its own coverage figures.
+ */
+export type GeoIndustry = {
+  rows: GeoIndustryRow[];
+  unmapped: { customerCount: number; totalArc: number };
+  totals: {
+    industryCount: number;
+    mappedCustomerCount: number;
+    mappedArc: number;
+    coveragePercent: number;
+  };
+};
+
 export type Geography = {
   totals: {
     customerCount: number;
@@ -34,6 +51,7 @@ export type Geography = {
   zones: GeoZoneRow[];
   cities: GeoCityRow[];
   unmapped: { customerCount: number; totalArc: number };
+  industry: GeoIndustry;
 };
 
 /**

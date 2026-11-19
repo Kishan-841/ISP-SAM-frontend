@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { GeoCityRow, GeoZoneRow } from '../services/geography';
+import type { GeoCityRow, GeoIndustryRow, GeoZoneRow } from '../services/geography';
 import { formatRupeesCompact, formatRupees } from '../lib/format-rupees';
 
 /*
@@ -29,11 +29,13 @@ import { formatRupeesCompact, formatRupees } from '../lib/format-rupees';
 const SERIES_ARC = '#2a78d6'; // blue — sequential slot, magnitude
 const SERIES_BASE = '#2a78d6';
 const SERIES_NEW = '#eb6834'; // orange — categorical slot 2
+const SERIES_INDUSTRY = '#eb6834'; // orange — the page's SECOND sequential context
 const UNMAPPED = '#9ca3af'; // gray-400 — "no data yet" is not a series
 const GRID = '#e5e7eb';
 const SURFACE = '#ffffff';
 
 const TOP_CITIES = 10;
+const TOP_INDUSTRIES = 12;
 
 /** Horizontal bar — ARC per zone, largest first. */
 export function ArcByZoneChart({ zones }: { zones: GeoZoneRow[] }) {
@@ -226,6 +228,78 @@ export function TopCitiesChart({ cities }: { cities: GeoCityRow[] }) {
 }
 
 /**
+ * Horizontal bar — ARC per industry.
+ *
+ * Orange, not blue: the palette's rule for a SECOND sequential context on
+ * one page is the next categorical slot's hue, so industry never reads as
+ * another cut of the zone charts above it. The pair is validated together
+ * (see the palette note at the top of this file).
+ */
+export function ArcByIndustryChart({ industries }: { industries: GeoIndustryRow[] }) {
+  const data = industries.slice(0, TOP_INDUSTRIES).map((i) => ({
+    name: i.name,
+    arc: i.totalArc,
+    customers: i.customerCount,
+    share: i.arcSharePercent,
+  }));
+
+  if (data.length === 0) return <ChartEmpty title="ARC by industry" body="No customer carries an industry yet." />;
+
+  const note =
+    industries.length > TOP_INDUSTRIES
+      ? `Top ${TOP_INDUSTRIES} of ${industries.length} industries`
+      : `${industries.length} industr${industries.length === 1 ? 'y' : 'ies'} · live book`;
+
+  return (
+    <ChartCard title="ARC by industry" note={note}>
+      <ResponsiveContainer width="100%" height={Math.max(220, data.length * 46)}>
+        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 64, left: 8, bottom: 4 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID} horizontal={false} />
+          <XAxis
+            type="number"
+            tickFormatter={(v: number) => formatRupeesCompact(v)}
+            tick={{ fill: '#6b7280', fontSize: 11 }}
+            axisLine={{ stroke: GRID }}
+            tickLine={false}
+          />
+          <YAxis
+            type="category"
+            dataKey="name"
+            tick={{ fill: '#374151', fontSize: 12 }}
+            axisLine={{ stroke: GRID }}
+            tickLine={false}
+            width={150}
+          />
+          <Tooltip
+            cursor={{ fill: '#f9fafb' }}
+            contentStyle={{ borderRadius: 8, border: `1px solid ${GRID}`, fontSize: 12 }}
+            formatter={((value: number, _n: string, entry: { payload?: (typeof data)[number] }) => [
+              `${formatRupees(value)} · ${entry.payload?.customers ?? 0} customers · ${entry.payload?.share ?? 0}% of classified ARC`,
+              'ARC',
+            ]) as never}
+          />
+          <Bar
+            dataKey="arc"
+            name="ARC"
+            fill={SERIES_INDUSTRY}
+            radius={[0, 4, 4, 0]}
+            maxBarSize={22}
+            isAnimationActive={false}
+          >
+            <LabelList
+              dataKey="arc"
+              position="right"
+              formatter={((v: number) => formatRupeesCompact(v)) as never}
+              style={{ fill: '#374151', fontSize: 11, fontWeight: 500 }}
+            />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+/**
  * Where the ARC sits: one bar per zone plus a grey "Not mapped" segment.
  * Grey is deliberate — unmapped is missing data, not another zone.
  */
@@ -313,12 +387,12 @@ function ChartCard({
   );
 }
 
-function ChartEmpty({ title }: { title: string }) {
+function ChartEmpty({ title, body }: { title: string; body?: string }) {
   return (
     <div className="bg-white rounded-xl ring-1 ring-gray-200 p-5 min-h-[220px] flex flex-col">
       <h3 className="text-sm font-semibold text-gray-900 mb-3">{title}</h3>
       <div className="flex-1 grid place-items-center text-center text-sm text-gray-400 px-4">
-        No customer carries a zone yet. Zones arrive from the CRM on activation.
+        {body ?? 'No customer carries a zone yet. Zones arrive from the CRM on activation.'}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { MapPin, Building2, Users, IndianRupee, TriangleAlert } from 'lucide-react';
+import { MapPin, Building2, Users, IndianRupee, TriangleAlert, Factory } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { getCookieHeader } from '../../lib/get-cookie-header';
 import { getMe } from '../../services/auth';
@@ -7,6 +7,7 @@ import { PageHeader, SectionHeading } from '../../components/page-header';
 import { StatCard } from '../../components/stat-card';
 import { GeographyTable } from '../../components/geography-table';
 import {
+  ArcByIndustryChart,
   ArcByZoneChart,
   ArcCoverageBar,
   CustomersByZoneChart,
@@ -58,7 +59,7 @@ export default async function GeographyPage() {
 }
 
 function GeographyBody({ data }: { data: Geography }) {
-  const { totals, zones, cities, unmapped } = data;
+  const { totals, zones, cities, unmapped, industry } = data;
   const nothingMapped = totals.mappedCustomerCount === 0;
 
   return (
@@ -141,6 +142,73 @@ function GeographyBody({ data }: { data: Geography }) {
         </section>
       )}
 
+      {/* Industry — the same book cut a different way. Deliberately its own
+          section with its own coverage figure: a customer can have a zone
+          and no industry, so one number can't speak for both. */}
+      <section>
+        <SectionHeading>Industry</SectionHeading>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <StatCard
+            title="Industries live"
+            value={industry.totals.industryCount.toString()}
+            subtitle={
+              industry.totals.industryCount === 0
+                ? 'None recorded yet'
+                : 'Industries with at least one customer'
+            }
+            icon={Factory}
+            iconBg="bg-orange-50"
+            iconColor="text-orange-600"
+          />
+          <StatCard
+            title="Classified customers"
+            value={`${industry.totals.coveragePercent}%`}
+            subtitle={`${industry.totals.mappedCustomerCount} of ${totals.customerCount} carry an industry`}
+            icon={Users}
+            iconBg={industry.totals.coveragePercent >= 90 ? 'bg-emerald-50' : 'bg-amber-50'}
+            iconColor={industry.totals.coveragePercent >= 90 ? 'text-emerald-600' : 'text-amber-600'}
+            valueColor={industry.totals.coveragePercent >= 90 ? 'text-emerald-700' : 'text-amber-700'}
+          />
+          <StatCard
+            title="Classified ARC"
+            value={formatRupeesCompact(industry.totals.mappedArc)}
+            subtitle={`of ${formatRupeesCompact(totals.totalArc)} live ARC`}
+            icon={IndianRupee}
+            iconBg="bg-emerald-50"
+            iconColor="text-emerald-600"
+          />
+          <StatCard
+            title="Largest industry"
+            value={industry.rows[0]?.name ?? '—'}
+            subtitle={
+              industry.rows[0]
+                ? `${formatRupeesCompact(industry.rows[0].totalArc)} · ${industry.rows[0].arcSharePercent}% of classified ARC`
+                : 'Nothing classified yet'
+            }
+            icon={Factory}
+            iconBg="bg-blue-50"
+            iconColor="text-blue-600"
+          />
+        </div>
+
+        {industry.rows.length > 0 && (
+          <div className="flex flex-col gap-4">
+            <ArcByIndustryChart industries={industry.rows} />
+            <IndustryTable industry={industry} />
+          </div>
+        )}
+        {industry.rows.length === 0 && (
+          <div className="bg-white rounded-xl ring-1 ring-gray-200 p-8 text-center">
+            <Factory className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm font-medium text-gray-700">No industry recorded yet</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Add an Industry column to the zone &amp; city spreadsheet on Excel Import to fill
+              this in.
+            </p>
+          </div>
+        )}
+      </section>
+
       <section>
         <SectionHeading>Zone breakdown</SectionHeading>
         <p className="text-xs text-gray-500 mb-3">
@@ -150,5 +218,104 @@ function GeographyBody({ data }: { data: Geography }) {
         <GeographyTable zones={zones} unmapped={unmapped} />
       </section>
     </>
+  );
+}
+
+
+/**
+ * Plain server-rendered table — no expansion, so no client component needed.
+ * Share is of CLASSIFIED ARC, matching the zone table's convention of
+ * denominating in the mapped subset rather than the whole book.
+ */
+function IndustryTable({ industry }: { industry: Geography['industry'] }) {
+  return (
+    <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[680px]">
+          <thead className="bg-gray-50/60 border-b border-gray-100">
+            <tr>
+              <Th>Industry</Th>
+              <Th align="right">Customers</Th>
+              <Th align="right">Base</Th>
+              <Th align="right">New</Th>
+              <Th align="right">ARC</Th>
+              <Th align="right">Avg / customer</Th>
+              <Th align="right">Share</Th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {industry.rows.map((r) => (
+              <tr key={r.name} className="hover:bg-gray-50 transition-colors">
+                <td className="px-5 py-3.5">
+                  <div className="flex items-center gap-2">
+                    <Factory className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                    <span className="font-medium text-gray-900">{r.name}</span>
+                  </div>
+                </td>
+                <Td>{r.customerCount}</Td>
+                <Td muted>{r.baseCount}</Td>
+                <Td muted>{r.newCount}</Td>
+                <Td title={formatRupees(r.totalArc)}>{formatRupeesCompact(r.totalArc)}</Td>
+                <Td muted title={formatRupees(r.avgArc)}>
+                  {formatRupeesCompact(r.avgArc)}
+                </Td>
+                <Td muted>{r.arcSharePercent}%</Td>
+              </tr>
+            ))}
+            {industry.unmapped.customerCount > 0 && (
+              <tr className="bg-amber-50/40">
+                <td className="px-5 py-3.5">
+                  <div className="flex items-center gap-2">
+                    <Factory className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span className="font-medium text-gray-700">No industry set</span>
+                  </div>
+                </td>
+                <Td>{industry.unmapped.customerCount}</Td>
+                <Td muted>—</Td>
+                <Td muted>—</Td>
+                <Td title={formatRupees(industry.unmapped.totalArc)}>
+                  {formatRupeesCompact(industry.unmapped.totalArc)}
+                </Td>
+                <Td muted>—</Td>
+                <Td muted>—</Td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function Th({ children, align = 'left' }: { children?: React.ReactNode; align?: 'left' | 'right' }) {
+  return (
+    <th
+      className={`px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-900 whitespace-nowrap ${
+        align === 'right' ? 'text-right' : 'text-left'
+      }`}
+    >
+      {children}
+    </th>
+  );
+}
+
+function Td({
+  children,
+  muted,
+  title,
+}: {
+  children: React.ReactNode;
+  muted?: boolean;
+  title?: string;
+}) {
+  return (
+    <td
+      title={title}
+      className={`px-5 py-3.5 text-right tabular-nums whitespace-nowrap ${
+        muted ? 'text-gray-600' : 'font-medium text-gray-900'
+      }`}
+    >
+      {children}
+    </td>
   );
 }
