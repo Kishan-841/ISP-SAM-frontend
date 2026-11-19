@@ -16,6 +16,7 @@ import {
   UserCog,
   Lock,
   LogOut,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Plug,
@@ -60,7 +61,9 @@ type NavItem = {
  * Nav grouped by the job you came to do, not by permission level.
  *
  * Nineteen flat links was more list than anyone reads — the eye has to scan
- * every label to find one. Six short groups means it scans headings instead.
+ * every label to find one. Six short groups means it scans headings instead,
+ * and only the group you are actually in is open (see `openGroups` below),
+ * so the rail shows roughly ten rows rather than twenty-five.
  * A group whose items are all filtered out by role or feature flag is
  * dropped entirely, so nobody sees an empty heading: a plain SAM gets no
  * "Admin" group at all rather than a bare one.
@@ -305,6 +308,36 @@ export function Sidebar({
 
   const navGroups = visibleGroups(user.role);
 
+  /**
+   * Which groups are open.
+   *
+   * The baseline is "only the group you are in" — that is what keeps the
+   * rail short. A click on a heading overrides that for this visit, and the
+   * overrides are dropped on navigation, so the rail re-settles to the one
+   * relevant group instead of accumulating everything the user ever opened.
+   * Clicking an item inside a group you opened is safe: once you land there
+   * it IS the active group, so it stays open on its own.
+   */
+  const activeGroupLabel = navGroups.find((g) =>
+    g.items.some((item) => isActive(pathname, item.href)),
+  )?.label;
+  const [groupOverrides, setGroupOverrides] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setGroupOverrides({});
+  }, [pathname]);
+
+  const isGroupOpen = (label: string) => groupOverrides[label] ?? label === activeGroupLabel;
+  const toggleGroup = (label: string) =>
+    setGroupOverrides((prev) => ({ ...prev, [label]: !(prev[label] ?? label === activeGroupLabel) }));
+
+  /** Pending work inside a group, so shutting it can never hide a queue. */
+  const groupCount = (group: NavGroup) =>
+    group.items.reduce((sum, item) => {
+      const field = COUNT_FIELD_BY_HREF[item.href];
+      return sum + (field ? counts[field] : 0);
+    }, 0);
+
   async function onLogout() {
     try {
       await logout();
@@ -315,163 +348,27 @@ export function Sidebar({
     router.refresh();
   }
 
-  // ---- Shared rail (rendered for both desktop variants and inside the
-  //      mobile drawer). `mode` controls width + label visibility. ------
-  function Rail({ mode }: { mode: 'expanded' | 'collapsed' | 'drawer' }) {
-    const showLabels = mode !== 'collapsed';
-    const widthClass =
-      mode === 'collapsed' ? 'w-14' : mode === 'drawer' ? 'w-64' : 'w-56';
-    const itemPadX = mode === 'collapsed' ? 'px-0 justify-center' : 'px-4';
-    return (
-      <aside
-        className={`${widthClass} shrink-0 bg-white border-r border-gray-200 flex flex-col h-screen overflow-hidden`}
-      >
-        <div
-          className={`py-4 flex items-center border-b border-gray-100 ${
-            mode === 'collapsed' ? 'px-0 justify-center' : 'px-4 justify-between'
-          }`}
-        >
-          {showLabels && (
-            <span className="text-brand-600 font-bold text-lg lowercase tracking-tight">
-              gazon
-            </span>
-          )}
-          {mode === 'drawer' ? (
-            <button
-              type="button"
-              aria-label="Close sidebar"
-              onClick={() => setMobileOpen(false)}
-              className="w-7 h-7 grid place-items-center rounded text-gray-500 hover:bg-gray-100"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              aria-pressed={collapsed}
-              onClick={toggleCollapsed}
-              className="w-7 h-7 grid place-items-center rounded text-gray-500 hover:bg-gray-100"
-              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {collapsed ? (
-                <ChevronRight className="w-4 h-4" />
-              ) : (
-                <ChevronLeft className="w-4 h-4" />
-              )}
-            </button>
-          )}
-        </div>
-
-        {/* Only this region scrolls. The logo above and the account
-            actions below stay put however long the list gets. */}
-        <ScrollableNav>
-          {navGroups.map((group, groupIndex) => (
-            <div
-              key={group.label ?? `group-${groupIndex}`}
-              data-nav-group={group.label ?? 'main'}
-              className={groupIndex > 0 ? 'mt-1' : ''}
-            >
-              {group.label &&
-                (showLabels ? (
-                  <p
-                    data-nav-group-label
-                    className="px-4 pt-2.5 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 select-none"
-                  >
-                    {group.label}
-                  </p>
-                ) : (
-                  // Collapsed rail has no room for a heading, so the grouping
-                  // survives as a hairline between icon clusters.
-                  <div className="mx-3 my-2 border-t border-gray-100" aria-hidden="true" />
-                ))}
-              <ul>
-                {group.items.map((item) => {
-                  const active = isActive(pathname, item.href);
-                  const Icon = item.icon;
-                  const countField = COUNT_FIELD_BY_HREF[item.href];
-                  const count = countField ? counts[countField] : 0;
-                  const badgeLabel = count > 99 ? '99+' : String(count);
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        title={mode === 'collapsed' ? item.label : undefined}
-                        aria-label={count > 0 ? `${item.label} (${count} pending)` : item.label}
-                        className={`flex items-center gap-3 ${itemPadX} py-1.5 text-sm border-l-4 transition-colors ${
-                          active
-                            ? 'bg-brand-50 text-brand-700 font-semibold border-brand-600'
-                            : 'text-gray-700 hover:bg-gray-50 border-transparent'
-                        }`}
-                        aria-current={active ? 'page' : undefined}
-                      >
-                        <span className="relative shrink-0">
-                          <Icon className="w-4 h-4" aria-hidden="true" />
-                          {/* Collapsed rail: a compact badge over the icon. */}
-                          {count > 0 && !showLabels && (
-                            <span
-                              aria-hidden="true"
-                              className="absolute -top-2 -right-2 min-w-[15px] h-[15px] px-0.5 rounded-full bg-brand-600 text-white text-[9px] font-bold leading-none flex items-center justify-center ring-2 ring-white"
-                            >
-                              {badgeLabel}
-                            </span>
-                          )}
-                        </span>
-                        {showLabels && <span className="truncate">{item.label}</span>}
-                        {/* Expanded rail: a pill pushed to the right edge. */}
-                        {count > 0 && showLabels && (
-                          <span
-                            aria-hidden="true"
-                            className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold leading-none flex items-center justify-center ${
-                              active ? 'bg-brand-600 text-white' : 'bg-brand-100 text-brand-700'
-                            }`}
-                          >
-                            {badgeLabel}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </ScrollableNav>
-
-        <div className="border-t border-gray-100 py-2">
-          <Link
-            href="/change-password"
-            title={mode === 'collapsed' ? 'Change password' : undefined}
-            aria-label="Change password"
-            className={`flex items-center gap-3 ${itemPadX} py-2 text-sm border-l-4 transition-colors ${
-              isActive(pathname, '/change-password')
-                ? 'bg-brand-50 text-brand-700 font-semibold border-brand-600'
-                : 'text-gray-700 hover:bg-gray-50 border-transparent'
-            }`}
-          >
-            <Lock className="w-4 h-4 shrink-0" aria-hidden="true" />
-            {showLabels && <span>Change password</span>}
-          </Link>
-          <button
-            type="button"
-            onClick={onLogout}
-            title={mode === 'collapsed' ? 'Logout' : undefined}
-            aria-label="Logout"
-            className={`w-full flex items-center gap-3 ${itemPadX} py-2 text-sm text-gray-700 hover:bg-gray-50 border-l-4 border-transparent transition-colors`}
-          >
-            <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
-            {showLabels && <span>Logout</span>}
-          </button>
-        </div>
-      </aside>
-    );
-  }
+  // Everything the rail needs. Bundled so the two call sites below can't
+  // drift apart — a prop passed to one rail and not the other is exactly
+  // how the drawer ends up behaving differently from the desktop strip.
+  const railProps = {
+    pathname,
+    collapsed,
+    navGroups,
+    counts,
+    isGroupOpen,
+    toggleGroup,
+    groupCount,
+    onToggleCollapsed: toggleCollapsed,
+    onCloseMobile: () => setMobileOpen(false),
+    onLogout,
+  };
 
   return (
     <>
       {/* Desktop rail — sticky strip on the left, hidden under md */}
       <div className="hidden md:block sticky top-0 h-screen z-20">
-        <Rail mode={collapsed ? 'collapsed' : 'expanded'} />
+        <Rail mode={collapsed ? 'collapsed' : 'expanded'} {...railProps} />
       </div>
 
       {/* Mobile drawer — opened via the hamburger in TopBar */}
@@ -486,10 +383,229 @@ export function Sidebar({
           />
           {/* Drawer */}
           <div className="relative z-50">
-            <Rail mode="drawer" />
+            <Rail mode="drawer" {...railProps} />
           </div>
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * One rail, rendered up to three ways (see Sidebar's doc comment).
+ *
+ * Module-level on purpose. It used to be declared inside Sidebar, which
+ * made it a NEW component type on every render — so React tore the whole
+ * sidebar down and rebuilt it each time any state changed, including the
+ * 45-second badge poll. That silently reset the nav's scroll position and
+ * made the group accordion impossible to drive.
+ */
+function Rail({
+  mode,
+  pathname,
+  collapsed,
+  navGroups,
+  counts,
+  isGroupOpen,
+  toggleGroup,
+  groupCount,
+  onToggleCollapsed,
+  onCloseMobile,
+  onLogout,
+}: {
+  mode: 'expanded' | 'collapsed' | 'drawer';
+  pathname: string;
+  collapsed: boolean;
+  navGroups: NavGroup[];
+  counts: SidebarCounts;
+  isGroupOpen: (label: string) => boolean;
+  toggleGroup: (label: string) => void;
+  groupCount: (group: NavGroup) => number;
+  onToggleCollapsed: () => void;
+  onCloseMobile: () => void;
+  onLogout: () => void;
+}) {
+  const showLabels = mode !== 'collapsed';
+  const widthClass =
+    mode === 'collapsed' ? 'w-14' : mode === 'drawer' ? 'w-64' : 'w-56';
+  const itemPadX = mode === 'collapsed' ? 'px-0 justify-center' : 'px-4';
+  return (
+    <aside
+      className={`${widthClass} shrink-0 bg-white border-r border-gray-200 flex flex-col h-screen overflow-hidden`}
+    >
+      <div
+        className={`py-4 flex items-center border-b border-gray-100 ${
+          mode === 'collapsed' ? 'px-0 justify-center' : 'px-4 justify-between'
+        }`}
+      >
+        {showLabels && (
+          <span className="text-brand-600 font-bold text-lg lowercase tracking-tight">
+            gazon
+          </span>
+        )}
+        {mode === 'drawer' ? (
+          <button
+            type="button"
+            aria-label="Close sidebar"
+            onClick={onCloseMobile}
+            className="w-7 h-7 grid place-items-center rounded text-gray-500 hover:bg-gray-100"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-pressed={collapsed}
+            onClick={onToggleCollapsed}
+            className="w-7 h-7 grid place-items-center rounded text-gray-500 hover:bg-gray-100"
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* Only this region scrolls. The logo above and the account
+          actions below stay put however long the list gets. */}
+      <ScrollableNav>
+        {navGroups.map((group, groupIndex) => (
+          <div
+            key={group.label ?? `group-${groupIndex}`}
+            data-nav-group={group.label ?? 'main'}
+            className={groupIndex > 0 ? 'mt-1' : ''}
+          >
+            {group.label &&
+              (showLabels ? (
+                (() => {
+                  const open = isGroupOpen(group.label);
+                  const pending = groupCount(group);
+                  return (
+                    <button
+                      type="button"
+                      data-nav-group-toggle
+                      aria-expanded={open}
+                      // A shut group still announces its queue, so a
+                      // screen-reader user is told about pending work
+                      // without having to open every group to find it.
+                      aria-label={
+                        !open && pending > 0
+                          ? `${group.label} (${pending} pending)`
+                          : group.label
+                      }
+                      onClick={() => toggleGroup(group.label!)}
+                      className={`w-full flex items-center gap-1.5 ${itemPadX} pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${
+                        open ? 'text-gray-400' : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      <ChevronDown
+                        aria-hidden="true"
+                        className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
+                          open ? '' : '-rotate-90'
+                        }`}
+                      />
+                      <span data-nav-group-label>{group.label}</span>
+                      {/* Only while shut — once open each item shows its own. */}
+                      {!open && pending > 0 && (
+                        <span
+                          aria-hidden="true"
+                          className="ml-auto min-w-[18px] h-[18px] px-1.5 rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold leading-none flex items-center justify-center"
+                        >
+                          {pending > 99 ? '99+' : pending}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })()
+              ) : (
+                // Collapsed rail has no room for a heading, so the grouping
+                // survives as a hairline between icon clusters.
+                <div className="mx-3 my-2 border-t border-gray-100" aria-hidden="true" />
+              ))}
+            {/* Collapsing applies to the labelled, expanded rail only. The
+                icon-only rail has no headings to click, so it stays flat. */}
+            <ul hidden={Boolean(group.label) && showLabels && !isGroupOpen(group.label!)}>
+              {group.items.map((item) => {
+                const active = isActive(pathname, item.href);
+                const Icon = item.icon;
+                const countField = COUNT_FIELD_BY_HREF[item.href];
+                const count = countField ? counts[countField] : 0;
+                const badgeLabel = count > 99 ? '99+' : String(count);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      title={mode === 'collapsed' ? item.label : undefined}
+                      aria-label={count > 0 ? `${item.label} (${count} pending)` : item.label}
+                      className={`flex items-center gap-3 ${itemPadX} py-1.5 text-sm border-l-4 transition-colors ${
+                        active
+                          ? 'bg-brand-50 text-brand-700 font-semibold border-brand-600'
+                          : 'text-gray-700 hover:bg-gray-50 border-transparent'
+                      }`}
+                      aria-current={active ? 'page' : undefined}
+                    >
+                      <span className="relative shrink-0">
+                        <Icon className="w-4 h-4" aria-hidden="true" />
+                        {/* Collapsed rail: a compact badge over the icon. */}
+                        {count > 0 && !showLabels && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute -top-2 -right-2 min-w-[15px] h-[15px] px-0.5 rounded-full bg-brand-600 text-white text-[9px] font-bold leading-none flex items-center justify-center ring-2 ring-white"
+                          >
+                            {badgeLabel}
+                          </span>
+                        )}
+                      </span>
+                      {showLabels && <span className="truncate">{item.label}</span>}
+                      {/* Expanded rail: a pill pushed to the right edge. */}
+                      {count > 0 && showLabels && (
+                        <span
+                          aria-hidden="true"
+                          className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold leading-none flex items-center justify-center ${
+                            active ? 'bg-brand-600 text-white' : 'bg-brand-100 text-brand-700'
+                          }`}
+                        >
+                          {badgeLabel}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </ScrollableNav>
+
+      <div className="border-t border-gray-100 py-2">
+        <Link
+          href="/change-password"
+          title={mode === 'collapsed' ? 'Change password' : undefined}
+          aria-label="Change password"
+          className={`flex items-center gap-3 ${itemPadX} py-2 text-sm border-l-4 transition-colors ${
+            isActive(pathname, '/change-password')
+              ? 'bg-brand-50 text-brand-700 font-semibold border-brand-600'
+              : 'text-gray-700 hover:bg-gray-50 border-transparent'
+          }`}
+        >
+          <Lock className="w-4 h-4 shrink-0" aria-hidden="true" />
+          {showLabels && <span>Change password</span>}
+        </Link>
+        <button
+          type="button"
+          onClick={onLogout}
+          title={mode === 'collapsed' ? 'Logout' : undefined}
+          aria-label="Logout"
+          className={`w-full flex items-center gap-3 ${itemPadX} py-2 text-sm text-gray-700 hover:bg-gray-50 border-l-4 border-transparent transition-colors`}
+        >
+          <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
+          {showLabels && <span>Logout</span>}
+        </button>
+      </div>
+    </aside>
   );
 }
