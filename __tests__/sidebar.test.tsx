@@ -4,7 +4,7 @@
  * each role can reach, and that every group header has something under it.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 
 // Pretend we're on Zones & Cities, so "the group holding the current page"
 // is a real group (Customers) rather than the ungrouped Home entry.
@@ -48,18 +48,6 @@ function firstRail(): HTMLElement {
   return document.querySelectorAll('aside')[0]! as HTMLElement;
 }
 
-/**
- * Groups are collapsed unless you're in them, so reaching every link means
- * opening every group first. Route coverage is asserted against the fully
- * expanded rail — collapsing must hide links, never lose them.
- */
-function expandAllGroups(): void {
-  const rail = firstRail();
-  for (const btn of Array.from(rail.querySelectorAll('button[data-nav-group-toggle]'))) {
-    if (btn.getAttribute('aria-expanded') === 'false') fireEvent.click(btn);
-  }
-}
-
 /** Hrefs in the desktop expanded rail (the component renders 3 copies). */
 function navHrefs(): string[] {
   return Array.from(firstRail().querySelectorAll('nav a')).map((a) => a.getAttribute('href')!);
@@ -90,7 +78,6 @@ const ADMIN_ROUTES = [
 describe('Sidebar', () => {
   it('gives an ADMIN every route, with none duplicated', () => {
     renderFor('ADMIN');
-    expandAllGroups();
     const hrefs = navHrefs();
     expect(new Set(hrefs).size).toBe(hrefs.length);
     for (const route of ADMIN_ROUTES) {
@@ -100,7 +87,6 @@ describe('Sidebar', () => {
 
   it('keeps leadership-only routes away from a plain SAM', () => {
     renderFor('SAM');
-    expandAllGroups();
     const hrefs = navHrefs();
     // Still has their daily work…
     expect(hrefs).toEqual(
@@ -123,7 +109,6 @@ describe('Sidebar', () => {
 
   it('gives a SAM_HEAD the leadership views but not the integration log', () => {
     renderFor('SAM_HEAD');
-    expandAllGroups();
     const hrefs = navHrefs();
     expect(hrefs).toEqual(
       expect.arrayContaining(['/team-performance', '/geography', '/meeting-summary', '/users']),
@@ -133,7 +118,6 @@ describe('Sidebar', () => {
 
   it('never renders a group heading with nothing under it', () => {
     renderFor('SAM');
-    expandAllGroups();
     const groups = firstRail().querySelectorAll('[data-nav-group]');
     expect(groups.length).toBeGreaterThan(0);
     for (const group of groups) {
@@ -153,7 +137,6 @@ describe('Sidebar', () => {
         initialCollapsed={false}
       />,
     );
-    expandAllGroups();
     const hrefs = Array.from(firstRail().querySelectorAll('nav a')).map((a) =>
       a.getAttribute('href'),
     );
@@ -172,80 +155,20 @@ describe('Sidebar', () => {
       .toBeGreaterThan(0);
   });
 
-  it('labels its groups when expanded', () => {
+  it('shows every link it is allowed to, with no clicks needed', () => {
+    renderFor('ADMIN');
+    const rail = firstRail();
+    // Nothing is behind a disclosure — a link the role can reach is visible.
+    for (const name of [/zones & cities/i, /transactions/i, /audit log/i, /my leads/i]) {
+      expect(within(rail).getByRole('link', { name })).toBeInTheDocument();
+    }
+  });
+
+  it('labels its groups', () => {
     renderFor('ADMIN');
     const headings = Array.from(firstRail().querySelectorAll('[data-nav-group-label]')).map(
       (el) => el.textContent,
     );
     expect(headings).toEqual(expect.arrayContaining(['Customers', 'Commercial']));
-  });
-});
-
-/**
- * The collapsing itself. The point of the accordion is that you see the
- * handful of links you need, not all nineteen — but nothing you need may
- * become unreachable or invisible because of it.
- */
-describe('Sidebar group collapsing', () => {
-  it('opens only the group holding the current page', () => {
-    renderFor('ADMIN'); // usePathname is mocked to '/geography'
-    const rail = firstRail();
-
-    // Zones & Cities lives in Customers, so that group is open…
-    expect(within(rail).getByRole('link', { name: /zones & cities/i })).toBeInTheDocument();
-    expect(within(rail).getByRole('link', { name: /probable churn/i })).toBeInTheDocument();
-    // …and every other group is shut.
-    expect(within(rail).queryByRole('link', { name: /transactions/i })).toBeNull();
-    expect(within(rail).queryByRole('link', { name: /audit log/i })).toBeNull();
-  });
-
-  it('keeps Home reachable without belonging to any group', () => {
-    renderFor('ADMIN');
-    expect(within(firstRail()).getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/');
-  });
-
-  it('reveals a group when its header is clicked, and hides it again', () => {
-    renderFor('ADMIN');
-    const rail = firstRail();
-    const toggle = within(rail).getByRole('button', { name: /commercial/i });
-
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(within(rail).getByRole('link', { name: /transactions/i })).toBeInTheDocument();
-
-    fireEvent.click(toggle);
-    expect(within(rail).queryByRole('link', { name: /transactions/i })).toBeNull();
-  });
-
-  it('rolls pending counts up onto a shut group so work is never hidden', async () => {
-    getSidebarCountsMock.mockResolvedValue({
-      approvals: 4,
-      probableChurn: 0,
-      unassignedCustomers: 0,
-    });
-    renderFor('ADMIN');
-    const rail = firstRail();
-
-    // Approvals is inside Commercial, which is shut on /geography.
-    const toggle = await within(rail).findByRole('button', { name: /commercial.*4 pending/i });
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-  });
-
-  it('drops the rolled-up badge once the group is open and the item shows its own', async () => {
-    getSidebarCountsMock.mockResolvedValue({
-      approvals: 4,
-      probableChurn: 0,
-      unassignedCustomers: 0,
-    });
-    renderFor('ADMIN');
-    const rail = firstRail();
-    const toggle = await within(rail).findByRole('button', { name: /commercial.*4 pending/i });
-
-    fireEvent.click(toggle);
-    expect(within(rail).getByRole('button', { name: /^commercial$/i })).toBeInTheDocument();
-    expect(
-      within(rail).getByRole('link', { name: /approvals \(4 pending\)/i }),
-    ).toBeInTheDocument();
   });
 });

@@ -16,7 +16,6 @@ import {
   UserCog,
   Lock,
   LogOut,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Plug,
@@ -61,9 +60,11 @@ type NavItem = {
  * Nav grouped by the job you came to do, not by permission level.
  *
  * Nineteen flat links was more list than anyone reads — the eye has to scan
- * every label to find one. Six short groups means it scans headings instead,
- * and only the group you are actually in is open (see `openGroups` below),
- * so the rail shows roughly ten rows rather than twenty-five.
+ * every label to find one. Six short groups means it scans headings instead.
+ * Everything stays visible: collapsing the groups was tried and cost a click
+ * on every navigation, which is a worse trade than a slightly longer rail.
+ * Density is handled with spacing and contrast instead (see the heading and
+ * item classes below).
  * A group whose items are all filtered out by role or feature flag is
  * dropped entirely, so nobody sees an empty heading: a plain SAM gets no
  * "Admin" group at all rather than a bare one.
@@ -308,36 +309,6 @@ export function Sidebar({
 
   const navGroups = visibleGroups(user.role);
 
-  /**
-   * Which groups are open.
-   *
-   * The baseline is "only the group you are in" — that is what keeps the
-   * rail short. A click on a heading overrides that for this visit, and the
-   * overrides are dropped on navigation, so the rail re-settles to the one
-   * relevant group instead of accumulating everything the user ever opened.
-   * Clicking an item inside a group you opened is safe: once you land there
-   * it IS the active group, so it stays open on its own.
-   */
-  const activeGroupLabel = navGroups.find((g) =>
-    g.items.some((item) => isActive(pathname, item.href)),
-  )?.label;
-  const [groupOverrides, setGroupOverrides] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    setGroupOverrides({});
-  }, [pathname]);
-
-  const isGroupOpen = (label: string) => groupOverrides[label] ?? label === activeGroupLabel;
-  const toggleGroup = (label: string) =>
-    setGroupOverrides((prev) => ({ ...prev, [label]: !(prev[label] ?? label === activeGroupLabel) }));
-
-  /** Pending work inside a group, so shutting it can never hide a queue. */
-  const groupCount = (group: NavGroup) =>
-    group.items.reduce((sum, item) => {
-      const field = COUNT_FIELD_BY_HREF[item.href];
-      return sum + (field ? counts[field] : 0);
-    }, 0);
-
   async function onLogout() {
     try {
       await logout();
@@ -356,9 +327,6 @@ export function Sidebar({
     collapsed,
     navGroups,
     counts,
-    isGroupOpen,
-    toggleGroup,
-    groupCount,
     onToggleCollapsed: toggleCollapsed,
     onCloseMobile: () => setMobileOpen(false),
     onLogout,
@@ -406,9 +374,6 @@ function Rail({
   collapsed,
   navGroups,
   counts,
-  isGroupOpen,
-  toggleGroup,
-  groupCount,
   onToggleCollapsed,
   onCloseMobile,
   onLogout,
@@ -418,9 +383,6 @@ function Rail({
   collapsed: boolean;
   navGroups: NavGroup[];
   counts: SidebarCounts;
-  isGroupOpen: (label: string) => boolean;
-  toggleGroup: (label: string) => void;
-  groupCount: (group: NavGroup) => number;
   onToggleCollapsed: () => void;
   onCloseMobile: () => void;
   onLogout: () => void;
@@ -477,58 +439,28 @@ function Rail({
           <div
             key={group.label ?? `group-${groupIndex}`}
             data-nav-group={group.label ?? 'main'}
-            className={groupIndex > 0 ? 'mt-1' : ''}
           >
             {group.label &&
               (showLabels ? (
-                (() => {
-                  const open = isGroupOpen(group.label);
-                  const pending = groupCount(group);
-                  return (
-                    <button
-                      type="button"
-                      data-nav-group-toggle
-                      aria-expanded={open}
-                      // A shut group still announces its queue, so a
-                      // screen-reader user is told about pending work
-                      // without having to open every group to find it.
-                      aria-label={
-                        !open && pending > 0
-                          ? `${group.label} (${pending} pending)`
-                          : group.label
-                      }
-                      onClick={() => toggleGroup(group.label!)}
-                      className={`w-full flex items-center gap-1.5 ${itemPadX} pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${
-                        open ? 'text-gray-400' : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      <ChevronDown
-                        aria-hidden="true"
-                        className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
-                          open ? '' : '-rotate-90'
-                        }`}
-                      />
-                      <span data-nav-group-label>{group.label}</span>
-                      {/* Only while shut — once open each item shows its own. */}
-                      {!open && pending > 0 && (
-                        <span
-                          aria-hidden="true"
-                          className="ml-auto min-w-[18px] h-[18px] px-1.5 rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold leading-none flex items-center justify-center"
-                        >
-                          {pending > 99 ? '99+' : pending}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })()
+                /*
+                 * The heading IS the separator. Generous space above it and
+                 * very little below binds each label to the items under it
+                 * (proximity does the grouping, so no divider rules are
+                 * needed) and that top gap is what stops twenty-five rows
+                 * reading as one undifferentiated column.
+                 */
+                <p
+                  data-nav-group-label
+                  className="px-4 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-[0.11em] text-gray-400 select-none"
+                >
+                  {group.label}
+                </p>
               ) : (
                 // Collapsed rail has no room for a heading, so the grouping
                 // survives as a hairline between icon clusters.
-                <div className="mx-3 my-2 border-t border-gray-100" aria-hidden="true" />
+                <div className="mx-3 my-2.5 border-t border-gray-100" aria-hidden="true" />
               ))}
-            {/* Collapsing applies to the labelled, expanded rail only. The
-                icon-only rail has no headings to click, so it stays flat. */}
-            <ul hidden={Boolean(group.label) && showLabels && !isGroupOpen(group.label!)}>
+            <ul>
               {group.items.map((item) => {
                 const active = isActive(pathname, item.href);
                 const Icon = item.icon;
@@ -541,15 +473,29 @@ function Rail({
                       href={item.href}
                       title={mode === 'collapsed' ? item.label : undefined}
                       aria-label={count > 0 ? `${item.label} (${count} pending)` : item.label}
-                      className={`flex items-center gap-3 ${itemPadX} py-1.5 text-sm border-l-4 transition-colors ${
+                      /*
+                       * Inactive rows are deliberately quiet — gray-600 text
+                       * over gray-400 icons. When every row carries the same
+                       * weight the list reads as noise; letting the ~18
+                       * you are NOT on recede leaves exactly one strong
+                       * element on screen, which is where you are.
+                       */
+                      className={`group/nav flex items-center gap-3 ${itemPadX} py-1.5 text-sm border-l-4 transition-colors ${
                         active
                           ? 'bg-brand-50 text-brand-700 font-semibold border-brand-600'
-                          : 'text-gray-700 hover:bg-gray-50 border-transparent'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-transparent'
                       }`}
                       aria-current={active ? 'page' : undefined}
                     >
                       <span className="relative shrink-0">
-                        <Icon className="w-4 h-4" aria-hidden="true" />
+                        <Icon
+                          className={`w-4 h-4 transition-colors ${
+                            active
+                              ? 'text-brand-600'
+                              : 'text-gray-400 group-hover/nav:text-gray-600'
+                          }`}
+                          aria-hidden="true"
+                        />
                         {/* Collapsed rail: a compact badge over the icon. */}
                         {count > 0 && !showLabels && (
                           <span
