@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import {
   Home,
   BarChart3,
@@ -52,44 +52,154 @@ type NavItem = {
   href: string;
   icon: IconType;
   roles?: AuthUser['role'][];
+  /** Feature-flagged items: false removes the item (and maybe its group). */
+  enabled?: boolean;
 };
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Home', href: '/', icon: Home },
-  { label: 'Existing Base', href: '/existing-base', icon: BarChart3 },
-  { label: 'New Base', href: '/new-base', icon: TrendingUp },
-  { label: 'Customers', href: '/customers', icon: Users },
-  { label: 'Commercial Change', href: '/commercial-change', icon: ClipboardList },
-  { label: 'Transactions', href: '/transactions', icon: ListChecks },
-  { label: 'Probable Churn', href: '/probable-churn', icon: ShieldAlert },
-  { label: 'Approvals', href: '/approvals', icon: ShieldCheck, roles: ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD', 'ACCOUNTS'] },
-  { label: 'Meetings & MoM', href: '/meetings', icon: CalendarDays },
-  { label: 'Team Performance', href: '/team-performance', icon: Activity, roles: ['ADMIN', 'SAM_HEAD'] },
-  { label: 'Meeting Summary', href: '/meeting-summary', icon: CalendarCheck, roles: ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD'] },
-  { label: 'Zones & Cities', href: '/geography', icon: Map, roles: ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD'] },
-  { label: 'Feedbacks', href: '/feedbacks', icon: MessageSquareText, roles: ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD'] },
-  { label: 'Excel Import', href: '/excel-import', icon: FileDown },
-  { label: 'Users', href: '/users', icon: UserCog, roles: ['ADMIN', 'SAM_HEAD'] },
-  { label: 'Audit Log', href: '/audit', icon: History, roles: ['ADMIN', 'SAM_HEAD'] },
-  { label: 'Integration Log', href: '/integrations', icon: Plug, roles: ['ADMIN'] },
+/**
+ * Nav grouped by the job you came to do, not by permission level.
+ *
+ * Nineteen flat links was more list than anyone reads — the eye has to scan
+ * every label to find one. Six short groups means it scans headings instead.
+ * A group whose items are all filtered out by role or feature flag is
+ * dropped entirely, so nobody sees an empty heading: a plain SAM gets no
+ * "Admin" group at all rather than a bare one.
+ *
+ * Excel Import sits under Customers rather than Admin because it is not an
+ * admin tool — every role can reach it, and it now writes the zone and
+ * industry that Zones & Cities reports on, so they belong next to each other.
+ */
+type NavGroup = { label?: string; items: NavItem[] };
+
+const NAV_GROUPS: NavGroup[] = [
+  // Ungrouped lead-in — Home needs no heading above it.
+  { items: [{ label: 'Home', href: '/', icon: Home }] },
+  {
+    label: 'Overview',
+    items: [
+      { label: 'Existing Base', href: '/existing-base', icon: BarChart3 },
+      { label: 'New Base', href: '/new-base', icon: TrendingUp },
+      { label: 'Team Performance', href: '/team-performance', icon: Activity, roles: ['ADMIN', 'SAM_HEAD'] },
+    ],
+  },
+  {
+    label: 'Customers',
+    items: [
+      { label: 'Customers', href: '/customers', icon: Users },
+      { label: 'Zones & Cities', href: '/geography', icon: Map, roles: ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD'] },
+      { label: 'Probable Churn', href: '/probable-churn', icon: ShieldAlert },
+      { label: 'Excel Import', href: '/excel-import', icon: FileDown },
+    ],
+  },
+  {
+    label: 'Commercial',
+    items: [
+      { label: 'Commercial Change', href: '/commercial-change', icon: ClipboardList },
+      { label: 'Transactions', href: '/transactions', icon: ListChecks },
+      { label: 'Approvals', href: '/approvals', icon: ShieldCheck, roles: ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD', 'ACCOUNTS'] },
+    ],
+  },
+  {
+    label: 'Meetings',
+    items: [
+      { label: 'Meetings & MoM', href: '/meetings', icon: CalendarDays },
+      { label: 'Meeting Summary', href: '/meeting-summary', icon: CalendarCheck, roles: ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD'] },
+      { label: 'Feedbacks', href: '/feedbacks', icon: MessageSquareText, roles: ['ADMIN', 'SUPER_ADMIN_2', 'SAM_HEAD'] },
+    ],
+  },
+  {
+    label: 'Leads',
+    items: [
+      // Either destination being on is enough — the page itself offers
+      // whichever of ILL / MSP is enabled.
+      {
+        label: 'Create Lead',
+        href: '/create-lead',
+        icon: UserPlus,
+        enabled: env.leadDispatchEnabled || env.mspLeadsEnabled,
+      },
+      {
+        label: 'My Leads',
+        href: '/my-leads',
+        icon: ListChecks,
+        enabled: env.leadDispatchEnabled || env.mspLeadsEnabled,
+      },
+    ],
+  },
+  {
+    label: 'Admin',
+    items: [
+      { label: 'Users', href: '/users', icon: UserCog, roles: ['ADMIN', 'SAM_HEAD'] },
+      { label: 'Audit Log', href: '/audit', icon: History, roles: ['ADMIN', 'SAM_HEAD'] },
+      { label: 'Integration Log', href: '/integrations', icon: Plug, roles: ['ADMIN'] },
+    ],
+  },
 ];
 
-const FLAGGED_NAV_ITEMS: Array<NavItem & { enabled: boolean }> = [
-  // Either destination being on is enough — the page itself offers whichever
-  // of ILL / MSP is enabled.
-  {
-    label: 'Create Lead',
-    href: '/create-lead',
-    icon: UserPlus,
-    enabled: env.leadDispatchEnabled || env.mspLeadsEnabled,
-  },
-  {
-    label: 'My Leads',
-    href: '/my-leads',
-    icon: ListChecks,
-    enabled: env.leadDispatchEnabled || env.mspLeadsEnabled,
-  },
-];
+/** Drop items this role or feature flag hides, then drop groups left empty. */
+function visibleGroups(role: AuthUser['role']): NavGroup[] {
+  return NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter(
+      (item) => item.enabled !== false && (!item.roles || item.roles.includes(role)),
+    ),
+  })).filter((group) => group.items.length > 0);
+}
+
+/**
+ * The nav list, with a fade at whichever edge has more content past it.
+ *
+ * Nineteen items don't fit a laptop viewport even grouped, so this region
+ * scrolls while the logo and account actions stay pinned. Without the fade
+ * a list cut off mid-group reads as "those pages are gone" rather than
+ * "scroll down" — the gradient is the only cue that there is more.
+ */
+function ScrollableNav({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLElement | null>(null);
+  const [edges, setEdges] = useState({ top: false, bottom: false });
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      setEdges({
+        top: el.scrollTop > 4,
+        bottom: el.scrollTop + el.clientHeight < el.scrollHeight - 4,
+      });
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    // Guarded: jsdom (tests) has no ResizeObserver, and a missing fade is
+    // never worth throwing inside the app shell.
+    const ro =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    ro?.observe(el);
+    return () => {
+      el.removeEventListener('scroll', update);
+      ro?.disconnect();
+    };
+  }, []);
+
+  return (
+    <div className="relative flex-1 min-h-0">
+      {edges.top && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-4 z-10 bg-gradient-to-b from-white to-transparent"
+        />
+      )}
+      <nav ref={ref} className="h-full overflow-y-auto py-1">
+        {children}
+      </nav>
+      {edges.bottom && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-5 z-10 bg-gradient-to-t from-white to-transparent"
+        />
+      )}
+    </div>
+  );
+}
 
 function isActive(pathname: string, href: string): boolean {
   if (href === '/') return pathname === '/';
@@ -193,13 +303,7 @@ export function Sidebar({
     });
   }
 
-  const allItems = [
-    ...NAV_ITEMS,
-    ...FLAGGED_NAV_ITEMS.filter((item) => item.enabled).map(({ enabled: _e, ...rest }) => rest),
-  ];
-  const visibleNavItems = allItems.filter(
-    (item) => !item.roles || item.roles.includes(user.role),
-  );
+  const navGroups = visibleGroups(user.role);
 
   async function onLogout() {
     try {
@@ -220,7 +324,7 @@ export function Sidebar({
     const itemPadX = mode === 'collapsed' ? 'px-0 justify-center' : 'px-4';
     return (
       <aside
-        className={`${widthClass} shrink-0 bg-white border-r border-gray-200 flex flex-col h-screen overflow-y-auto`}
+        className={`${widthClass} shrink-0 bg-white border-r border-gray-200 flex flex-col h-screen overflow-hidden`}
       >
         <div
           className={`py-4 flex items-center border-b border-gray-100 ${
@@ -259,64 +363,87 @@ export function Sidebar({
           )}
         </div>
 
-        <nav className="flex-1 py-2">
-          <ul>
-            {visibleNavItems.map((item) => {
-              const active = isActive(pathname, item.href);
-              const Icon = item.icon;
-              const countField = COUNT_FIELD_BY_HREF[item.href];
-              const count = countField ? counts[countField] : 0;
-              const badgeLabel = count > 99 ? '99+' : String(count);
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    title={mode === 'collapsed' ? item.label : undefined}
-                    aria-label={count > 0 ? `${item.label} (${count} pending)` : item.label}
-                    className={`flex items-center gap-3 ${itemPadX} py-2.5 text-sm border-l-4 transition-colors ${
-                      active
-                        ? 'bg-brand-50 text-brand-700 font-semibold border-brand-600'
-                        : 'text-gray-700 hover:bg-gray-50 border-transparent'
-                    }`}
-                    aria-current={active ? 'page' : undefined}
+        {/* Only this region scrolls. The logo above and the account
+            actions below stay put however long the list gets. */}
+        <ScrollableNav>
+          {navGroups.map((group, groupIndex) => (
+            <div
+              key={group.label ?? `group-${groupIndex}`}
+              data-nav-group={group.label ?? 'main'}
+              className={groupIndex > 0 ? 'mt-1' : ''}
+            >
+              {group.label &&
+                (showLabels ? (
+                  <p
+                    data-nav-group-label
+                    className="px-4 pt-2.5 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 select-none"
                   >
-                    <span className="relative shrink-0">
-                      <Icon className="w-4 h-4" aria-hidden="true" />
-                      {/* Collapsed rail: a compact badge over the icon. */}
-                      {count > 0 && !showLabels && (
-                        <span
-                          aria-hidden="true"
-                          className="absolute -top-2 -right-2 min-w-[15px] h-[15px] px-0.5 rounded-full bg-brand-600 text-white text-[9px] font-bold leading-none flex items-center justify-center ring-2 ring-white"
-                        >
-                          {badgeLabel}
-                        </span>
-                      )}
-                    </span>
-                    {showLabels && <span className="truncate">{item.label}</span>}
-                    {/* Expanded rail: a pill pushed to the right edge. */}
-                    {count > 0 && showLabels && (
-                      <span
-                        aria-hidden="true"
-                        className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold leading-none flex items-center justify-center ${
-                          active ? 'bg-brand-600 text-white' : 'bg-brand-100 text-brand-700'
+                    {group.label}
+                  </p>
+                ) : (
+                  // Collapsed rail has no room for a heading, so the grouping
+                  // survives as a hairline between icon clusters.
+                  <div className="mx-3 my-2 border-t border-gray-100" aria-hidden="true" />
+                ))}
+              <ul>
+                {group.items.map((item) => {
+                  const active = isActive(pathname, item.href);
+                  const Icon = item.icon;
+                  const countField = COUNT_FIELD_BY_HREF[item.href];
+                  const count = countField ? counts[countField] : 0;
+                  const badgeLabel = count > 99 ? '99+' : String(count);
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        title={mode === 'collapsed' ? item.label : undefined}
+                        aria-label={count > 0 ? `${item.label} (${count} pending)` : item.label}
+                        className={`flex items-center gap-3 ${itemPadX} py-1.5 text-sm border-l-4 transition-colors ${
+                          active
+                            ? 'bg-brand-50 text-brand-700 font-semibold border-brand-600'
+                            : 'text-gray-700 hover:bg-gray-50 border-transparent'
                         }`}
+                        aria-current={active ? 'page' : undefined}
                       >
-                        {badgeLabel}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+                        <span className="relative shrink-0">
+                          <Icon className="w-4 h-4" aria-hidden="true" />
+                          {/* Collapsed rail: a compact badge over the icon. */}
+                          {count > 0 && !showLabels && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute -top-2 -right-2 min-w-[15px] h-[15px] px-0.5 rounded-full bg-brand-600 text-white text-[9px] font-bold leading-none flex items-center justify-center ring-2 ring-white"
+                            >
+                              {badgeLabel}
+                            </span>
+                          )}
+                        </span>
+                        {showLabels && <span className="truncate">{item.label}</span>}
+                        {/* Expanded rail: a pill pushed to the right edge. */}
+                        {count > 0 && showLabels && (
+                          <span
+                            aria-hidden="true"
+                            className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold leading-none flex items-center justify-center ${
+                              active ? 'bg-brand-600 text-white' : 'bg-brand-100 text-brand-700'
+                            }`}
+                          >
+                            {badgeLabel}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </ScrollableNav>
 
-        <div className="mt-auto border-t border-gray-100 py-2">
+        <div className="border-t border-gray-100 py-2">
           <Link
             href="/change-password"
             title={mode === 'collapsed' ? 'Change password' : undefined}
             aria-label="Change password"
-            className={`flex items-center gap-3 ${itemPadX} py-2.5 text-sm border-l-4 transition-colors ${
+            className={`flex items-center gap-3 ${itemPadX} py-2 text-sm border-l-4 transition-colors ${
               isActive(pathname, '/change-password')
                 ? 'bg-brand-50 text-brand-700 font-semibold border-brand-600'
                 : 'text-gray-700 hover:bg-gray-50 border-transparent'
@@ -330,7 +457,7 @@ export function Sidebar({
             onClick={onLogout}
             title={mode === 'collapsed' ? 'Logout' : undefined}
             aria-label="Logout"
-            className={`w-full flex items-center gap-3 ${itemPadX} py-2.5 text-sm text-gray-700 hover:bg-gray-50 border-l-4 border-transparent transition-colors`}
+            className={`w-full flex items-center gap-3 ${itemPadX} py-2 text-sm text-gray-700 hover:bg-gray-50 border-l-4 border-transparent transition-colors`}
           >
             <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
             {showLabels && <span>Logout</span>}
